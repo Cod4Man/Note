@@ -258,3 +258,4 @@ promiseFS('./txt/a.txt')
 - import想要自定义名称，有两种方式
   - export default ，则import可以直接命新名。但是export default只能导出一个对象
   - import * as xxx from 也可以
+
