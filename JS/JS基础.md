@@ -259,3 +259,24 @@ promiseFS('./txt/a.txt')
   - export default ，则import可以直接命新名。但是export default只能导出一个对象
   - import * as xxx from 也可以
 
+## 10.  箭头函数  =>（ES6）
+
+- 和lambda大概一致，如果方法内部只有一行代码，则可以省略大括号，然后js会默认补上return
+
+## 11. this
+
+- 会一层一层作用域往外找到那个对象
+
+```js
+const obj = {
+    func1() {
+        setTimeOut(function(){// 内部的this为window，因为fuction会有个默认传参window? function是一个?
+        },1000)
+        setTimeOut(()=> {// 此时的this也就是func1的this，所以是obj对象
+           } , 1000)
+    }
+}
+```
+
+
+

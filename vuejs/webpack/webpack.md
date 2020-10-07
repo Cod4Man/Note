@@ -1,3 +1,5 @@
+
+
 # webpack
 
 ## 1.定义： 前端模块化工作，并且可以做打包 
@@ -308,5 +310,66 @@ module.exports = {
     } 
 }
 
+```
+
+## 4.7 webpack-dev-server开发时服务部署
+
+- webpack提供了一个可选的本地服务器，这个服务器是基于node的express框架
+
+  可以做到热部署
+
+```js
+shell: npm install --save-dev webpack-dev-server
+
+=== webpack.config.js ===
+module.exports = {
+   devServer: {
+       // 为哪一个文件夹提供本地服务，默认选根目录
+      contentBase: './dist',
+       // 页面实时刷新
+      inline: true
+       // port端口号
+       // hstoryApiFalback 在SPA页面中，依赖HTML的history模式
+    }
+}
+
+
+=== package.json ===
+{
+   "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "webpack",
+     // --open为自动打开网页
+    "dev": "webpack-dev-server --open"
+  }  
+}
+```
+
+
+
+## 4.8 webpack配置文件分离:webpack-merge 
+
+- config.js
+
+```js
+let uglifyjsWebpackPlugin = require('uglifyjs-webpack-plugin')
+const webpackMerge = require('webpack-merge')
+const baseConfig = require('./base.config')
+
+module.exports = webpackMerge(baseConfig, {
+    plugins: [
+        new uglifyjsWebpackPlugin()
+    ]
+})
+```
+
+- packjson.js
+
+```js
+"scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "webpack --config build/pro.config.js",
+    "dev": "webpack-dev-server --open --config build/dev.config.js"
+  }
 ```
 
