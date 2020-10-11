@@ -280,3 +280,12 @@ const obj = {
 
 
 
+## 12. 改变url不发送请求(前端路由关键)
+
+- location.hash = 'baidu'
+- history.pushState({}, '', 'baidu')
+- history.back()上一个url   《===》 history.go(-1)
+  - history.go(-n) 返回第前n个url，正数则前进n个
+  - history.forward() 《===》history.go(1)
+- history.replaceState({}, '', 'baidu')
+- 
