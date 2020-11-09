@@ -121,7 +121,9 @@ methods: {
 
 ## 4. 动态路由
 
-### 4.1 router配置：用`:` ＋变量名
+### 4.1 
+
+### - router配置：用`:` ＋变量名
 
  ```js
   {
@@ -130,10 +132,42 @@ methods: {
       }
  ```
 
-### 4.2 动态传参: $route对象为当前活跃的路由(active)
+### - 动态传参: $route对象为当前活跃的路由(active)
 ```html
 <router-link to="/home/zhangsan" tag="button">首页带id, id为：{{$route.params.id}}</router-link>
 ```
+### 4.2 query: 参数会拼接到url上，就像get请求一样
+
+```html
+<router-link :to="{path:'/profile', query:{name: 'zhangsan', age: '15'}}" tag="button" >我的</router-link>
+
+<template>
+    <div>
+        <h2>这是Profile组件</h2>
+        <h2>{{$route.query.name}}</h2>
+        <h2>{{$route.query.age}}</h2>
+    </div>
+</template>
+
+
+```
+
+- 动态传参
+
+```js
+goProfile() {
+    this.$router.push({
+        path: '/profile',
+        query: {
+            name: 'zhangsan',
+            age: 15
+        }
+    })
+}
+```
+
+
+
 ## 5. 路由懒加载
 
 - 打包构建项目，所有东西都放在一个js文件中，每次请求都需要加载(大部分是不想管的东西)，用户体验差
@@ -151,3 +185,126 @@ const Home = () => import('../components/Home.vue')
 const About = () => import('../components/About.vue')
 ```
 
+## 6. 路由的嵌套
+
+- router配置：children
+
+```js
+// 配置router
+const routes = [
+    {
+        path: '',
+        redirect: '/home' // 重定向
+    },
+    {
+        path: '/home',
+        component: Home,
+        children: [
+            {
+                path: '',
+                redirect: 'news' // 不加/
+            },
+            {
+                path: 'news',
+                component: HomeNews
+            },
+            {
+                path: 'music',
+                component: HomeMusic
+            }
+        ]
+    },
+    {
+        path: '/about',
+        component: About
+    },
+    {
+        path: '/home/:id',
+        component: Home
+    }
+
+]
+```
+
+- 在路由组件中引入路由
+
+```js
+<template>
+    <div>
+        <h2>这个是Home组件</h2>
+        <router-link to="/home/news">新闻</router-link>
+        <router-link to="/home/music">音乐</router-link>
+        <router-view></router-view>
+    </div>
+</template>
+
+<script>
+    export default {
+        name: "Home"
+    }
+</script>
+```
+
+## 7. 导航守卫
+
+- 在路由中定义meta元数据，则可以通过router.beforeEach函数拿到，
+
+  这里就可以用来动态修改各页面的参数，如title
+
+```js
+{
+    path: '/about',
+        component: About,
+            meta: {
+                title: '关于About'
+            }
+},
+
+router.beforeEach((to, from, next) => {
+    console.log(to);
+    document.title = to.matched[0].meta.title
+    next() // 注意next(), 和node那个类似
+})
+```
+
+- 前置守卫：router.beforeEach((to, from, next)=>}, 需主动调用next()
+- 后置勾子：router.afterEach((to,from)=>) , 无需主动调用next()
+- 导航守卫也称作全局首位，都可以用。对应的还有路由独享的守卫，组件内的首位
+
+## 8. Keep-Alive: 保持活着(以免被频繁销毁/创建)
+
+- 用法
+
+```html
+// 包裹着router-view
+<keep-alive>
+	<router-view></router-view>
+</keep-alive>
+/*  这些方法都写在router-component里面*/
+// 使用声明周期函数：
+activated() {
+	// 该路由活跃
+	// 读取缓存
+	this.$router.path = this.path
+},
+deactivated() {
+	// 该路由不活跃
+},
+beforeRouteLeave((to, from ,next) => {
+	// 缓存path
+	this.path = this.$router.path
+	next()
+})
+```
+
+- activated和deactivated生命周期函数在有`<keep-alive/>`标签时才生效
+
+- beforeRouteLeave路由不活跃时调用
+
+- 排除router-view里面的某些路由keepAlive：exclude，支持正则匹配组件
+
+  `<keep-alive exclude="ComponentName1,ComponentName2"></keep-alive>`
+
+- 包含router-view里面的某些路由keepAlive：include，支持正则匹配组件
+
+  `<keep-alive include="ComponentName1,ComponentName2"></keep-alive>`

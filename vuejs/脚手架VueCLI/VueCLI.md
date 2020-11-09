@@ -29,7 +29,7 @@ vue create 项目名称
 
   `runtime-only:render->virDOM->UI `
 
-​	 runtime-only性能更高，代码量更少
+		 runtime-only性能更高，代码量更少
 
 
 
@@ -44,6 +44,30 @@ vue create 项目名称
 
 - 在项目根目录增加一个vue.config.js（不可改名）
 - 然后`module.exports={}`
+
+#### 4.1.1 路径别名
+
+```js
+// cli3 会和配置文件合并
+module.exports = {
+    configureWebpack: {
+        resolve: {
+            // extensions: [], // 省略后缀
+            // 别名
+            alias: {
+                'assets': '@/assets',
+                'common': '@/common',
+                'components': '@/components',
+                'network': '@/network'
+            }
+        }
+    }
+}
+```
+
+
+
+
 
 ## 5. vue ui 可视化脚手架
 

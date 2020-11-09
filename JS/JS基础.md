@@ -1,3 +1,5 @@
+
+
 # JS基础
 
 ## 1. 回调函数
@@ -289,3 +291,114 @@ const obj = {
   - history.forward() 《===》history.go(1)
 - history.replaceState({}, '', 'baidu')
 - 
+
+## 13. Promise: 转嵌套调用为链式调用
+
+- 原始写法，需要new Promise作为返回值
+
+ ```js
+  原始写法，需要new Promise作为返回值
+  new Promise((resolve, reject) => {
+      console.log('data1 log')
+      setTimeout(() => {
+          resolve('first data')
+          // reject('err')
+      }, 1000)
+  }).then(data => {
+      let data2 = data + ' 02'
+      console.log('data2 log', data2)
+      return new Promise(resolve => {
+         resolve(data2)
+      })
+  }).then(data => {
+      let data3 = data + ' 03';
+      console.log('data3 log', data3);
+  }).catch(err => {
+      console.log(err);
+  })
+ ```
+
+- 进阶写法，需要Promise.resolve(作为返回值
+
+```js
+new Promise((resolve, reject) => {
+    console.log('data1 log')
+    setTimeout(() => {
+        resolve('first data')
+        // reject('err')
+    }, 1000)
+}).then(data => {
+    let data2 = data + ' 02'
+    console.log('data2 log', data2)
+    return Promise.resolve(data2)
+}).then(data => {
+    let data3 = data + ' 03';
+    console.log('data3 log', data3);
+}).catch(err => {
+    console.log(err);
+})
+```
+
+- 终极写法，直接return data，默认调用resolve
+
+```js
+new Promise((resolve, reject) => {
+    console.log('data1 log')
+    setTimeout(() => {
+        resolve('first data')
+        // reject('err')
+    }, 1000)
+}).then(data => {
+    let data2 = data + ' 02'
+    console.log('data2 log', data2)
+    return data2
+}).then(data => {
+    let data3 = data + ' 03';
+    console.log('data3 log', data3);
+}).catch(err => {
+    console.log(err);
+})
+```
+
+- 异常reject
+
+```js
+// reject会终端链式调用，类似于抛出了异常，后续不会再执行。
+// 因此，也可不使用reject返回，而是直接throw异常
+new Promise((resolve, reject) => {
+    console.log('data1 log')
+    setTimeout(() => {
+        reject('err')
+
+    }, 1000)
+}).then(data => {
+    let data2 = data + ' 02'
+    console.log('data2 log', data2)
+    // throw 'throw error msg'
+    // return data2
+}).then(data => {
+    let data3 = data + ' 03';
+    console.log('data3 log', data3);
+}).catch(err => {
+    console.log(err);
+})
+```
+
+## 14. Promise.all 多个promise结果返回才会进入then方法
+
+```js
+Promise.all([
+    new Promise((res, rej) => {
+        setTimeout(() => {
+            res('request 1\'s result')
+        }, 1000)
+    }),
+    new Promise((res, rej) => {
+        res('request 2\'s result')
+    }, 600)
+]).then(results => {
+    // 返回的结果是数组，分别为Promise数组的返回值
+    console.log(results);
+})
+```
+
