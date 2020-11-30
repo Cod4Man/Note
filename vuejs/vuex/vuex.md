@@ -87,7 +87,7 @@ export default {
 
 ```
 
-## 2.3 store.mutations 
+### 2.4 store.mutations 
 
 - mutation响应式的前提：
 
@@ -213,7 +213,7 @@ const store = new Vuex.Store({
 
 
 
-## 2.4 store.getters
+### 2.5 store.getters
 
 - 当共享变量需要做一些操作才能返回实际值时(如+-*/)，可以定义再getters里面(类似vue实例的computed)
 
@@ -267,7 +267,7 @@ const store = new Vuex.Store({
 
 
 
-## 2.5 store.action
+### 2.6 store.action
 
 - 通常情况，vuex要求我们的mutation里面方法必须是同步方法，因为我们使用devtools进行调试时，devtools不能很好的追踪异步操作是什么时候完成的。
 - 如果非要异步操作，可以使用Action来进行中转Mutation
@@ -293,7 +293,7 @@ clickAddAsync() {
       },
 ```
 
-## 2.6 store.module
+### 2.7 store.module
 
 - 因为所有状态都放在一起就显的很臃肿，因此vuex提供了module的概念，每个module都可以有自己的mutation/action/getters/state
 - 调用的方式和原来一样，并且也不需要加上模块名，但是需要和主方法中的方法名区分开(相当于merge)
@@ -301,6 +301,53 @@ clickAddAsync() {
 
 
 
-## 2.7 vuex目录结构
+### 2.8 vuex目录结构
 
 ![1603723834701](E:\SoftwareNote\vuejs\img\vuex目录结构.png)
+
+### 2.9 mapGetters: 
+
+- 将store.getters暴露给组件直接使用,无需再$store.getters.xxx
+
+```js
+import mapGetters from 'vuex'
+
+new Vue({
+    el: '#app',
+    conputered: {
+        // 方法一
+        //...mapGetters(['large20Length', 'large20'])
+        // 方法二 ： 重命名
+        ...mapGetters({
+            length: 'large20Length',
+            c20: 'large20'
+        })
+    }
+})
+
+// 然后便可在该Vue实例中使用length等方法
+```
+
+
+
+
+
+## 3. 类型Vuex的功能：事件总线$bus
+
+组件之间层次过多，使用父子传输很不方便，可以将变量发送到一个公共的地方进行管理
+
+#### 3.1 在Vue原型中添加一个$bus
+
+- Vue.prototype.$bus = new Vue(),  因为vue实例可以发送事件\$emit()
+
+#### 3.2 共享数据方，发送事件
+
+- this.$bus.\$emit('imgLoaded')
+
+#### 3.3 数据获取方，监听事件
+
+- this.$bus.\$on('imgLoaded', () => {this.$refs.scroll.refresh()})
+
+#### 3.4 取消监听
+
+- this.$bus.\$off('imgLoaded')

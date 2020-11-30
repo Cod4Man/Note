@@ -187,10 +187,37 @@ docker build -t mytomcat8.5:0.0.1 .
 
 - dockerfile配置
 
-![1605453626041](E:\SoftwareNote\Linux\docker\images\idea_dockerfile.png) 	- dockerfile配置
+	[1605453626041](E:\SoftwareNote\Linux\docker\images\idea_dockerfile.png) 	- dockerfile配置
 
 ![1605453661673](E:\SoftwareNote\Linux\docker\images\idea_dockerfile_edit.png)
 
 - 可视化docker参数
 
 ![1605453774572](E:\SoftwareNote\Linux\docker\images\idea_可视化docker数据.png)
+
+## 7. Docker暴漏端口
+
+### 7.1 编辑docker.service文件 
+
+```shell
+vim /usr/lib/systemd/system/docker.service
+
+在ExecStart=/usr/bin/dockerd 后插入 -H tcp://0.0.0.0:2375 -H unix://var/run/docker.sock
+```
+
+### 7.2 重启虚拟机、重启docker 
+
+```shell
+systemctl daemon-reload //重启虚拟机
+systemctl restart docker //重启docker
+```
+
+### 7.3 检查
+
+```shell
+可选如下命令：
+systemctl status docker //查看docker状态
+netstat -tulp //查看所有运行端口号
+netstat -tnlp | grep:2375 //查看2375端口号状态
+```
+
