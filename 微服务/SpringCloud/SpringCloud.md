@@ -808,3 +808,171 @@ feign:
 - bus通知过程图
 
   ![1608995629898](E:\SoftwareNote\微服务\SpringCloud\img\bus通知过程图.png)
+
+### 4.8 消息驱动(SpringCloudStream) 
+
+#### 4.8.1 定义
+
+- 屏蔽底层消息中间件的差异，降低切换版本，统一消息的编程模型
+
+- 官方定义SCS是一个构建消息驱动微服务的框架。
+
+  应用程序通过inputs或outputs来与SpringCloudStream中binder对象交互。通过我们配置来binding(绑定)，而SpringCloudStream的binder对象负责与消息中间件交互。因此，开发人员只需搞清楚如何与SpringCLoudStream交互就可以方便使用消息驱动的方式。
+
+  通过使用Spring Integration来连接消息代理中间件以实现消息事件驱动。SpringCloudStream为一些供应商的消息中间件产品提供了个性化的自动化配置实现，引用了发布-订阅/消费组/分区的三大核心概念。
+
+- 目前仅支持**Rabbit MQ和Kafka**
+
+#### 4.8.2 为什么用SpringCloudStream
+
+- 不同消息中间件架构上不同，如Rabbit MQ有exchange，kafka有Topic和Partitions分区
+- 不同中间件的差异对我们实际项目开发造成了一定的困扰，在使用其他一种后，后续需求需要往另一种消息中间件迁移，这是非常麻烦的，因为它和我们的系统耦合了。SpringCloudStream则能达到解耦的效果。
+
+#### 4.8.3 绑定器binder
+
+通过定义绑定器作为中间层，完美的实现了**应用程序与消息中间件细节之间的隔离**。通过向应用程序暴露统一的Channel通道，使得应用程序不需要再考虑各种不同的消息中间件实现。
+
+![1609079227585](E:\SoftwareNote\微服务\SpringCloud\img\SpringCloudStream处理架构.png)
+
+#### 4.8.4 SpringCloudStream标准流程套路
+
+![1609079362362](E:\SoftwareNote\微服务\SpringCloud\img\SpringCloudStream标准流程套路.png)
+
+- Binder：很方便的连接中间件，屏蔽差异
+- Channel：通道，是队列Queue的一种抽象，在消息通讯系统中就是实现存储和转发的媒介，通过对Channel对队列进行配置
+- Source和Sink：简单的可理解为参照对象是Spring Cloud Stream自身，从Stream发布消息就是输出，接受消息就是输入
+
+#### 4.8.5 编码API和常用注解
+
+![1609079467370](E:\SoftwareNote\微服务\SpringCloud\img\SpringCloudStream编码API和常用注解.png)
+
+#### 4.8.6 试用（RabbitMQ） 
+
+- pom： 生产服务相同
+
+```xml
+<dependency>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-starter-stream-rabbit</artifactId>
+</dependency>
+```
+
+- yml
+
+```yml
+# ### 服务端 start
+
+server:
+  port: 8801
+
+spring:
+  application:
+    name: cloud-stream-provider
+  cloud:
+    stream:
+      binders: # 在此处配置要绑定的rabbitmq的服务信息；
+        defaultRabbit: # 表示定义的名称，用于于binding整合
+          type: rabbit # 消息组件类型
+          environment: # 设置rabbitmq的相关的环境配置
+            spring:
+              rabbitmq:
+                host: 192.168.1.170
+                port: 5672
+                username: guest
+                password: guest
+      bindings: # 服务的整合处理
+        output: # 这个名字是一个通道的名称（生产端用output）
+          destination: studyExchange # 表示要使用的Exchange名称定义
+          content-type: application/json # 设置消息类型，本次为json，文本则设置“text/plain”
+          binder: defaultRabbit  # 设置要绑定的消息服务的具体设置
+
+
+# ### 生产端 end
+
+# ### 服务端  start
+server:
+  port: 8802
+
+spring:
+  application:
+    name: cloud-stream-consumer
+  cloud:
+    stream:
+      binders: # 在此处配置要绑定的rabbitmq的服务信息；
+        defaultRabbit: # 表示定义的名称，用于于binding整合
+          type: rabbit # 消息组件类型
+          environment: # 设置rabbitmq的相关的环境配置
+            spring:
+              rabbitmq:
+                host: 192.168.1.170
+                port: 5672
+                username: guest
+                password: guest
+      bindings: # 服务的整合处理
+        input: # 这个名字是一个通道的名称（服务端用input）
+          destination: studyExchange # 表示要使用的Exchange名称定义
+          content-type: application/json # 设置消息类型，本次为json，文本则设置“text/plain”
+          binder: defaultRabbit  # 设置要绑定的消息服务的具体设置
+          group: codemanA  # 分组
+eureka:
+  client: # 客户端进行Eureka注册的配置
+    service-url:
+      defaultZone: http://localhost:7001/eureka
+  instance:
+    lease-renewal-interval-in-seconds: 2 # 设置心跳的时间间隔（默认是30秒）
+    lease-expiration-duration-in-seconds: 5 # 如果现在超过了5秒的间隔（默认是90秒）
+    instance-id: receive-8802.com  # 在信息列表时显示主机名称
+    prefer-ip-address: true     # 访问的路径变为IP地址
+
+
+# ### 服务端  end
+
+```
+
+- 生产端binding: @EnableBinding(value = Source.class)
+
+```java
+@EnableBinding(value = Source.class)
+@Slf4j
+public class MessageProviderImpl implements IMessageProvider {
+
+    @Resource
+    private MessageChannel output; // 消息发送管道
+
+    @Override
+    public String send() {
+        String serial = UUID.randomUUID().toString();
+        output.send(MessageBuilder.withPayload(serial).build());
+        log.info("*****serial: "+serial);
+        return null;
+
+    }
+}
+```
+
+- 服务端binding : @EnableBinding(Sink.class)
+
+```java
+@Component
+@EnableBinding(Sink.class)
+public class ReceiveMessageListenerController {
+
+    @Value("${server.port}")
+    private String serverPort;
+
+    @StreamListener(Sink.INPUT)
+    public void input(Message<String> message) {
+        System.out.println("消费者2号，接受："+message.getPayload()+"\t port:"+serverPort);
+    }
+}
+```
+
+- 分组消费与持久化
+
+  - 分组消费：同组竞争，不同组可以重复消费
+
+    ![1609082910058](E:\SoftwareNote\微服务\SpringCloud\img\SpringCloudStream分组.png)
+
+  - 持久化：
+
+    当消费者系统异常(重启等)，生产者会将消息持久化(在这个分组中)。当服务分组改变时，服务正常后也无法接收到异常期间持久化的消息；而当服务分组没有改变，服务恢复正常后，可以重新接收到异常期间持久化的消息。
