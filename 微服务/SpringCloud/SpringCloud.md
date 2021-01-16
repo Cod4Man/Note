@@ -976,3 +976,816 @@ public class ReceiveMessageListenerController {
   - 持久化：
 
     当消费者系统异常(重启等)，生产者会将消息持久化(在这个分组中)。当服务分组改变时，服务正常后也无法接收到异常期间持久化的消息；而当服务分组没有改变，服务恢复正常后，可以重新接收到异常期间持久化的消息。
+
+### 4.9 SpringCloud Sleuth分布式请求链路追踪
+
+- 产生原因：在微服务框架中，一个由客户端发起的请求在后端系统中会经过多个不同的服务节点调用来协同产生最后的请求结果，每一个前段请求都会形成一条复杂的分布式服务调用链路，链路中的任何一环出现高延迟或错误都会引起整个请求最后的失败。
+
+- 监控平台 java -jar zipkin.jar
+
+  - 下载地址：https://dl.bintray.com/openzipkin/maven/io/zipkin/java/zipkin-server/
+  - 监控地址：http://localhost:9411/zipkin/
+
+- 调用链路(类似链表，preNode ≈ parentId)
+
+  ![1609168466292](E:\SoftwareNote\微服务\SpringCloud\img\SpringCloudSleuth调用链路.png)
+
+![1609168531376](E:\SoftwareNote\微服务\SpringCloud\img\SpringCloudSleuth调用链路2.png)
+
+Trace:类似于树结构的Span集合，表示一条调用链路，存在唯一标识
+
+span:表示调用链路来源，通俗的理解span就是一次请求信息
+
+- pom
+
+  ```xml
+  <!--包含了sleuth+zipkin-->
+          <dependency>
+              <groupId>org.springframework.cloud</groupId>
+              <artifactId>spring-cloud-starter-zipkin</artifactId>
+          </dependency>
+  ```
+
+  
+
+- yml
+
+  ```yml
+  spring:
+    application:
+      name: cloud-payment-service
+    zipkin:
+      base-url: http://localhost:9411
+    sleuth:
+      sampler:
+      probability: 1  # 0-1 ， 1表示性能全开
+  ```
+
+  
+
+## 5 SpringCloud Alibaba
+
+- 出现原因：Spring Cloud Netflix项目进入维护模式
+- SpringCloud alibaba带来了什么？
+  - 2018.10.31 SpringCloud Alibaba正式入驻了SpringCloud官方孵化器，并在Maven中央库发布了第一个版本
+  - 用途：
+    - 服务限流降低：默认支持Servlet/Feign/RestTemplate/Dubbo/Rocket MQ限流降级功能的接入，可以在运行时通过控制台实时修改限流降级规则，还支持查看限流降低Metrics监控。
+    - 服务注册与发现：适配SpringCloud服务注册与发现标准，默认集成了Ribbon的支持
+    - 分布式配置管理：支持分布式系统中的外部化配置，配置更改时自动刷新。
+    - 消息驱动能力：基于SpringCloud Stream为微服务应用构建消息驱动能力。
+    - 阿里云对象存储：阿里云提供的海量/安全/低成本/高可靠的云存储服务。支持在任何应用/任何时间/任何地点存储和访问任意类型的数据。
+    - 分布式任务调度：提供秒级/精准/高可靠/高可用的定时(基于Cron表达式)任务调度服务。同时提供分布式的任务执行模型，如网格任务。网格任务支持海量子任务均匀的分配到所有Worker(schedulerx-client)上执行。
+  - 组件：
+    - Sentinel：把流量作为切入点，从流量控制、熔断降级、系统负载保护等多个维度保护服务的稳定性。
+    - Nacos：一个更易于构建云原生应用的动态服务发现、配置管理和服务管理平台。
+    - RocketMQ：一款开源的分布式消息系统，基于高可用分布式集群技术，提供低延时的、高可靠的消息发布与订阅服务。
+    - Dubbo：Apache Dubbo™ 是一款高性能 Java RPC 框架。
+    - Seata：阿里巴巴开源产品，一个易于使用的高性能微服务分布式事务解决方案。
+    - Alibaba Cloud ACM：一款在分布式架构环境中对应用配置进行集中管理和推送的应用配置中心产品。
+    - Alibaba Cloud OSS: 阿里云对象存储服务（Object Storage Service，简称 OSS），是阿里云提供的海量、安全、低成本、高可靠的云存储服务。您可以在任何应用、任何时间、任何地点存储和访问任意类型的数据。
+    - Alibaba Cloud SchedulerX: 阿里中间件团队开发的一款分布式任务调度产品，提供秒级、精准、高可靠、高可用的定时（基于 Cron 表达式）任务调度服务。
+    - Alibaba Cloud SMS: 覆盖全球的短信服务，友好、高效、智能的互联化通讯能力，帮助企业迅速搭建客户触达通道。  
+
+### 5.1 Nacos 8848: 服务注册与配置中心 
+
+docker运行加上`--env MODE=standalone`
+
+<http://localhost:8848/nacos/index.html>   默认账号密码是nacos/nacos 
+
+#### 5.1.0 docker安装/配置
+
+- 拉取：`docker pull nacos/nacos-server`
+
+- 方式一：修改nacos配置文件
+
+  db.url.0
+
+  db.url.1
+
+  db.user
+
+  db.password
+
+  ```properties
+  
+  nacos.cmdb.dumpTaskInterval=3600
+  nacos.cmdb.eventTaskInterval=10
+  nacos.cmdb.labelTaskInterval=300
+  nacos.cmdb.loadDataAtStart=false
+  db.num=${MYSQL_DATABASE_NUM:1}
+  db.url.0=jdbc:mysql://${MYSQL_SERVICE_HOST}:${MYSQL_SERVICE_PORT:3306}/nacos?${MYSQL_SERVICE_DB_PARAM:characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true}
+  # db.url.1=jdbc:mysql://${MYSQL_SERVICE_HOST}:${MYSQL_SERVICE_PORT:3306}/${MYSQL_SERVICE_DB_NAME}?${MYSQL_SERVICE_DB_PARAM:characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true}
+  db.user=root
+  db.password=123456
+  
+  
+  ```
+
+  ```shell
+  docker run --env MODE=standalone -itd -p 8868:8848 --name nacosallenv nacos/nacos-server
+  ```
+
+- 方式二：运行容器时带上参数
+
+  ```shell
+  docker run --env MODE=standalone --env SPRING_DATASOURCE_PLATFORM=mysql --env MYSQL_MASTER_SERVICE_DB_NAME=nacos_config --env MYSQL_MASTER_SERVICE_HOST=192.168.1.4 --env MYSQL_MASTER_SERVICE_USER=root --env MYSQL_MASTER_SERVICE_PASSWORD=123456 --env MYSQL_SLAVE_SERVICE_HOST=192.168.1.4 --env MYSQL_MASTER_SERVICE_DB_NAME=nacos_config --name nacosallenv -d -p 8868:8848 nacos/nacos-server
+  ```
+
+- Nacos可选配置
+
+  配置项 描述 可选参数 默认值     MODE 模式 cluster/standalone cluster/standalone cluster   PREFER_HOST_MODE 是否支持 hostname hostname/ip ip   NACOS_SERVER_PORT 服务端口号  8848   SPRING_DATASOURCE_PLATFORM 单机模式支持 mysql  mysql / empty empty   MYSQL_MASTER_SERVICE_HOST mysql 主节点 host     MYSQL_MASTER_SERVICE_PORT mysql 主节点 port  3306   MYSQL_MASTER_SERVICE_DB_NAME    mysql 主节点数据库名     MYSQL_MASTER_SERVICE_USER mysql 主节点用户名     MYSQL_MASTER_SERVICE_PASSWORD mysql 主节点密码     MYSQL_SLAVE_SERVICE_HOST mysql 从节点 host     MYSQL_SLAVE_SERVICE_PORT mysql 从节点 port  3306
+
+   ![1609345213243](E:\SoftwareNote\微服务\SpringCloud\img\Nacos可选配置.png)
+
+   
+
+- Nacos数据库搭配Mysql使用:
+
+  https://github.com/alibaba/nacos/blob/master/config/src/main/resources/META-INF/nacos-db.sql
+
+- 进入Nacos： `docker exec -it nacos bash`
+
+ 
+
+ 
+
+#### 5.1.1 简介 
+
+- 含义：前四个字母分别为Naming和Configuration的前两个字母，最后的s为Service
+
+- 是什么:
+
+  - 一个更易于构建云原生应用的动态服务发现，配置管理和服务管理中心
+  - Nacos：Dynamic Naming and Configuration Service
+  - 注册中心+配置中心的组合。Nacos=Eureka+Config+Bus
+
+- 用途：
+
+  - 替代Eureka做服务注册中心(并且支持负载均衡，因为**内置Ribbon**)
+  - 替代Config做服务配置中心
+  - 支持AP/CP，可以切换
+
+- 各服务中心对比：
+
+  据说Nacos在阿里巴巴有超过10万实例运行，已经过了类似双十一等各种大型流量的考验
+
+  ![1609341568639](E:\SoftwareNote\微服务\SpringCloud\img\Nacos与各服务中心对比.png)
+
+  - Nacos全景图
+
+![1609685702348](E:\SoftwareNote\微服务\SpringCloud\img\Nacos全景图.png)
+
+​	-   Nacos和CAP
+
+![1609685812639](E:\SoftwareNote\微服务\SpringCloud\img\Nacos和CAP.png)
+
+ - nacos的CP/AP切换：`curl -X PUT '$NACOS_SERVER:8848/nacos/v1/ns/operator/switches?entry=serverMode&value=CP'`
+
+![1609685993812](E:\SoftwareNote\微服务\SpringCloud\img\Nacos的CP-AP切换.png)
+
+#### 5.1.2 使用-服务注册中心
+
+- 依赖pom
+
+```xml
+<!--父依赖 -->
+<!--spring cloud alibaba 2.1.0.RELEASE-->
+<dependency>
+    <groupId>com.alibaba.cloud</groupId>
+    <artifactId>spring-cloud-alibaba-dependencies</artifactId>
+    <version>2.1.0.RELEASE</version>
+    <type>pom</type>
+    <scope>import</scope>
+</dependency>
+
+
+
+<!-- 子工程 -->
+<!--SpringCloud ailibaba nacos -->
+<dependency>
+    <groupId>com.alibaba.cloud</groupId>
+    <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
+</dependency>
+```
+
+- 配置yml
+
+```yml
+# 服务端
+server:
+  port: 9001
+
+spring:
+  application:
+    name: nacos-payment-provider
+  cloud:
+    nacos:
+      discovery:
+        server-addr: 192.168.1.170:8848 #配置Nacos地址
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: '*'
+        
+        
+        
+# 客户端
+server:
+  port: 83
+
+
+spring:
+  application:
+    name: nacos-order-consumer
+  cloud:
+    nacos:
+      discovery:
+        server-addr: 192.168.1.170:8848
+
+
+#消费者将要去访问的微服务名称(注册成功进nacos的微服务提供者)
+service-url:
+  nacos-user-service: http://nacos-payment-provider
+
+
+```
+
+- 请求方式 RestTemplate
+
+```java
+@Configuration
+public class BaseConfiguration {
+
+    @Bean
+    @LoadBalanced // 记得加上，否则会找不到服务
+    public RestTemplate getRestTemplate() {
+        return new RestTemplate();
+    }
+}
+```
+
+#### 5.1.3 使用-服务配置中心
+
+- pom
+
+ ```xml
+  <!--nacos-config-->
+  <dependency>
+      <groupId>com.alibaba.cloud</groupId>
+      <artifactId>spring-cloud-starter-alibaba-nacos-config</artifactId>
+  </dependency>
+  <!--nacos-discovery-->
+  <dependency>
+      <groupId>com.alibaba.cloud</groupId>
+      <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
+  </dependency>
+ ```
+- yml
+
+  ![1609777717156](E:\SoftwareNote\微服务\SpringCloud\img\Nacos配置规则.png)
+
+```yml
+####  bootstrap.yml  start  ####
+# nacos配置
+server:
+  port: 3377
+
+spring:
+  application:
+    name: nacos-config-client
+  cloud:
+    nacos:
+      discovery:
+        server-addr: 192.168.1.170:8848 #Nacos服务注册中心地址
+      config:
+        server-addr: 192.168.1.170:8848 #Nacos作为配置中心地址
+        file-extension: yml #指定yaml格式的配置
+        # group: DEV_GROUP
+        # namespace: 7d8f0f5a-6a53-4785-9686-dd460158e5d4
+
+
+# ${spring.application.name}-${spring.profile.active}.${spring.cloud.nacos.config.file-extension}
+# nacos-config-client-dev.yaml
+
+# nacos-config-client-test.yaml   ----> config.info
+
+
+####  bootstrap.yml  end  ####
+
+####  application.yml  start  ####
+spring:
+  profiles:
+    active: dev
+    
+####  application.yml  end  ####
+```
+
+- @RefreshScope(Nacos自带动态刷新，无需发送POST请求)
+
+```java
+@Component
+@RefreshScope
+public class CommonComponent {
+
+    @Value("${config.info}")
+    private String configInfo;
+
+    public String getConfigInfo() {
+        return configInfo;
+    }
+}
+
+```
+
+- nacos配置：Data-ID需和yml配置中规则一致
+
+![1609777293564](E:\SoftwareNote\微服务\SpringCloud\img\Nacos发布配置.png)
+
+     - Nacos中的dataid的组成格式与SpringBoot配置文件中的匹配规则
+    
+       ![1609777524526](E:\SoftwareNote\微服务\SpringCloud\img\Nacos中的dataid的组成格式与SpringBoot配置文件中的匹配规则.png)
+
+- 设置DataId公式
+
+  - `${spring.application.name}-${spring.profile.active}.${spring.cloud.nacos.config.file-extension}`
+  - prefix默认为spring.application.name的值
+  - spring.profile.active既为当前环境对应的profile,可以通过配置项spring.profile.active 来配置
+  - file-exetension为配置内容的数据格式，可以通过配置项spring.cloud.nacos.config.file-extension配置
+
+    
+
+- 分类配置
+
+  - Nacos结构:NameSpace>Group>Data ID(Service)
+
+    NameSpace主要用来实现隔离，比如dev/pro/test
+
+    Group用来做分组，把不同微服务分组
+
+    Service就是微服务，可以包含多个集群Cluster
+
+    ![1609855473548](E:\SoftwareNote\微服务\SpringCloud\img\Nacos结构.png)
+
+```yml
+# nacos配置
+server:
+  port: 3377
+
+spring:
+  application:
+    name: nacos-config-client
+  cloud:
+    nacos:
+      discovery:
+        server-addr: 192.168.1.170:8848 #Nacos服务注册中心地址
+      config:
+        server-addr: 192.168.1.170:8848 #Nacos作为配置中心地址
+        file-extension: yml #指定yaml格式的配置
+        group: DEFAULT_GROUP  # group
+        namespace: c33b9ed5-00c8-4294-b257-332126d40dd9 # namespace
+        
+        
+spring:
+  profiles:
+    active: test
+```
+
+#### 5.1.4 Nacos集群和持久化配置
+
+- 集群官网架构图![1610374262649](E:\SoftwareNote\微服务\SpringCloud\img\Nacos集群官网架构图.png)
+
+Nginx+Nacos(3+)+Mysql实现集群
+
+![1610374502767](E:\SoftwareNote\微服务\SpringCloud\img\Nginx_Nacos_Mysql实现高可用Nacos集群.png)
+
+最终架构
+
+![1610375881733](E:\SoftwareNote\微服务\SpringCloud\img\Nacos集群最终架构.png)
+
+- 数据库支持
+
+  - Nacos默认内嵌derby数据库，如果启动多个默认配置下的nacos节点，数据存储会存在一致性的问题。
+
+  - Nacos采用集中式存储的形式来集群化部署，目前只支持Mysql。 
+
+  - 单机版配置(/nacos/conf/application.properties)
+
+    ![1610375208279](E:\SoftwareNote\微服务\SpringCloud\img\Nacos单机版Mysql配置.png)
+
+### 5.2 SpringCloud Alibaba Sentinel实现熔断与限流：8080
+
+#### 5.2.1 简介
+
+- 轻量级的流量控制/熔断降级的Java库
+
+- 替代Hystrix
+
+- 用途：
+
+  ![1610376780126](E:\SoftwareNote\微服务\SpringCloud\img\Sentinel用途.png)
+
+- 组成：
+
+  - 核心库（Java客户端）不依赖任何框架和库，能够运行在所有JRE, 同时对Dubbo和SpringCloud有比较好的支持
+  - 控制台(Dashboard)基于SpringBoot开发，打包后可以直接运行。
+
+#### 5.2.2 demo
+
+- pom
+
+```xml
+<!--SpringCloud ailibaba nacos -->
+<dependency>
+    <groupId>com.alibaba.cloud</groupId>
+    <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
+</dependency>
+<!--SpringCloud ailibaba sentinel-datasource-nacos 后续做持久化用到-->
+<dependency>
+    <groupId>com.alibaba.csp</groupId>
+    <artifactId>sentinel-datasource-nacos</artifactId>
+</dependency>
+<!--SpringCloud ailibaba sentinel -->
+<dependency>
+    <groupId>com.alibaba.cloud</groupId>
+    <artifactId>spring-cloud-starter-alibaba-sentinel</artifactId>
+</dependency>
+```
+
+- yml
+
+```yaml
+server:
+  port: 8401
+
+spring:
+  application:
+    name: cloudalibaba-sentinel-service
+  cloud:
+    nacos:
+      discovery:
+        server-addr: 192.168.1.170:8848 #Nacos服务注册中心地址
+    sentinel:
+      transport:
+        dashboard: 192.168.1.170:8181 #配置Sentinel dashboard地址
+        port: 8719 # #默认8719，假如被占用了会自动从8719开始依次+1扫描。直至找到未被占用的端口
+#      datasource:
+#        ds1:
+#          nacos:
+#            server-addr: 192.168.1.170:8848
+#            dataId: cloudalibaba-sentinel-service
+#            groupId: DEFAULT_GROUP
+#            data-type: json
+#            rule-type: flow
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: '*'
+
+feign:
+  sentinel:
+    enabled: true # 激活Sentinel对Feign的支持
+
+
+
+```
+
+- sentinel有懒加载：调用了才会显示在sentinel监控列表中
+
+#### 5.2.3 流控规则
+
+- 简介
+
+![1610462415449](E:\SoftwareNote\微服务\SpringCloud\img\Sentinel流控规则介绍.png)
+
+![1610462761890](E:\SoftwareNote\微服务\SpringCloud\img\Sentinel流控规则界面.png)
+
+
+
+#### 5.2.4 降级规则
+
+- 介绍
+
+  ![1610546143274](E:\SoftwareNote\微服务\SpringCloud\img\Sentinel降级规则介绍.png)
+
+- 用途
+
+  熔断降级避免级联错误。当资源被降级后，接下来的窗口期内，调用都会自动熔断（默认抛出	DegradeException）
+
+  Sentinel的断路器是没有半开状态的。(区别于Histrix)
+
+
+
+#### 5.2.5 热点key限流
+
+- 介绍
+
+  ![1610549651421](E:\SoftwareNote\微服务\SpringCloud\img\Sentinel热点Key规则介绍.png)
+
+- java:  @SentinelResource, 类似Histrix的@HistrixCommand, 可指定兜底方案blockHandler
+
+```java
+@GetMapping("/sentinel05/{id}/{name}")
+    @ResponseBody
+    @SentinelResource(value = "sentinel05", blockHandler = "handle_test05")
+    public String test05(@PathVariable("id") Long id, @PathVariable("name") String name) {
+        log.info("into test05");
+
+        return "test05-" + id + "-" + name ;
+    }
+
+    public String handle_test05(Long id, String name, BlockException exception) {
+        return "handle test05";
+    }
+```
+
+#### 5.2.6 系统规则
+
+![1610549846247](E:\SoftwareNote\微服务\SpringCloud\img\Sentinel系统规则介绍.png)
+
+#### 5.2.7 @SentinelResource
+
+- 指定兜底类
+
+```java
+@GetMapping("/sentinel06/{id}/{name}")
+@ResponseBody
+@SentinelResource(value = "sentinel06", blockHandlerClass = CustomerBlockHandler.class, blockHandler = "handler01")
+public String test06(@PathVariable("id") Long id, @PathVariable("name") String name) {
+    log.info("into test06");
+
+    return "test06-" + id + "-" + name ;
+}
+
+public class CustomerBlockHandler {
+
+    public static String handler01(Long id, String name, BlockException exception) {
+        return "handler01";
+    }
+    public static String handler02(Long id, String name, BlockException exception) {
+        return "handler02";
+    }
+}
+
+// 相当于兜底走CustomerBlockHandler.handler01()， 但是要static静态，才能直接引用
+```
+
+- 注解属性说明
+
+![1610551047067](E:\SoftwareNote\微服务\SpringCloud\img\SentinelResource注解属性详解.png)
+
+- 三大核心API
+  - SphU定义资源
+  - Tracer定义统计
+  - ContextUtil定义了上下文
+
+#### 5.2.8 服务熔断功能
+
+- Sentinel整合了Ribbon+OpenFeign+Fallback
+
+- @SentinelResource(value = "fallback",fallback = "handlerFallback",blockHandler = "blockHandler", exceptionsToIgnore = {IllegalArgumentException.class})
+
+  - exceptionsToIgnore忽略兜底的异常
+  - blockHandler 和fallback 同时配置，会走blockHandler 
+  - fallback管运行异常
+  - blockHandler管配置违规
+
+- Feign
+
+  ```yml
+  feign:
+    sentinel:
+      enabled: true # 激活Sentinel对Feign的支持
+  ```
+
+- 熔断框架对比
+
+  ![1610633143086](E:\SoftwareNote\微服务\SpringCloud\img\熔断框架对比Sentinel_Hystrix_resillence4j.png)
+
+#### 5.2.9 持久化
+
+- pom
+
+  ```xml
+  <dependency>
+      <groupId>com.alibaba.csp</groupId>
+      <artifactId>sentinel-datasource-nacos</artifactId>
+  </dependency>
+  ```
+
+- yml
+
+```yaml
+spring:
+   cloud:
+    sentinel:
+    datasource:
+     ds1:
+      nacos:
+        server-addr:localhost:8848
+        dataid:${spring.application.name}
+        groupid:DEFAULT_GROUP
+        data-type:json
+            rule-type:flow
+
+```
+
+- 需要在nacos手动新增Sentinel配置，注意dataid和groupid需要和yml一致
+
+![1610635046539](E:\SoftwareNote\微服务\SpringCloud\img\Sentinel持久化_在Nacos新增配置.png)
+
+Nacos配置json详解
+
+![1610635025274](E:\SoftwareNote\微服务\SpringCloud\img\Sentinel持久化_Nacos配置json详解.png)
+
+### 5.3 SpringCloud Alibaba Seata处理分布式事务 8091
+
+- 分布式事务问题：一次业务操作需要跨多个数据源或需要跨多个系统进行远程调用，就会产生分布式事务问题
+
+  ![1610635641899](E:\SoftwareNote\微服务\SpringCloud\img\分布式事务问题.png) 
+
+- seata介绍
+
+  - Seata是一款开源的分布式事务解决方案，致力于在微服务架构下提供高性能和简单易用的分布式事务服务
+  - 核心：1 ID + 3 组件
+    - Transaction ID （XID）:  全局唯一的事务ID
+    - Transaction Coordinator(TC)： 事务协调器，维护全局事务的运行状态，负责协调并驱动全局事务的提交或回滚;
+    - Transaction  Manager(TM) :  控制全局事务的边界，负责开启一个全局事务，并最终发起全局提交或全局回滚的决议;
+    - Resource Manager(RM) ： 控制分支事务，负责分支注册，状态汇报，并接收事务协调器的指令，驱动分支（本地）事务的提交和回滚； 
+
+![1610636230433](E:\SoftwareNote\微服务\SpringCloud\img\Seata核心处理过程.png)
+
+- 全局@GlobalTransactional
+
+  ![1610636348781](E:\SoftwareNote\微服务\SpringCloud\img\Seata的分布式事务解决方案.png)
+
+- demo
+
+  - 配置
+
+  ```properties
+  ## ============ registry.conf start ============ 
+  
+  registry {
+    # file 、nacos 、eureka、redis、zk、consul、etcd3、sofa
+    type = "nacos"   #  类型修改为nacos
+    loadBalance = "RandomLoadBalance"
+    loadBalanceVirtualNodes = 10
+  
+    nacos {
+      application = "seata-server"
+      serverAddr = "192.168.1.170:8848"  ## nacos配置响应调整
+      group = "SEATA_GROUP"
+      namespace = ""
+      cluster = "default"
+      username = ""
+      password = ""
+    }
+    
+    ## ============ registry.conf end  ============ 
+    
+    ## ============ file.conf start  ==============
+    
+    # transaction log store, only used in seata-server
+  # service 1.0后好像没有了，是自己补上的，好像是迁移到yml里面了？
+  service {
+    #transaction service group mapping
+    #修改事务组名称为：my_test_tx_group，和客户端自定义的名称对应
+    vgroupMapping.my_test_tx_group = "default" ## vgroupMapping这里写法好像变了，只能驼峰？
+    #only support when registry.type=file, please don't set multiple addresses
+    # default.grouplist = "127.0.0.1:8091"
+    #disable seata
+    disableGlobalTransaction = false
+  }
+  
+  store {
+    ## store mode: file、db、redis
+    mode = "db" # 修改为db，并响应的更改db内容
+    ## rsa decryption public key
+    publicKey = ""
+    ## file store property
+    file {
+      ## store location dir
+      dir = "sessionStore"
+      # branch session size , if exceeded first try compress lockkey, still exceeded throws exceptions
+      maxBranchSessionSize = 16384
+      # globe session size , if exceeded throws exceptions
+      maxGlobalSessionSize = 512
+      # file buffer size , if exceeded allocate new buffer
+      fileWriteBufferCacheSize = 16384
+      # when recover batch read size
+      sessionReloadReadSize = 100
+      # async, sync
+      flushDiskMode = async
+    }
+  
+    ## database store property
+    db {
+      ## the implement of javax.sql.DataSource, such as DruidDataSource(druid)/BasicDataSource(dbcp)/HikariDataSource(hikari) etc.
+      datasource = "druid"
+      ## mysql/oracle/postgresql/h2/oceanbase etc.
+      dbType = "mysql"
+      driverClassName = "com.mysql.jdbc.Driver"
+      ## if using mysql to store the data, recommend add rewriteBatchedStatements=true in jdbc connection param
+      url = "jdbc:mysql://192.168.1.170:3307/seata?rewriteBatchedStatements=true"
+      user = "root"
+      password = "123456"
+      minConn = 5
+      maxConn = 100
+      globalTable = "global_table"
+      branchTable = "branch_table"
+      lockTable = "lock_table"
+      queryLimit = 100
+      maxWait = 5000
+    }
+    
+    ## ============ file.conf end  ==============
+  ```
+
+  - java
+
+    - SpringBootApplication:  排除springboot默认数据源配置
+
+      ```
+      @SpringBootApplication(exclude = DataSourceAutoConfiguration.class)
+      ```
+
+    - Seata数据源代理
+
+      ```java
+      /**
+       * @auther zzyy
+       * @create 2020-02-26 16:24
+       * 使用Seata对数据源进行代理
+       */
+      @Configuration
+      public class DataSourceProxyConfig {
+      
+          @Value("${mybatis.mapperLocations}")
+          private String mapperLocations;
+      
+          @Bean
+          @ConfigurationProperties(prefix = "spring.datasource")
+          public DataSource druidDataSource(){
+              return new DruidDataSource();
+          }
+      
+          @Bean
+          public DataSourceProxy dataSourceProxy(DataSource dataSource) {
+              return new DataSourceProxy(dataSource);
+          }
+      
+          @Bean
+          public SqlSessionFactory sqlSessionFactoryBean(DataSourceProxy dataSourceProxy) throws Exception {
+              SqlSessionFactoryBean sqlSessionFactoryBean = new SqlSessionFactoryBean();
+              sqlSessionFactoryBean.setDataSource(dataSourceProxy);
+              sqlSessionFactoryBean.setMapperLocations(new PathMatchingResourcePatternResolver().getResources(mapperLocations));
+              sqlSessionFactoryBean.setTransactionFactory(new SpringManagedTransactionFactory());
+              return sqlSessionFactoryBean.getObject();
+          }
+      ```
+
+    - 主业务类 @GlobalTransactional，加上注解，配合配置文件，就可以实现
+
+      ```java
+      @GlobalTransactional(name = "fsp-create-order",rollbackFor = Exception.class)
+      ```
+
+  - 要用外网启动（看nacos里面注册的）
+
+    ```shell
+    docker run -itd --name seata03 -p 8091:8091 -h 192.168.1.170 docker.io/seataio/seata-server
+    ```
+
+- 分布式事务的执行流程
+
+  - TM开启分布式事务(TM向TC注册全局事务记录)
+  - 换业务场景，编排数据库，服务等事务内资源（RM向TC汇报资源准备状态）
+  - TM结束分布式事务，事务一阶段结束（TM通知TC提交/回滚分布式事务）
+  - TC汇总事务信息，决定分布式事务是提交还是回滚(当所有微服务都反馈正常，就可提交)
+  - TC通知所有RM提交/回滚资源，事务二阶段结束。
+
+- AT模式如何做到对业务的无侵入
+
+  - 是什么
+
+    ![1610726979181](E:\SoftwareNote\微服务\SpringCloud\img\Seata的AT模式介绍.png)
+
+  - 一阶段加载
+
+    ![1610727042307](E:\SoftwareNote\微服务\SpringCloud\img\Seata的AT模式之一阶段加载.png)
+
+  - 二阶段提交
+
+    ![1610727084709](E:\SoftwareNote\微服务\SpringCloud\img\Seata的AT模式之二阶段提交.png)
+
+  - 三阶段回滚
+
+    ![1610727127492](E:\SoftwareNote\微服务\SpringCloud\img\Seata的AT模式之三阶段回滚.png)
+
+  - Seata的AT模式执行过程
+
+![1610727172507](E:\SoftwareNote\微服务\SpringCloud\img\Seata的AT模式执行过程.png)
