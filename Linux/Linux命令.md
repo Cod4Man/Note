@@ -58,6 +58,14 @@ netstat -tnlp | grep:98 //查看98端口号状态
 端口号：kill -9 26105
 ```
 
+### 4.2 查看进程的所有线程
+
+```shell
+ps -aux | grep java
+
+java 可以直接用 jps -l 效果类似
+```
+
 
 
 ## 5. 文件搜索-find
