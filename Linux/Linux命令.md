@@ -107,3 +107,97 @@ systemctl enable firewalld
 service iptables restart 
 ```
 
+## 7. 生产运行性能诊断
+
+### 7.1 整机uptime + top
+
+- uptime是top的精简版
+
+- top(系统性能命令)
+
+  其中，load average平均负载展示的3个值分别为1min内平均，5min内平均，15min内平均。通过这3个值的大小，可以判断最近运行情况。
+
+  ![1614092136585](E:\SoftwareNote\Linux\images\top命令.png)
+
+### 7.2 CPU: vmstat
+
+![1614093051480](E:\SoftwareNote\Linux\images\vmstat命令解析.png)
+
+- 查看所有CPU核信息
+
+  mpstat -P ALL 2
+
+  ![1614093196718](E:\SoftwareNote\Linux\images\mpstat命令-查看所有CPU核情况.png)
+
+- **每个进程**使用cpu的用量分解信息
+
+  pidstat -u 1 -p 进程编号
+
+  ![1614093247415](E:\SoftwareNote\Linux\images\pidstat命令-按进程查询CPU占用.png)
+
+### 7.3 内存:free [-m(MB)/-g(GB)] 
+
+- 应用程序可用内存
+
+  ![1614093625078](E:\SoftwareNote\Linux\images\free命令-应用程序可用内存.png)
+
+- 查看额外 pidstat -p 进程号 -r 采样间隔秒数
+
+  ![1614093772086](E:\SoftwareNote\Linux\images\pidstat命令-查看额外内存信息.png)
+
+### 7.5 硬盘 df [-m(MB)/-h] 
+
+![1614093886679](E:\SoftwareNote\Linux\images\df命令-查看硬盘信息.png)
+
+### 7.6 磁盘IO： iostat -xdk 2(秒) 3(次)
+
+- 磁盘I/O性能评估
+
+  ![1614094221174](E:\SoftwareNote\Linux\images\iostat命令-磁盘IO性能.png)
+
+- 查看额外
+
+  pidstat -d 采样间隔秒数 -p 进程号
+
+  ![1614094355029](E:\SoftwareNote\Linux\images\pidstat命令-查看磁盘IO信息.png)
+
+### 7.7 网络IO：ifstat 
+
+![1614094528047](E:\SoftwareNote\Linux\images\ifstat命令-查看网络IO信息.png)
+
+## 8.出现CPU占用过高，请谈谈你的分析思路和定位(Linux+Java命令)
+
+结合Linux和JDK命令一块分析
+
+### 8.1 先用top命令找出CPU占比最高的
+
+![1614095125195](E:\SoftwareNote\Linux\images\top命令查找CPU占用最高的java进程号PID.png)
+
+### 8.2  ps -ef或者jps进一步定位，得知是一个怎么样的一个后台程序
+
+![1614095208808](E:\SoftwareNote\Linux\images\jps定位问题java.png)
+
+### 8.3 定位到具体线程或者代码 ps -mp 进程PID号 -o THREAD,tid,time
+
+-m 显示所有线程
+
+-p pid进程使用cpu的时间
+
+-o 该参数后是用户自定义格式
+
+![1614095292899](E:\SoftwareNote\Linux\images\ps命令查看进程底下线程.png)
+
+### 8.4 将需要的线程ID转换为16进制格式(英文小写格式) 
+
+printf "%x\n"  有问题的线程TID
+
+printf "%x\n" 24587  =》 600b
+
+###8.5 jstack 进程ID | grep tid(16进制线程ID小写英文) -A60
+
+-A60 ： 前60行
+
+![1614095622600](E:\SoftwareNote\Linux\images\jstack命令-查看进程某线程运行状态.png)
+
+
+
