@@ -10,6 +10,7 @@
 
 ```shell
 git branch branch2 创建一个分支
+
 git checkout -b branchname 创建branchname分支并切换至
 ```
 
@@ -142,6 +143,14 @@ git diff xx
 ```
 
 
+
+## 11. git控制台中文显示unicode  \u547d\u4ee4
+
+```shell
+在使用git的时候，经常会碰到有一些中文文件名或者路径被转义成\xx\xx\xx之类的，此时可以通过git的配置来改变默认转义
+具体命令如下：
+git config core.quotepath false
+```
 
 
 
