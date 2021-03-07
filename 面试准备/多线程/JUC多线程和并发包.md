@@ -1162,3 +1162,90 @@ class DeadLock implements Runnable{
   ```
 
   
+
+## 12. LockSupport
+
+- 介绍：
+
+  LockSupport是用来创建锁和其他同步类的基本线程阻塞原语。
+
+  LockSupport是一个线程阻塞工具类，所有的方法都是静态方法，可以让线程再任意位置阻塞，阻塞之后也有对应的唤醒方法。归根结底，LockSupport底层用的是UnSafe的native方法。
+
+  **与synchronized和Lock不一样的是，LockSupport很灵活，可以用在任意位置。**
+
+  synchronized和Lock的阻塞/唤醒都是不能单独使用的：
+
+  - wait()和notify()需要在synchronized代码块中才能使用
+  - condition.await()和condition.signal()需要在lock unlock中使用
+
+- 原理
+
+  LockSupport和每个使用它的线程都有一个许可证(premit)关联。premit相当于1，0的开关，默认是0.调用一个unpark就加1变成1。再调用一次unpark(t)就会消耗该线程的premit，将1变成0，park不进行阻塞，立即返回。
+
+  当线程的premit为0时，调用park()，由于消耗不到premit，因此被阻塞。
+
+  可以提前调用unpark(t)给线程提前增加premit，这样后续调用park()就会直接通过。
+
+  premit最多只有1，多次调用还是1.
+
+- API
+
+  - park() 阻塞线程
+  - unpart(Thread t1) 解除t1线程阻塞
+
+- demo
+
+```java
+Thread t1 = new Thread(() -> {
+    try {
+        Thread.sleep(590); // 可以先解除锁，再执行锁
+    } catch (InterruptedException e) {
+        e.printStackTrace();
+    }
+    System.out.println(Thread.currentThread().getName() + "开启，阻塞中...");
+    // 阻塞线程
+    LockSupport.park();
+    System.out.println(Thread.currentThread().getName() + "运行中结束。");
+}, "线程1");
+Thread t2 = new Thread(() -> {
+    // 阻塞线程
+    LockSupport.unpark(t1);
+    System.out.println(Thread.currentThread().getName() + "解除【" + t1.getName() + "】 阻塞");
+}, "线程2");
+
+t1.start();
+t2.start();
+```
+
+## 13. AQS ： AbstractQueuedSynchronizer抽象队列同步器
+
+- AQS是各JUC工具的底层基石
+
+![1615127961055](E:\SoftwareNote\面试准备\多线程\img\AQS是各JUC工具的底层基石.png)
+
+- 多线程，如果共享资源被占用，就需要一定的阻塞等待唤醒机制来保证锁分配。这个机制主要是用CLH队列的变形实现的。将阻塞的线程加入到队列中等待分配，该队列将各线程封装成队列的节点Node，通过CAS/自旋/LockSupport.park()的方法，维护一个总的**state变量**的状态，从而控制并发达到同步的效果。
+
+![1615128099692](E:\SoftwareNote\面试准备\多线程\img\AQS内部组成以及原理说明.png)
+
+- AQS同步队列的基本结构
+
+![1615128845766](E:\SoftwareNote\面试准备\多线程\img\AQS同步队列的基本结构.png)
+
+- AQS类属性
+
+  AQS使用一个volatile的int类型成员变量state来便是同步状态，通过内置的FIFO队列(CLH的变形)来完成资源获取的排队工作，将每个需要抢占资源的线程封装成Node节点，Node<Thread>，通过CAS完成对state状态修改
+
+![1615128192508](E:\SoftwareNote\面试准备\多线程\img\AQS类属性.png)
+
+![1615128768551](E:\SoftwareNote\面试准备\多线程\img\AQS组成.png)
+
+- AQS内部体系架构
+
+![1615128520435](E:\SoftwareNote\面试准备\多线程\img\AQS内部体系架构.png)
+
+- AQS各属性含义
+
+![1615128793404](E:\SoftwareNote\面试准备\多线程\img\AQS各属性含义.png)
+
+
+
