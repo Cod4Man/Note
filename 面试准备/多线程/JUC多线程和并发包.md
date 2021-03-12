@@ -1249,3 +1249,197 @@ t2.start();
 
 
 
+- ```
+  final boolean nonfairTryAcquire(int acquires) {
+      final Thread current = Thread.currentThread();
+      int c = getState();
+      if (c == 0) {
+          if (compareAndSetState(0, acquires)) {
+              setExclusiveOwnerThread(current);
+              return true;
+          }
+      }
+      else if (current == getExclusiveOwnerThread()) {
+          int nextc = c + acquires;
+          if (nextc < 0) // overflow
+              throw new Error("Maximum lock count exceeded");
+          setState(nextc);
+          return true;
+      }
+      return false;
+  }
+  
+  
+  
+  protected final boolean tryAcquire(int acquires) {
+              final Thread current = Thread.currentThread();
+              int c = getState();
+              if (c == 0) {
+                  if (!hasQueuedPredecessors() &&
+                      compareAndSetState(0, acquires)) {
+                      setExclusiveOwnerThread(current);
+                      return true;
+                  }
+              }
+              else if (current == getExclusiveOwnerThread()) {
+                  int nextc = c + acquires;
+                  if (nextc < 0)
+                      throw new Error("Maximum lock count exceeded");
+                  setState(nextc);
+                  return true;
+              }
+              return false;
+          }
+  
+  
+  
+  ```
+
+- ![1615217173791](C:\Users\ASUS\AppData\Local\Temp\1615217173791.png)
+
+- ![1615218650230](C:\Users\ASUS\AppData\Local\Temp\1615218650230.png)
+
+- ![1615218875851](C:\Users\ASUS\AppData\Local\Temp\1615218875851.png)
+
+- ![1615219073851](C:\Users\ASUS\AppData\Local\Temp\1615219073851.png)
+
+- ![1615219724790](C:\Users\ASUS\AppData\Local\Temp\1615219724790.png)
+
+- ```java
+  // 1. ReentrantLock.lock底层是调用的内部类Sync
+  class ReentrantLock {
+      private final Sync sync;
+      public void lock() {
+          sync.lock();
+  	}
+  }
+  
+  // 2. Sync类继承的是AQS(AbstractQueuedSynchronizer)
+  abstract static class Sync extends AbstractQueuedSynchronizer {
+      
+  }
+  abstract class AbstractQueuedSynchronizer extends AbstractOwnableSynchronizer {
+      static final class Node {
+          static final Node SHARED = new Node();
+          static final Node EXCLUSIVE = null;
+          volatile int waitStatus;
+          volatile Node prev;
+          volatile Node next;
+          volatile Thread thread;
+          Node nextWaiter;
+          // waitStatus的状态位
+          static final int CANCELLED =  1;
+          static final int SIGNAL    = -1;
+          static final int CONDITION = -2;
+          static final int PROPAGATE = -3;
+      }
+      private transient volatile Node head;
+      private transient volatile Node tail;
+      private volatile int state;
+      // CAS relation 
+      private static final Unsafe unsafe = Unsafe.getUnsafe();
+      private static final long stateOffset;
+      private static final long headOffset;
+      private static final long tailOffset;
+      private static final long waitStatusOffset;
+      private static final long nextOffset;
+  }
+  abstract class AbstractOwnableSynchronizer {
+  	private transient Thread exclusiveOwnerThread;  // 当前处理(获取锁)的线程
+  }
+  
+  
+  // 3. ReentrantLock的属性Sync有两个实现，FairSync和NonfairSync，无参构造默认非公平锁
+  static final class FairSync extends Sync {
+  	final void lock() {
+          acquire(1);
+       }
+  }
+  static final class NonfairSync extends Sync {
+  		final void lock() {
+              if (compareAndSetState(0, 1)) // 进来先尝试改变状态位，修改成功则抢到锁
+                  setExclusiveOwnerThread(Thread.currentThread()); // 设置为当前持有锁线程，sync.exclusiveOwnerThread即AbstractOwnableSynchronizer.exclusiveOwnerThread即AQS.exclusiveOwnerThread
+              else
+                  acquire(1);
+          }
+  }
+  public ReentrantLock() {
+     sync = new NonfairSync(); // 默认非公平锁
+  }
+  public ReentrantLock(boolean fair) {
+     sync = fair ? new FairSync() : new NonfairSync();
+  }
+  
+  // 4.  acquire(1)
+  
+  public final void acquire(int arg) {
+      if (!tryAcquire(arg) 
+          && acquireQueued(addWaiter(Node.EXCLUSIVE), arg))
+          selfInterrupt(); // true-阻塞自己
+  }
+  
+  // 4.1 tryAcquire（1）
+  protected boolean tryAcquire(int arg) {
+      throw new UnsupportedOperationException(); // 子类Sync必须实现，否则抛出异常
+  }
+  
+  // 公平锁的实现
+  static final class FairSync extends Sync {
+      protected final boolean tryAcquire(int acquires) {
+          final Thread current = Thread.currentThread();
+          int c = getState();
+          if (c == 0) {
+              if (!hasQueuedPredecessors() && // 唯一区别 !hasQueuedPredecessors()
+                  compareAndSetState(0, acquires)) {
+                  setExclusiveOwnerThread(current);
+                  return true;
+              }
+          }
+          else if (current == getExclusiveOwnerThread()) {
+              int nextc = c + acquires;
+              if (nextc < 0)
+                  throw new Error("Maximum lock count exceeded");
+              setState(nextc);
+              return true;
+          }
+          return false;
+      }
+      public final boolean hasQueuedPredecessors() {
+          // The correctness of this depends on head being initialized
+          // before tail and on head.next being accurate if the current
+          // thread is first in queue.
+          Node t = tail; // Read fields in reverse initialization order
+          Node h = head;
+          Node s;
+          return h != t &&
+              ((s = h.next) == null || s.thread != Thread.currentThread());
+      }
+  }
+  // 非公平锁的实现
+  static final class NonfairSync extends Sync {
+      protected final boolean tryAcquire(int acquires) {
+          return nonfairTryAcquire(acquires);
+      }
+      final boolean nonfairTryAcquire(int acquires) {
+          final Thread current = Thread.currentThread();
+          int c = getState();
+          if (c == 0) {
+              if (compareAndSetState(0, acquires)) {
+                  setExclusiveOwnerThread(current);
+                  return true;
+              }
+          }
+          else if (current == getExclusiveOwnerThread()) {
+              int nextc = c + acquires;
+              if (nextc < 0) // overflow
+                  throw new Error("Maximum lock count exceeded");
+              setState(nextc);
+              return true;
+          }
+          return false;
+      }
+  }
+      
+  ```
+
+- 
