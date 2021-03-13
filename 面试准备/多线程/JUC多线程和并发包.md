@@ -1378,7 +1378,7 @@ t2.start();
           selfInterrupt(); // true-阻塞自己
   }
   
-  // 4.1 tryAcquire（1）
+  // 4.1 tryAcquire（1）尝试获取锁
   protected boolean tryAcquire(int arg) {
       throw new UnsupportedOperationException(); // 子类Sync必须实现，否则抛出异常
   }
@@ -1395,6 +1395,7 @@ t2.start();
                   return true;
               }
           }
+          // ReentrantLock是可重入锁的证据：c!=0，但是该线程为拥有锁线程，还能再次拿到锁
           else if (current == getExclusiveOwnerThread()) {
               int nextc = c + acquires;
               if (nextc < 0)
@@ -1404,6 +1405,7 @@ t2.start();
           }
           return false;
       }
+      // 返回false为公平锁
       public final boolean hasQueuedPredecessors() {
           // The correctness of this depends on head being initialized
           // before tail and on head.next being accurate if the current
@@ -1411,6 +1413,9 @@ t2.start();
           Node t = tail; // Read fields in reverse initialization order
           Node h = head;
           Node s;
+          // 反着看
+          // !((头=尾[意味着没有等待线程,就本线程一个，也就肯定公平]) or (头.next为当前线程[头为占位线程，头.next为队列第一个线程，第一个线程为本线程，公平！]))
+          // return !((h ==t) || (h.next != null && h.next.thread = currThread)
           return h != t &&
               ((s = h.next) == null || s.thread != Thread.currentThread());
       }
@@ -1440,6 +1445,176 @@ t2.start();
       }
   }
       
+  // 4.2 addWaiter(Node.EXCLUSIVE=null)
+  private Node addWaiter(Node mode) {
+      Node node = new Node(Thread.currentThread(), mode);
+      // Try the fast path of enq; backup to full enq on failure
+      Node pred = tail;
+      if (pred != null) {
+          node.prev = pred;
+          if (compareAndSetTail(pred, node)) {
+              pred.next = node;
+              return node;
+          }
+      }
+      enq(node);
+      return node;
+  }
+  private Node enq(final Node node) {
+      // this为sync
+      for (;;) {
+          Node t = this.tail;
+          if (t == null) { // Must initialize
+              // setHead = new Node() 设置一个占位对象为头节点
+              if (compareAndSetHead(new Node()))
+                  // 头 <- 尾
+                  this.tail = this.head;
+          } else {
+              // 头 = 尾 <- node(currThread)
+              node.prev = t;
+              // 设置尾节点尾node
+              if (compareAndSetTail(t, node)) {
+                  t.next = node;
+                  return t;
+              }
+          }
+      }
+  }
+  // 4.3 acquireQueued(addWaiter(Node.EXCLUSIVE), 1)
+  final boolean acquireQueued(final Node node, int arg) {
+      boolean failed = true;
+      try {
+          boolean interrupted = false;
+          for (;;) {
+              final Node p = node.predecessor();
+              if (p == head && tryAcquire(arg)) {
+                  setHead(node);
+                  p.next = null; // help GC
+                  failed = false;
+                  return interrupted;
+              }
+              if (shouldParkAfterFailedAcquire(p, node) &&
+                  parkAndCheckInterrupt())
+                  interrupted = true;
+          }
+      } finally {
+          if (failed)
+              cancelAcquire(node);
+      }
+  }
+  
+  final Node predecessor() throws NullPointerException {
+      Node p = prev;
+      if (p == null)
+          throw new NullPointerException();
+      else
+          return p;
+  }
+  private void setHead(Node node) {
+      head = node;
+      node.thread = null;
+      node.prev = null;
+  }
+  private static boolean shouldParkAfterFailedAcquire(Node pred, Node node) {
+      int ws = pred.waitStatus;
+      if (ws == Node.SIGNAL)
+          /*
+               * This node has already set status asking a release
+               * to signal it, so it can safely park.
+               */
+          return true;
+      if (ws > 0) {
+          /*
+               * Predecessor was cancelled. Skip over predecessors and
+               * indicate retry.
+               */
+          do {
+              node.prev = pred = pred.prev;
+          } while (pred.waitStatus > 0);
+          pred.next = node;
+      } else {
+          /*
+               * waitStatus must be 0 or PROPAGATE.  Indicate that we
+               * need a signal, but don't park yet.  Caller will need to
+               * retry to make sure it cannot acquire before parking.
+               */
+          compareAndSetWaitStatus(pred, ws, Node.SIGNAL);
+      }
+      return false;
+  }
+  private final boolean parkAndCheckInterrupt() {
+      LockSupport.park(this);
+      return Thread.interrupted();
+  }
+  private void cancelAcquire(Node node) {
+      // Ignore if node doesn't exist
+      if (node == null)
+          return;
+  
+      node.thread = null;
+  
+      // Skip cancelled predecessors
+      Node pred = node.prev;
+      while (pred.waitStatus > 0)
+          node.prev = pred = pred.prev;
+  
+      // predNext is the apparent node to unsplice. CASes below will
+      // fail if not, in which case, we lost race vs another cancel
+      // or signal, so no further action is necessary.
+      Node predNext = pred.next;
+  
+      // Can use unconditional write instead of CAS here.
+      // After this atomic step, other Nodes can skip past us.
+      // Before, we are free of interference from other threads.
+      node.waitStatus = Node.CANCELLED;
+  
+      // If we are the tail, remove ourselves.
+      if (node == tail && compareAndSetTail(node, pred)) {
+          compareAndSetNext(pred, predNext, null);
+      } else {
+          // If successor needs signal, try to set pred's next-link
+          // so it will get one. Otherwise wake it up to propagate.
+          int ws;
+          if (pred != head &&
+              ((ws = pred.waitStatus) == Node.SIGNAL ||
+               (ws <= 0 && compareAndSetWaitStatus(pred, ws, Node.SIGNAL))) &&
+              pred.thread != null) {
+              Node next = node.next;
+              if (next != null && next.waitStatus <= 0)
+                  compareAndSetNext(pred, predNext, next);
+          } else {
+              unparkSuccessor(node);
+          }
+  
+          node.next = node; // help GC
+      }
+  }
+  private void unparkSuccessor(Node node) {
+      /*
+           * If status is negative (i.e., possibly needing signal) try
+           * to clear in anticipation of signalling.  It is OK if this
+           * fails or if status is changed by waiting thread.
+           */
+      int ws = node.waitStatus;
+      if (ws < 0)
+          compareAndSetWaitStatus(node, ws, 0);
+  
+      /*
+           * Thread to unpark is held in successor, which is normally
+           * just the next node.  But if cancelled or apparently null,
+           * traverse backwards from tail to find the actual
+           * non-cancelled successor.
+           */
+      Node s = node.next;
+      if (s == null || s.waitStatus > 0) {
+          s = null;
+          for (Node t = tail; t != null && t != node; t = t.prev)
+              if (t.waitStatus <= 0)
+                  s = t;
+      }
+      if (s != null)
+          LockSupport.unpark(s.thread);
+  }
   ```
 
 - 
