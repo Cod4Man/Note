@@ -1219,7 +1219,7 @@ t2.start();
 
 ## 13. AQS ： AbstractQueuedSynchronizer抽象队列同步器
 
-- AQS是各JUC工具的底层基石
+- AQS是各JUC工具的底层基石：ReentrantLock/ReentrantReadWriteLock/CountDownLatch/Semaphore/CuclicBarrier
 
 ![1615127961055](E:\SoftwareNote\面试准备\多线程\img\AQS是各JUC工具的底层基石.png)
 
@@ -1237,9 +1237,44 @@ t2.start();
 
 ![1615128192508](E:\SoftwareNote\面试准备\多线程\img\AQS类属性.png)
 
-![1615128768551](E:\SoftwareNote\面试准备\多线程\img\AQS组成.png)
+
 
 - AQS内部体系架构
+
+```java
+abstract static class Sync extends AbstractQueuedSynchronizer {
+    
+}
+abstract class AbstractQueuedSynchronizer extends AbstractOwnableSynchronizer {
+    static final class Node {
+        static final Node SHARED = new Node();
+        static final Node EXCLUSIVE = null;
+        volatile int waitStatus;
+        volatile Node prev;
+        volatile Node next;
+        volatile Thread thread;
+        Node nextWaiter;
+        // waitStatus的状态位
+        static final int CANCELLED =  1;
+        static final int SIGNAL    = -1;
+        static final int CONDITION = -2;
+        static final int PROPAGATE = -3;
+    }
+    private transient volatile Node head;
+    private transient volatile Node tail;
+    private volatile int state;
+    // CAS relation 
+    private static final Unsafe unsafe = Unsafe.getUnsafe();
+    private static final long stateOffset;
+    private static final long headOffset;
+    private static final long tailOffset;
+    private static final long waitStatusOffset;
+    private static final long nextOffset;
+}
+abstract class AbstractOwnableSynchronizer {
+	private transient Thread exclusiveOwnerThread;  // 当前处理(获取锁)的线程
+}
+```
 
 ![1615128520435](E:\SoftwareNote\面试准备\多线程\img\AQS内部体系架构.png)
 
@@ -1249,72 +1284,16 @@ t2.start();
 
 
 
-- ```
-  final boolean nonfairTryAcquire(int acquires) {
-      final Thread current = Thread.currentThread();
-      int c = getState();
-      if (c == 0) {
-          if (compareAndSetState(0, acquires)) {
-              setExclusiveOwnerThread(current);
-              return true;
-          }
-      }
-      else if (current == getExclusiveOwnerThread()) {
-          int nextc = c + acquires;
-          if (nextc < 0) // overflow
-              throw new Error("Maximum lock count exceeded");
-          setState(nextc);
-          return true;
-      }
-      return false;
-  }
-  
-  
-  
-  protected final boolean tryAcquire(int acquires) {
-              final Thread current = Thread.currentThread();
-              int c = getState();
-              if (c == 0) {
-                  if (!hasQueuedPredecessors() &&
-                      compareAndSetState(0, acquires)) {
-                      setExclusiveOwnerThread(current);
-                      return true;
-                  }
-              }
-              else if (current == getExclusiveOwnerThread()) {
-                  int nextc = c + acquires;
-                  if (nextc < 0)
-                      throw new Error("Maximum lock count exceeded");
-                  setState(nextc);
-                  return true;
-              }
-              return false;
-          }
-  
-  
-  
-  ```
 
-- ![1615217173791](C:\Users\ASUS\AppData\Local\Temp\1615217173791.png)
 
-- ![1615218650230](C:\Users\ASUS\AppData\Local\Temp\1615218650230.png)
+- AQS-lock主要API![1615217173791](E:\SoftwareNote\面试准备\多线程\img\AQS-lock主要API.png)
 
-- ![1615218875851](C:\Users\ASUS\AppData\Local\Temp\1615218875851.png)
+### 13.1 ReentrantLock.lock底层分析
 
-- ![1615219073851](C:\Users\ASUS\AppData\Local\Temp\1615219073851.png)
+#### 13.1.1 AQS内部体系架构 
 
-- ![1615219724790](C:\Users\ASUS\AppData\Local\Temp\1615219724790.png)
-
-- ```java
-  // 1. ReentrantLock.lock底层是调用的内部类Sync
-  class ReentrantLock {
-      private final Sync sync;
-      public void lock() {
-          sync.lock();
-  	}
-  }
-  
-  // 2. Sync类继承的是AQS(AbstractQueuedSynchronizer)
+  ```java
+  //  Sync类继承的是AQS(AbstractQueuedSynchronizer)
   abstract static class Sync extends AbstractQueuedSynchronizer {
       
   }
@@ -1335,7 +1314,7 @@ t2.start();
       }
       private transient volatile Node head;
       private transient volatile Node tail;
-      private volatile int state;
+      private volatile int state; // 所有线程共享
       // CAS relation 
       private static final Unsafe unsafe = Unsafe.getUnsafe();
       private static final long stateOffset;
@@ -1347,274 +1326,337 @@ t2.start();
   abstract class AbstractOwnableSynchronizer {
   	private transient Thread exclusiveOwnerThread;  // 当前处理(获取锁)的线程
   }
-  
-  
-  // 3. ReentrantLock的属性Sync有两个实现，FairSync和NonfairSync，无参构造默认非公平锁
-  static final class FairSync extends Sync {
-  	final void lock() {
-          acquire(1);
-       }
-  }
-  static final class NonfairSync extends Sync {
-  		final void lock() {
-              if (compareAndSetState(0, 1)) // 进来先尝试改变状态位，修改成功则抢到锁
-                  setExclusiveOwnerThread(Thread.currentThread()); // 设置为当前持有锁线程，sync.exclusiveOwnerThread即AbstractOwnableSynchronizer.exclusiveOwnerThread即AQS.exclusiveOwnerThread
-              else
-                  acquire(1);
-          }
-  }
-  public ReentrantLock() {
-     sync = new NonfairSync(); // 默认非公平锁
-  }
-  public ReentrantLock(boolean fair) {
-     sync = fair ? new FairSync() : new NonfairSync();
-  }
-  
-  // 4.  acquire(1)
-  
-  public final void acquire(int arg) {
-      if (!tryAcquire(arg) 
-          && acquireQueued(addWaiter(Node.EXCLUSIVE), arg))
-          selfInterrupt(); // true-阻塞自己
-  }
-  
-  // 4.1 tryAcquire（1）尝试获取锁
-  protected boolean tryAcquire(int arg) {
-      throw new UnsupportedOperationException(); // 子类Sync必须实现，否则抛出异常
-  }
-  
-  // 公平锁的实现
-  static final class FairSync extends Sync {
-      protected final boolean tryAcquire(int acquires) {
-          final Thread current = Thread.currentThread();
-          int c = getState();
-          if (c == 0) {
-              if (!hasQueuedPredecessors() && // 唯一区别 !hasQueuedPredecessors()
-                  compareAndSetState(0, acquires)) {
-                  setExclusiveOwnerThread(current);
-                  return true;
-              }
-          }
-          // ReentrantLock是可重入锁的证据：c!=0，但是该线程为拥有锁线程，还能再次拿到锁
-          else if (current == getExclusiveOwnerThread()) {
-              int nextc = c + acquires;
-              if (nextc < 0)
-                  throw new Error("Maximum lock count exceeded");
-              setState(nextc);
-              return true;
-          }
-          return false;
-      }
-      // 返回false为公平锁
-      public final boolean hasQueuedPredecessors() {
-          // The correctness of this depends on head being initialized
-          // before tail and on head.next being accurate if the current
-          // thread is first in queue.
-          Node t = tail; // Read fields in reverse initialization order
-          Node h = head;
-          Node s;
-          // 反着看
-          // !((头=尾[意味着没有等待线程,就本线程一个，也就肯定公平]) or (头.next为当前线程[头为占位线程，头.next为队列第一个线程，第一个线程为本线程，公平！]))
-          // return !((h ==t) || (h.next != null && h.next.thread = currThread)
-          return h != t &&
-              ((s = h.next) == null || s.thread != Thread.currentThread());
-      }
-  }
-  // 非公平锁的实现
-  static final class NonfairSync extends Sync {
-      protected final boolean tryAcquire(int acquires) {
-          return nonfairTryAcquire(acquires);
-      }
-      final boolean nonfairTryAcquire(int acquires) {
-          final Thread current = Thread.currentThread();
-          int c = getState();
-          if (c == 0) {
-              if (compareAndSetState(0, acquires)) {
-                  setExclusiveOwnerThread(current);
-                  return true;
-              }
-          }
-          else if (current == getExclusiveOwnerThread()) {
-              int nextc = c + acquires;
-              if (nextc < 0) // overflow
-                  throw new Error("Maximum lock count exceeded");
-              setState(nextc);
-              return true;
-          }
-          return false;
-      }
-  }
-      
-  // 4.2 addWaiter(Node.EXCLUSIVE=null)
-  private Node addWaiter(Node mode) {
-      Node node = new Node(Thread.currentThread(), mode);
-      // Try the fast path of enq; backup to full enq on failure
-      Node pred = tail;
-      if (pred != null) {
-          node.prev = pred;
-          if (compareAndSetTail(pred, node)) {
-              pred.next = node;
-              return node;
-          }
-      }
-      enq(node);
-      return node;
-  }
-  private Node enq(final Node node) {
-      // this为sync
-      for (;;) {
-          Node t = this.tail;
-          if (t == null) { // Must initialize
-              // setHead = new Node() 设置一个占位对象为头节点
-              if (compareAndSetHead(new Node()))
-                  // 头 <- 尾
-                  this.tail = this.head;
-          } else {
-              // 头 = 尾 <- node(currThread)
-              node.prev = t;
-              // 设置尾节点尾node
-              if (compareAndSetTail(t, node)) {
-                  t.next = node;
-                  return t;
-              }
-          }
-      }
-  }
-  // 4.3 acquireQueued(addWaiter(Node.EXCLUSIVE), 1)
-  final boolean acquireQueued(final Node node, int arg) {
-      boolean failed = true;
-      try {
-          boolean interrupted = false;
-          for (;;) {
-              final Node p = node.predecessor();
-              if (p == head && tryAcquire(arg)) {
-                  setHead(node);
-                  p.next = null; // help GC
-                  failed = false;
-                  return interrupted;
-              }
-              if (shouldParkAfterFailedAcquire(p, node) &&
-                  parkAndCheckInterrupt())
-                  interrupted = true;
-          }
-      } finally {
-          if (failed)
-              cancelAcquire(node);
-      }
-  }
-  
-  final Node predecessor() throws NullPointerException {
-      Node p = prev;
-      if (p == null)
-          throw new NullPointerException();
-      else
-          return p;
-  }
-  private void setHead(Node node) {
-      head = node;
-      node.thread = null;
-      node.prev = null;
-  }
-  private static boolean shouldParkAfterFailedAcquire(Node pred, Node node) {
-      int ws = pred.waitStatus;
-      if (ws == Node.SIGNAL)
-          /*
-               * This node has already set status asking a release
-               * to signal it, so it can safely park.
-               */
-          return true;
-      if (ws > 0) {
-          /*
-               * Predecessor was cancelled. Skip over predecessors and
-               * indicate retry.
-               */
-          do {
-              node.prev = pred = pred.prev;
-          } while (pred.waitStatus > 0);
-          pred.next = node;
-      } else {
-          /*
-               * waitStatus must be 0 or PROPAGATE.  Indicate that we
-               * need a signal, but don't park yet.  Caller will need to
-               * retry to make sure it cannot acquire before parking.
-               */
-          compareAndSetWaitStatus(pred, ws, Node.SIGNAL);
-      }
-      return false;
-  }
-  private final boolean parkAndCheckInterrupt() {
-      LockSupport.park(this);
-      return Thread.interrupted();
-  }
-  private void cancelAcquire(Node node) {
-      // Ignore if node doesn't exist
-      if (node == null)
-          return;
-  
-      node.thread = null;
-  
-      // Skip cancelled predecessors
-      Node pred = node.prev;
-      while (pred.waitStatus > 0)
-          node.prev = pred = pred.prev;
-  
-      // predNext is the apparent node to unsplice. CASes below will
-      // fail if not, in which case, we lost race vs another cancel
-      // or signal, so no further action is necessary.
-      Node predNext = pred.next;
-  
-      // Can use unconditional write instead of CAS here.
-      // After this atomic step, other Nodes can skip past us.
-      // Before, we are free of interference from other threads.
-      node.waitStatus = Node.CANCELLED;
-  
-      // If we are the tail, remove ourselves.
-      if (node == tail && compareAndSetTail(node, pred)) {
-          compareAndSetNext(pred, predNext, null);
-      } else {
-          // If successor needs signal, try to set pred's next-link
-          // so it will get one. Otherwise wake it up to propagate.
-          int ws;
-          if (pred != head &&
-              ((ws = pred.waitStatus) == Node.SIGNAL ||
-               (ws <= 0 && compareAndSetWaitStatus(pred, ws, Node.SIGNAL))) &&
-              pred.thread != null) {
-              Node next = node.next;
-              if (next != null && next.waitStatus <= 0)
-                  compareAndSetNext(pred, predNext, next);
-          } else {
-              unparkSuccessor(node);
-          }
-  
-          node.next = node; // help GC
-      }
-  }
-  private void unparkSuccessor(Node node) {
-      /*
-           * If status is negative (i.e., possibly needing signal) try
-           * to clear in anticipation of signalling.  It is OK if this
-           * fails or if status is changed by waiting thread.
-           */
-      int ws = node.waitStatus;
-      if (ws < 0)
-          compareAndSetWaitStatus(node, ws, 0);
-  
-      /*
-           * Thread to unpark is held in successor, which is normally
-           * just the next node.  But if cancelled or apparently null,
-           * traverse backwards from tail to find the actual
-           * non-cancelled successor.
-           */
-      Node s = node.next;
-      if (s == null || s.waitStatus > 0) {
-          s = null;
-          for (Node t = tail; t != null && t != node; t = t.prev)
-              if (t.waitStatus <= 0)
-                  s = t;
-      }
-      if (s != null)
-          LockSupport.unpark(s.thread);
-  }
   ```
 
-- 
+  #### 13.1.2 公平锁与非公平锁
+
+```java
+// 1. ReentrantLock.lock底层是调用的内部类Sync
+class ReentrantLock {
+    private final Sync sync;
+    public ReentrantLock() {
+       sync = new NonfairSync(); // 默认非公平锁
+    }
+    public ReentrantLock(boolean fair) {
+       sync = fair ? new FairSync() : new NonfairSync();
+    }
+    // ReentrantLock.lock()底层是Sync.lock()
+    public void lock() {
+        sync.lock();
+	}
+}
+
+
+// 2. ReentrantLock的属性Sync有两个实现，FairSync和NonfairSync
+static final class FairSync extends Sync {
+	final void lock() {
+        acquire(1);
+     }
+}
+static final class NonfairSync extends Sync {
+    final void lock() {
+        if (compareAndSetState(0, 1)) // 进来先尝试改变状态位0->1，修改成功则抢到锁
+            setExclusiveOwnerThread(Thread.currentThread()); // 设置为当前持有锁线程，sync.exclusiveOwnerThread即AbstractOwnableSynchronizer.exclusiveOwnerThread即AQS.exclusiveOwnerThread
+        else
+            // 没抢到锁的，执行acquire(1)
+            acquire(1);
+    }
+}
+
+```
+
+#### 13.1.3 acquire(1) 获取
+
+```java
+public final void acquire(int arg) {
+    if (!tryAcquire(arg)  // 尝试获取锁，获取!false则不阻塞自己
+        && acquireQueued(addWaiter(Node.EXCLUSIVE), arg))
+        selfInterrupt(); // true-阻塞自己
+}
+
+```
+
+##### 13.1.3.1 tryAcquire（1）尝试获取锁 （tryAcquire中有ReentrantLock是可重入锁的证据） 
+
+````java
+protected boolean tryAcquire(int arg) {
+    throw new UnsupportedOperationException(); // 子类Sync必须实现，否则抛出异常
+}
+
+static final class FairSync extends Sync {
+    // 公平锁的实现
+    protected final boolean tryAcquire(int acquires) {
+        final Thread current = Thread.currentThread();
+        int c = getState();
+        if (c == 0) {
+            if (!hasQueuedPredecessors() && // 唯一区别 !hasQueuedPredecessors()
+                compareAndSetState(0, acquires)) {
+                setExclusiveOwnerThread(current);
+                return true;
+            }
+        }
+        // ReentrantLock是可重入锁的证据：c!=0，但是该线程为拥有锁线程，还能再次拿到锁
+        else if (current == getExclusiveOwnerThread()) {
+            int nextc = c + acquires;
+            if (nextc < 0)
+                throw new Error("Maximum lock count exceeded");
+            setState(nextc);
+            return true;
+        }
+        return false;
+    }
+    // 返回false为公平锁
+    public final boolean hasQueuedPredecessors() {
+        // The correctness of this depends on head being initialized
+        // before tail and on head.next being accurate if the current
+        // thread is first in queue.
+        Node t = tail; // Read fields in reverse initialization order
+        Node h = head;
+        Node s;
+        // 反着看
+        // !((头=尾[意味着没有等待线程,就本线程一个，也就肯定公平]) or (头.next为当前线程[头为占位线程，头.next为队列第一个线程，第一个线程为本线程，公平！]))
+        // return !((h ==t) || (h.next != null && h.next.thread = currThread)
+        return h != t &&
+            ((s = h.next) == null || s.thread != Thread.currentThread());
+    }
+}
+
+static final class NonfairSync extends Sync {
+    // 非公平锁的实现
+    protected final boolean tryAcquire(int acquires) {
+        return nonfairTryAcquire(acquires);
+    }
+    final boolean nonfairTryAcquire(int acquires) {
+        final Thread current = Thread.currentThread();
+        // 线程被占着，state！=0
+        int c = getState();
+        if (c == 0) {
+            if (compareAndSetState(0, acquires)) {
+                setExclusiveOwnerThread(current);
+                return true;
+            }
+        }
+        else if (current == getExclusiveOwnerThread()) {
+            int nextc = c + acquires;
+            if (nextc < 0) // overflow
+                throw new Error("Maximum lock count exceeded");
+            setState(nextc);
+            return true;
+        }
+        return false;
+    }
+}
+
+````
+
+##### 13.1.3.2 addWaiter(Node.EXCLUSIVE=null) 添加线程node(currThread)到等待队列的tail 
+
+```java
+// addWaiter(Node.EXCLUSIVE=null)，将node(currThread)放置在等待队列的tail
+private Node addWaiter(Node mode) {
+    Node node = new Node(Thread.currentThread(), mode);
+    // Try the fast path of enq; backup to full enq on failure
+    Node pred = tail;
+    //  tail不为空，意味着等待队列有线程，node直接接在后面tail
+    if (pred != null) {
+        // node前节点为原tail节点
+        node.prev = pred;
+        // 将node置为sync的新tail
+        if (compareAndSetTail(pred, node)) {
+            // 原tail的后节点指向node，配合上两步，此时，node以及进入queue的tail
+            pred.next = node;
+            return node;
+        }
+    }
+    //  tail为空，说明是第一个阻塞线程进入，执行enq方法，初始化Head节点，以及添加线程node(currThread)到等待队列的tail
+    enq(node);
+    // 最终返回的node(currThread)，一定是在等待队列的tail
+    return node;
+}
+private Node enq(final Node node) {
+    // this为sync
+    for (;;) {
+        Node t = this.tail;
+        // tail的空说明队列还没创建，因为下面tail=head不会为空
+        if (t == null) { // Must initialize
+            // head==null.if  setHead = new Node() 设置一个占位(傀儡/哨兵节点)对象为头节点
+            if (compareAndSetHead(new Node()))
+                // 尾=头，此时头尾的pre/next都为null
+                this.tail = this.head;
+        } 
+        // 这是个for死循环，说明上面已经执行，才会走else
+        else {
+            // node前节点为原tail节点
+            node.prev = t;
+            // 设置尾节点尾node
+            if (compareAndSetTail(t, node)) {
+                // 原tail的后节点指向node，配合上两步，此时，node以及进入queue的tail
+                t.next = node;
+                return t;
+            }
+        }
+    }
+}
+```
+
+##### 13.1.3.3 acquireQueued(node(currThread), 1)  
+
+```java
+// acquireQueued(node[currThread], 1)
+final boolean acquireQueued(final Node node, int arg) {
+    boolean failed = true;
+    try {
+        boolean interrupted = false;
+        for (;;) {
+            final Node p = node.predecessor(); //node.prev
+            // p==head即node.prev=head说明是等待队列唯一线程
+            // 当其他线程调用unpark，parkAndCheckInterrupt()结束阻塞，tryAcquire(arg)抢锁
+            if (p == head && tryAcquire(arg)) {
+                // 抢到锁，则node需要出队列
+                // head = node;
+                // node.thread = null;
+                // node.prev = null; 
+                setHead(node); // 当前node为新傀儡节点，原傀儡节点引用取消，等待GC
+                p.next = null; // help GC
+                failed = false;
+                return interrupted; // false=本线程无需阻塞
+            }
+            // 如果shouldParkAfterFailedAcquire(p, node)则parkAndCheckInterrupt()
+            if (shouldParkAfterFailedAcquire(p, node) &&
+                parkAndCheckInterrupt()) // 线程阻塞在if这行
+                interrupted = true;
+        }
+    } finally {
+        if (failed)
+            cancelAcquire(node);
+    }
+}
+
+final Node predecessor() throws NullPointerException {
+    Node p = prev;
+    if (p == null)
+        throw new NullPointerException();
+    else
+        return p;
+}
+private void setHead(Node node) {
+    head = node;
+    node.thread = null;
+    node.prev = null;
+}
+// 该线程尝试获得锁失败，是否应该被park
+private static boolean shouldParkAfterFailedAcquire(Node pred, Node node) {
+    int ws = pred.waitStatus; // 默认是0
+    // 外层自旋，第二次进来 -1=-1，return true，该线程应该被park
+    if (ws == Node.SIGNAL)
+        /*
+             * This node has already set status asking a release
+             * to signal it, so it can safely park.
+             */
+        return true;
+    if (ws > 0) {
+        /*
+             * Predecessor was cancelled. Skip over predecessors and
+             * indicate retry.
+             */
+        do {
+            node.prev = pred = pred.prev;
+        } while (pred.waitStatus > 0);
+        pred.next = node;
+    } else {
+        /*
+             * waitStatus must be 0 or PROPAGATE.  Indicate that we
+             * need a signal, but don't park yet.  Caller will need to
+             * retry to make sure it cannot acquire before parking.
+             */
+        // 第一次为0，则被制成-1
+        compareAndSetWaitStatus(pred, ws, Node.SIGNAL);
+    }
+    return false;
+}
+
+private final boolean parkAndCheckInterrupt() {
+    // 阻塞当前线程，线程阻塞在这一行，直至其他线程调用LockSuport.unPark(this)
+    LockSupport.park(this);
+    return Thread.interrupted(); // currentThread().isInterrupted(true);当前线程是否被阻塞
+}
+```
+
+### 13.2 ReentrantLock.unlock底层分析
+
+```java
+class ReentrantLock {
+    // 执行lock.unlock的肯定是当前持有锁的线程，其他线程都被lock阻塞
+    public void unlock() {
+        sync.release(1);
+    }
+}
+abstract class AbstractQueuedSynchronizer {
+    // release(1)
+    public final boolean release(int arg) {
+        if (tryRelease(arg)) {
+            Node h = head;
+            // 头!=null 头.ws!=0,所有等待队列有线程，否则head.ws会被置成-1，compareAndSetWaitStatus(pred, ws, Node.SIGNAL);
+            if (h != null && h.waitStatus != 0)
+                unparkSuccessor(h);
+            return true;
+        }
+        return false;
+    }
+    // unparkSuccessor（head)
+    private void unparkSuccessor(Node node) {
+        /*
+         * If status is negative (i.e., possibly needing signal) try
+         * to clear in anticipation of signalling.  It is OK if this
+         * fails or if status is changed by waiting thread.
+         */
+        // -1
+        int ws = node.waitStatus;
+        if (ws < 0)
+            // head.ws又被置成0
+            compareAndSetWaitStatus(node, ws, 0);
+
+        /*
+         * Thread to unpark is held in successor, which is normally
+         * just the next node.  But if cancelled or apparently null,
+         * traverse backwards from tail to find the actual
+         * non-cancelled successor.
+         */
+        // s为第一个等待节点
+        Node s = node.next;
+        // 等待节点s为异常状态，则倒叙遍历队列，直至找到一个正常状态的node，以其阻塞状态
+        if (s == null || s.waitStatus > 0) {
+            s = null;
+            for (Node t = tail; t != null && t != node; t = t.prev)
+                if (t.waitStatus <= 0)
+                    s = t;
+        }
+        if (s != null)
+            // 取消s的阻塞状态
+            LockSupport.unpark(s.thread);
+    }
+}
+
+abstract static class Sync extends AbstractQueuedSynchronizer{
+    // tryRelease(1)
+    protected final boolean tryRelease(int releases) {
+        // c= 1-1 = 0
+        int c = getState() - releases;
+        if (Thread.currentThread() != getExclusiveOwnerThread())
+            throw new IllegalMonitorStateException();
+        boolean free = false;
+        if (c == 0) {
+            free = true;
+            // currThread=null
+            setExclusiveOwnerThread(null);
+        }
+        // state = 0, 其他线程可以抢锁了
+        setState(c);
+        return free;
+    }
+}
+```
+
+- AQS多线程出入队列示意图
+
+![1615218875851](E:\SoftwareNote\面试准备\多线程\img\AQS多线程出入队列示意图.png)
