@@ -330,3 +330,6 @@ root@ad95adf3a459:/data# env
 docker inspect 容器名
 ```
 
+## 12. 进入Redis
+
+docker exec -it redis210420 redis-cli

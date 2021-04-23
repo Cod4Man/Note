@@ -129,9 +129,16 @@ public class SpringaopApplicationTests {
   - 同理A也setB，然后从二级缓存删除，添加到一级缓存(**addSingleton()->singletonObjects**)
   - 然后配置文件读到B的创建，getSingleton发现B已经在一级缓存，直接Return
 
+- Spring循环依赖三级缓存和四大方法
+
 ![1618498970531](E:\SoftwareNote\面试准备\Spring\img\Spring循环依赖三级缓存和四大方法.png)
 
+- Spring循环依赖三级缓存
+
+  ![1618919458103](E:\SoftwareNote\面试准备\Spring\img\Spring循环依赖三级缓存.png)
+
 - 源码
+
   - getBean / createBean
 
 ```java
