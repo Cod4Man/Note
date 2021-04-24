@@ -1660,3 +1660,25 @@ abstract static class Sync extends AbstractQueuedSynchronizer{
 - AQS多线程出入队列示意图
 
 ![1615218875851](E:\SoftwareNote\面试准备\多线程\img\AQS多线程出入队列示意图.png)
+
+## 14. 线程一些概念
+
+- 进程和线程
+
+  - 进程：一个程序运行起来就是个进程，如QQ/迅雷
+  - 线程：一个进程多个任务启动，如迅雷多个下载/QQ多窗口聊天
+
+- 并发和并行
+
+  - 并发：一个CPU交替执行多个任务
+  - 并行：同一时刻，多任务同时进行，多CPU可实现
+
+- 查看程序线程运行状态： jconsole.exe
+
+- 线程方法：
+
+  - start：线程启动，底层调用native start0()
+
+  - interrupt：中断休眠sleep
+  - yield：礼让。礼让的时间不确定，不一定礼让成功
+  - join： 线程插队。被插队线程等待插队线程执行完毕，才有机会执行/

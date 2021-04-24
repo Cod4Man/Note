@@ -118,8 +118,6 @@
 
 ## 5.Redis分布式锁
 
-![1619183944293](C:\Users\ASUS\AppData\Local\Temp\1619183944293.png)
-
 - 普通方案：
 
 ```java
@@ -258,7 +256,7 @@ public String buyGoods(@PathVariable Integer id) {
 
   - 缓存过期淘汰策略
 
-    LRU：Least Recently Used
+    LRU：Least Recently Used （手写算法见算法篇）
 
     LFU： Least Frequently Used
 
@@ -271,11 +269,11 @@ public String buyGoods(@PathVariable Integer id) {
     - allkeys-lfu: 对所有key使用LFU算法删除
     - volatile-lfu: 对所有设置了过期时间的key使用LFU算法删除
 
-​	-  设置
+		-  设置
 
-​	- 配置文件： `maxmemory-policy allkeys-lru`
+		- 配置文件： `maxmemory-policy allkeys-lru`
 
-​	- 命令： `set maxmemory-policy allkeys-lru`
+		- 命令： `set maxmemory-policy allkeys-lru`
 
 - 立即删除：能保证内存中数据的最大新鲜度，但频繁删除会占用CPU的时间，产生大量性能损耗，从而也影响到查询操作。
 
