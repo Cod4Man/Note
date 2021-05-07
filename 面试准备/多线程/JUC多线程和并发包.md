@@ -1678,7 +1678,53 @@ abstract static class Sync extends AbstractQueuedSynchronizer{
 - 线程方法：
 
   - start：线程启动，底层调用native start0()
-
   - interrupt：中断休眠sleep
   - yield：礼让。礼让的时间不确定，不一定礼让成功
-  - join： 线程插队。被插队线程等待插队线程执行完毕，才有机会执行/
+  - join： 线程插队。被插队线程等待插队线程执行完毕，才有机会执行
+
+- 用户线程和守护线程
+
+  - 用户线程：也叫工作线程，当线程任务执行完或者通知方式结束
+  - 守护线程：一般是为工作线程服务的，所有用户线程结束，守护线程自动结束。如垃圾回收机制GC 
+
+  ```java
+  main {
+      thread00.start();
+      // 将thread01设置为main的守护线程，当全部工作线程结束时，thread01才结束
+      thread01.setDaemon(true);
+      thread01.start();
+  }
+  ```
+
+- 线程状态
+
+  - NEW ： 尚未启动的线程
+  - RUNNABLE： (Running+Ready) 在JAVA虚拟机中执行的线程
+  - BLOCKED： 被阻塞/等待监视器锁定的线程
+  - WATING： 正在等待另一个线程执行特定动作
+  - TIME_WAITING: 正在等待另一个线程执行动作达到等待时间（加了time的方法）
+  - TERMINATED：退出
+
+  线程生命周期
+
+  ![1619355080378](E:\SoftwareNote\面试准备\多线程\img\线程生命周期.png)
+
+- 静态同步方法的锁为类本身，非静态同步方法的锁为this
+
+```java
+public static synchorinized void test1() {
+    // 此时锁对象XX.class
+}
+
+public static void test2() {
+    synchorinized （XX.class）{
+        // 此时的锁对象必须时类本身XX.class
+    }
+}
+
+public synchorinized void test3() {
+    // 此时锁对象this
+}
+
+```
+
