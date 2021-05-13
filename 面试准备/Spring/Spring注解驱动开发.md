@@ -464,3 +464,284 @@ public class CustomBeanPostProcessor implements BeanPostProcessor {
 - BeanPostProcessor.postProcessBeforeInitialization(result, beanName)可以点出来自定义实现类
 
 ![1620899883716](E:\SoftwareNote\面试准备\Spring\img\BeanPostProcessor_postProcessBeforeInitialization(result, beanName)可以点出来自定义实现类.png)
+
+## 6. BeanPostProcessor.postProcessBeforeInitialization(result, beanName)所引申的注解/注入/AOP等
+
+由5.5可以看出，在Bean初始化前，会遍历所有BeanPostProcessor的实现类，挨个调用postProcessBeforeInitialization方法。
+
+### 6.1 ApplicationContextAwareProcessor 
+
+```java
+@Nullable
+public Object postProcessBeforeInitialization(Object bean, String beanName) throws BeansException {
+    if (!(bean instanceof EnvironmentAware || bean instanceof EmbeddedValueResolverAware ||
+          bean instanceof ResourceLoaderAware || bean instanceof ApplicationEventPublisherAware ||
+          bean instanceof MessageSourceAware || bean instanceof ApplicationContextAware ||
+          bean instanceof ApplicationStartupAware)) {
+        return bean;
+    }
+
+    AccessControlContext acc = null;
+
+    if (System.getSecurityManager() != null) {
+        acc = this.applicationContext.getBeanFactory().getAccessControlContext();
+    }
+
+    if (acc != null) {
+        AccessController.doPrivileged((PrivilegedAction<Object>) () -> {
+            invokeAwareInterfaces(bean);
+            return null;
+        }, acc);
+    }
+    else {
+        invokeAwareInterfaces(bean);
+    }
+
+    return bean;
+}
+
+private void invokeAwareInterfaces(Object bean) {
+    if (bean instanceof EnvironmentAware) {
+        ((EnvironmentAware) bean).setEnvironment(this.applicationContext.getEnvironment());
+    }
+    if (bean instanceof EmbeddedValueResolverAware) {
+        ((EmbeddedValueResolverAware) bean).setEmbeddedValueResolver(this.embeddedValueResolver);
+    }
+    if (bean instanceof ResourceLoaderAware) {
+        ((ResourceLoaderAware) bean).setResourceLoader(this.applicationContext);
+    }
+    if (bean instanceof ApplicationEventPublisherAware) {
+        ((ApplicationEventPublisherAware) bean).setApplicationEventPublisher(this.applicationContext);
+    }
+    if (bean instanceof MessageSourceAware) {
+        ((MessageSourceAware) bean).setMessageSource(this.applicationContext);
+    }
+    if (bean instanceof ApplicationStartupAware) {
+        ((ApplicationStartupAware) bean).setApplicationStartup(this.applicationContext.getApplicationStartup());
+    }
+    if (bean instanceof ApplicationContextAware) {
+        ((ApplicationContextAware) bean).setApplicationContext(this.applicationContext);
+    }
+}
+```
+
+### 6.2 InitDestroyAnnotationBeanPostProcessor 
+
+```java
+
+```
+
+### 6.3 EmbeddedValueResolverAware
+
+```java
+@Override
+public void setEmbeddedValueResolver(StringValueResolver resolver) {
+    // 可以取到配置文件信息
+    resolver.resolveStringValue("abc ${person.name}");
+}
+```
+
+
+
+## 7. @Value 和 @PropertySource
+
+- PropertySource可以加载properties配置文件中的数据，会被加载到ApplicationContext.Environment，因此可以从里面拿到数据
+
+```java
+@Configuration
+@PropertySource(value = {"classpath:/application.properties"})
+public class BeanConfig {
+    {
+        ConfigurableEnvironment environment = 
+            annotationConfigApplicationContext.getEnvironment();	
+        String property = environment.getProperty("person.name"); 
+    }
+
+}
+
+@Data
+public class Person {
+    private int age;
+    @Value("${person.name}")
+    private String name;
+
+    public Person(int age, String name) {
+        System.out.println("person对象创建, name=" + name);
+        this.age = age;
+        this.name = name;
+    }
+
+    public Person() {
+        System.out.println("person对象创建2");
+    }
+}
+
+
+```
+
+## 8. 依赖注入 DI 
+
+### 8.1 @Autowire ： 结合@Qualifer  @Primary 
+
+- 先按照类型查找：XX.class
+
+  `applicationContext.getBean(Person.class)`
+
+- 找不到再用变量命名查找
+
+  `applicationContext.getBean("person")`
+
+- 可以用@Qualifer指定容器id
+
+  `@Qualifer("person1")`
+
+- 找不到拉倒
+
+  `@Autowire(required=false)`
+
+- 首选Bean : 比如多数据源场景
+
+  `@Primary`
+
+- 应用场景： 
+
+  - 构造器: 单参数时，甚至可以忽略，也可以注入
+
+    ```java
+    @Autowire
+    public Person(Dog dog) {
+        this.dog=dog;
+    }
+    
+    // 相当于
+    @Autowire
+    Dog dog;
+    
+    // 单参数时，甚至可以忽略，也可以注入
+    ```
+
+  - 属性: 上面的用法
+
+  - 方法： 可用于**静态属性注入**  
+
+    ```
+    静态方法是属于类（class）的，普通方法才是属于实体对象（也就是New出来的对象）的，spring注入是在容器中实例化对象，所以不能使用静态方法。
+    ```
+
+    ```java
+    // 无法静态注入
+    private static Dog dog;
+    
+    // 供外部静态调用，内部属性必须是静态
+    public static Dog getDog() {
+        return dog;
+    }
+    
+    @Autowire
+    public void setDog(Dog dog) {
+        this.dog = dog;
+    }
+    ```
+
+  - 参数
+
+    ```java
+    public void setDog(@Autowire Dog dog) {
+        this.dog = dog;
+    }
+    
+    public Person(@Autowire Dog dog) {
+        this.dog=dog;
+    }
+    ```
+
+  - **不写** 
+
+    - @Bean+单方法入参
+
+      ```java
+      @Bean
+      // @Autowire 此处不写，dog依赖会注入
+      public Person(Dog dog) {
+          Person person = new Person (dog);
+          return person;
+      }
+      ```
+
+    - 构造注入+单入参
+
+      ```java
+      // @Autowire 此处不写，dog依赖会注入
+      public Person(Dog dog) {
+          this.dog=dog;
+      }
+      ```
+
+### 8.2 @Resource JSR250规范
+
+- 默认按照属性命名查找
+
+  `@Resource Person person`
+
+- 指定容器id
+
+  `@Resource(name = "person1")`
+
+- 与@Autowire的差异
+
+  - 没有required=false
+  - 没有@Primary
+
+### 8.3 @Inject ： JSR330规范
+
+- 需要包支持javax.inject
+- 和@Autowire大体相同
+- 不支持required=false的功能，但是可以有@Primary
+
+### 8.4 BeanPostProcessor.postProcessBeforeInitialization等底层set操作的注入
+
+见# 6
+
+## 9. Profile 多环境切换
+
+- 指定环境
+  - 启动服务器，可以添加环境参数 `-Dspring.profile.active=test`
+  - `annotationConfigApplicationContext.getEnvironment().setActiveProfiles("test");`
+
+- 当没有指定环境信息时，有使用@Profile声明的都不会注入
+- 写在配置文件类上，相当于声明整个类
+- 没有标注的，任何环境都会生效
+
+```java
+@Bean
+@Profile("test") // 声明所属环境test
+public DataSource datasourceTest() {
+    return null;
+}
+
+@Bean
+@Profile("dev")
+public DataSource datasourceDev() {
+    return null;
+}
+
+@Bean
+@Profile("dev")
+public Person person02() {
+    return null;
+}
+
+@Bean // 永远生效
+public Person person01() {
+    return null;
+}
+
+
+```
+
+## 10. Spring AOP
+
+### 10.1 使用见Spring.md#1
+
+### 10.2 原理
+

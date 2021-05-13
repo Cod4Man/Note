@@ -14,8 +14,18 @@
 ### 1.2. AOP
 
 ```java
+@EnableAspectJAutoProxy // 开启
+@SpringBootApplication
+public class SpringannotationresourceApplication {
+
+    public static void main(String[] args) {
+        SpringApplication.run(SpringannotationresourceApplication.class, args);
+    }
+
+}
+
 @Component
-@Aspect
+@Aspect // 声明这个类是个切面
 public class AOPComponent {
 
     @Pointcut(value = "execution(public int com.codeman.springaop..*.test*(..))")
@@ -31,6 +41,7 @@ public class AOPComponent {
     }
 
     @AfterThrowing(value = "pointCut()", throwing = "e")
+    // 注意必须放在参数的第一位 JoinPoint jp
     public void afterThrowing(JoinPoint jp, MyException e) {
         System.out.println("method afterThrowing.. e" + e);
     }
