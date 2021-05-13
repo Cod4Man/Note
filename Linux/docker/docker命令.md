@@ -223,6 +223,43 @@ netstat -tulp //查看所有运行端口号
 netstat -tnlp | grep:2375 //查看2375端口号状态
 ```
 
+### 7.4 暴露已在运行的docker容器端口
+
+```shell
+1、查看Container端口详情
+
+docker port 'container_id or name'
+
+2、查看Container ip地址
+
+docker inspect 'container_id or name' | grep IPAdress
+
+3、添加iptables 转发规则
+
+# 查看iptables 转发规则
+iptables -t nat -nvL
+iptables -t nat -nvL --line-number
+
+# 新增端口映射,8080 映射到容器80端口
+iptables -t nat -A PREROUTING -p tcp -m tcp --dport 8080 -j DNAT --to-destination 172.20.20.5:80
+
+4、保存iptables 规则
+
+iptables-save
+
+5、说明
+
+172.20.20.5 是通过docker inspect 'container_id or name' | grep IPAdress 查询到的结果
+
+端口映射完毕后不能通过docker port 'container_id or name' 查询结果
+
+可以通过iptabels -t nat -nvL |grep 172.20.20.5 
+查询映射关系
+
+```
+
+
+
 ## 8.docker运行参数可自行选择
 
 ```shell
