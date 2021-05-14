@@ -41,6 +41,12 @@
       public Person personXiaozhang() {
           return new Person(25, "xiaozhang");
       }
+      
+      // 该方法调用Bean创建方法，并不会实际调用，再去new一个对象，而是直接去找Bean。
+      // 这是因为Spring对@Configuration类有特殊处理。
+      public void test2() {
+          personXiaozhang();
+      }
   }
   ```
 
@@ -67,11 +73,27 @@ public class BeanConfig {
 }
 ```
 
+- Import -> ImportSelect
+
+```java
+public void refresh() throws BeansException, IllegalStateException {
+    // 注册相关的结构registered
+    // Invoke factory processors registered as beans in the context.
+    invokeBeanFactoryPostProcessors(beanFactory);
+    // ...
+}
+// 底层的
+processDeferredImportSelectors();
+```
+
+
+
 - Import ->  ImportBeanDefinitionRegistrar原理
 
 ```java
 public void refresh() throws BeansException, IllegalStateException {
-    // ...
+    // 注册相关的结构registered
+    // Invoke factory processors registered as beans in the context.
     invokeBeanFactoryPostProcessors(beanFactory);
     // ...
 }
@@ -141,7 +163,8 @@ private void loadBeanDefinitionsFromRegistrars(Map<ImportBeanDefinitionRegistrar
     // metadata -> StandAnnotationMetadata
     // 遍历调用ImportBeanDefinitionRegistrar实现类.registerBeanDefinitions即AspectJAutoProxyRegistrar.registerBeanDefinitions
     registrars.forEach((registrar, metadata) ->
-                       registrar.registerBeanDefinitions(metadata, this.registry, 		this.importBeanNameGenerator));
+                       registrar.registerBeanDefinitions(metadata, this.registry, 
+                                                         this.importBeanNameGenerator));
 }
 ```
 
@@ -1174,4 +1197,361 @@ public abstract class AbstractAspectJAdvice implements Advice, AspectJPrecedence
 
 - Spring4 ： before -> 目标方法 -> after->先afterThrowing/afterReturning
 - Spring5 ： before -> 目标方法 -> afterThrowing/afterReturning->after  明显5更符合逻辑
+
+## 11. 事务
+
+- pom
+
+  ```xml
+  <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-jdbc</artifactId>
+  </dependency>
+  ```
+
+- 启动开关
+
+  `@EnableTransactionManagement`
+
+- 方法注解
+
+  `@Transactional`
+
+### 11.1 源码解析 ： 和AOP思路相当，@Import采用的是实现ImportSelector
+
+#### 11.1.1 @Import注册了AutoProxyRegistrar/ProxyTransactionManagementConfiguration
+
+```java
+@Import(TransactionManagementConfigurationSelector.class)
+public @interface EnableTransactionManagement {
+    boolean proxyTargetClass() default false;
+    AdviceMode mode() default AdviceMode.PROXY;
+    int order() default Ordered.LOWEST_PRECEDENCE;
+}
+
+public class TransactionManagementConfigurationSelector extends AdviceModeImportSelector<EnableTransactionManagement> {
+
+    @Override
+    protected String[] selectImports(AdviceMode adviceMode) {
+        switch (adviceMode) {
+            case PROXY:
+                // 注册了AutoProxyRegistrar/ProxyTransactionManagementConfiguration
+                return new String[] {AutoProxyRegistrar.class.getName(), ProxyTransactionManagementConfiguration.class.getName()};
+            case ASPECTJ:
+                return new String[] {TransactionManagementConfigUtils.TRANSACTION_ASPECT_CONFIGURATION_CLASS_NAME};
+            default:
+                return null;
+        }
+    }
+}
+
+public abstract class AdviceModeImportSelector<A extends Annotation> implements ImportSelector {
+    protected abstract String[] selectImports(AdviceMode adviceMode);
+    
+	public final String[] selectImports(AnnotationMetadata importingClassMetadata) {
+        // 拿泛型，EnableTransactionManagement.class
+		Class<?> annoType  = GenericTypeResolver.resolveTypeArgument(getClass(), 		AdviceModeImportSelector.class);
+        // 获取注解所带的属性以及值order/mode/proxyTargetClass
+		AnnotationAttributes attributes = AnnotationConfigUtils.attributesFor(importingClassMetadata, annoType);
+		if (attributes == null) {
+			throw new IllegalArgumentException(String.format(
+				"@%s is not present on importing class '%s' as expected",
+				annoType.getSimpleName(), importingClassMetadata.getClassName()));
+		}
+		// 获取@EnableTransactionManagement.mode，默认为PROXY
+		AdviceMode adviceMode = attributes.getEnum(this.getAdviceModeAttributeName());
+        // abstract selectImports()需要子类重写
+		String[] imports = selectImports(adviceMode);
+		if (imports == null) {
+			throw new IllegalArgumentException(String.format("Unknown AdviceMode: '%s'", adviceMode));
+		}
+		return imports;
+	}
+}
+```
+
+#### 11.1.2 AutoProxyRegistrar/ProxyTransactionManagementConfiguration的作用
+
+1. AutoProxyRegistrar.class 实现了ImportBeanDefinitionRegistrar，
+
+   注册了InfrastructureAdvisorAutoProxyCreator
+
+```java
+public class AutoProxyRegistrar implements ImportBeanDefinitionRegistrar {
+    // importingClassMetadata为创建上下文的类信息
+    public void registerBeanDefinitions(AnnotationMetadata importingClassMetadata, BeanDefinitionRegistry registry) {
+        boolean candidateFound = false;
+        // 获取该类头上的注解
+        Set<String> annoTypes = importingClassMetadata.getAnnotationTypes();
+        for (String annoType : annoTypes) {
+            AnnotationAttributes candidate = 
+                AnnotationConfigUtils.attributesFor(importingClassMetadata, annoType);
+            if (candidate == null) {
+                continue;
+            }
+            Object mode = candidate.get("mode");
+            Object proxyTargetClass = candidate.get("proxyTargetClass");
+            if (mode != null && proxyTargetClass != null && AdviceMode.class == mode.getClass() 
+                && Boolean.class == proxyTargetClass.getClass()) {
+                candidateFound = true;
+                if (mode == AdviceMode.PROXY) {
+                    AopConfigUtils.registerAutoProxyCreatorIfNecessary(registry);
+                    if ((Boolean) proxyTargetClass) {
+                        AopConfigUtils.forceAutoProxyCreatorToUseClassProxying(registry);
+                        return;
+                    }
+                }
+            }
+		}
+		// ... 
+	}
+}
+
+// 和AOP一个套路，注册了InfrastructureAdvisorAutoProxyCreator.class
+public abstract class AopConfigUtils {
+    public static BeanDefinition registerAutoProxyCreatorIfNecessary(BeanDefinitionRegistry
+                                                                     registry) {
+        return registerAutoProxyCreatorIfNecessary(registry, null);
+    }
+
+    public static BeanDefinition registerAutoProxyCreatorIfNecessary(BeanDefinitionRegistry 
+                                                                     registry, Object source) {
+        return registerOrEscalateApcAsRequired(InfrastructureAdvisorAutoProxyCreator.class, 
+                                               registry, source);
+    }
+}
+```
+
+​	1.1 InfrastructureAdvisorAutoProxyCreator和AspectJAwareAdvisorAutoProxyCreator（AOP）同级，共用AbstractAutoProxyCreator的postProcessAfterInitialization后置通知，创建代理类。
+
+```java
+
+```
+
+
+
+2. ProxyTransactionManagementConfiguration : 简单粗暴，该类是个@Configuration。创建了三个Bean
+
+   BeanFactoryTransactionAttributeSourceAdvisor
+   TransactionAttributeSource
+   TransactionInterceptor
+
+```java
+@Configuration
+public class ProxyTransactionManagementConfiguration extends AbstractTransactionManagementConfiguration {
+    @Bean(name = TransactionManagementConfigUtils.TRANSACTION_ADVISOR_BEAN_NAME)
+	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+	public BeanFactoryTransactionAttributeSourceAdvisor transactionAdvisor() {
+		BeanFactoryTransactionAttributeSourceAdvisor advisor = new BeanFactoryTransactionAttributeSourceAdvisor();
+		advisor.setTransactionAttributeSource(transactionAttributeSource());
+		advisor.setAdvice(transactionInterceptor());
+		advisor.setOrder(this.enableTx.<Integer>getNumber("order"));
+		return advisor;
+	}
+
+	@Bean
+	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+	public TransactionAttributeSource transactionAttributeSource() {
+        // 这里
+		return new AnnotationTransactionAttributeSource();
+	}
+
+	@Bean
+	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+	public TransactionInterceptor transactionInterceptor() {
+		TransactionInterceptor interceptor = new TransactionInterceptor();
+		interceptor.setTransactionAttributeSource(transactionAttributeSource());
+		if (this.txManager != null) {
+			interceptor.setTransactionManager(this.txManager);
+		}
+		return interceptor;
+	}
+}
+```
+
+2. 1 AnnotationTransactionAttributeSource.class
+
+```java
+public class AnnotationTransactionAttributeSource extends 
+    AbstractFallbackTransactionAttributeSource
+		implements Serializable {
+		
+    public AnnotationTransactionAttributeSource() {
+		this(true);
+	}
+	
+	public AnnotationTransactionAttributeSource(boolean publicMethodsOnly) {
+		this.publicMethodsOnly = publicMethodsOnly;
+		this.annotationParsers = new LinkedHashSet<TransactionAnnotationParser>(2);
+		// 这里，事务解析器
+		this.annotationParsers.add(new SpringTransactionAnnotationParser());
+		if (jta12Present) {
+			this.annotationParsers.add(new JtaTransactionAnnotationParser());
+		}
+		if (ejb3Present) {
+			this.annotationParsers.add(new Ejb3TransactionAnnotationParser());
+		}
+	}
+}
+
+public class SpringTransactionAnnotationParser implements TransactionAnnotationParser, Serializable {
+	// 解析事务属性
+	public TransactionAttribute parseTransactionAnnotation(AnnotatedElement ae) {
+		AnnotationAttributes attributes = 
+			AnnotatedElementUtils.getMergedAnnotationAttributes(ae, Transactional.class);
+		if (attributes != null) {
+			// 这里
+			return parseTransactionAnnotation(attributes);
+		}
+		else {
+			return null;
+		}
+	}
+	// 解析@Transactional()所标注的属性
+	protected TransactionAttribute parseTransactionAnnotation(AnnotationAttributes attributes) {
+		RuleBasedTransactionAttribute rbta = new RuleBasedTransactionAttribute();
+		Propagation propagation = attributes.getEnum("propagation");
+		rbta.setPropagationBehavior(propagation.value());
+		Isolation isolation = attributes.getEnum("isolation");
+		rbta.setIsolationLevel(isolation.value());
+		rbta.setTimeout(attributes.getNumber("timeout").intValue());
+		rbta.setReadOnly(attributes.getBoolean("readOnly"));
+		rbta.setQualifier(attributes.getString("value"));
+		ArrayList<RollbackRuleAttribute> rollBackRules = new ArrayList<RollbackRuleAttribute>();
+		Class<?>[] rbf = attributes.getClassArray("rollbackFor");
+		for (Class<?> rbRule : rbf) {
+			RollbackRuleAttribute rule = new RollbackRuleAttribute(rbRule);
+			rollBackRules.add(rule);
+		}
+		String[] rbfc = attributes.getStringArray("rollbackForClassName");
+		for (String rbRule : rbfc) {
+			RollbackRuleAttribute rule = new RollbackRuleAttribute(rbRule);
+			rollBackRules.add(rule);
+		}
+		Class<?>[] nrbf = attributes.getClassArray("noRollbackFor");
+		for (Class<?> rbRule : nrbf) {
+			NoRollbackRuleAttribute rule = new NoRollbackRuleAttribute(rbRule);
+			rollBackRules.add(rule);
+		}
+		String[] nrbfc = attributes.getStringArray("noRollbackForClassName");
+		for (String rbRule : nrbfc) {
+			NoRollbackRuleAttribute rule = new NoRollbackRuleAttribute(rbRule);
+			rollBackRules.add(rule);
+		}
+		rbta.getRollbackRules().addAll(rollBackRules);
+		return rbta;
+	}
+}
+```
+
+2. 2 TransactionInterceptor.class
+
+```java
+public class TransactionInterceptor extends TransactionAspectSupport implements MethodInterceptor, Serializable {
+    public Object invoke(final MethodInvocation invocation) throws Throwable {
+		// ...
+		Class<?> targetClass = (invocation.getThis() != null ? AopUtils.getTargetClass(invocation.getThis()) : null);
+
+		// Adapt to TransactionAspectSupport's invokeWithinTransaction...
+		return invokeWithinTransaction(invocation.getMethod(), targetClass, new InvocationCallback() {
+			@Override
+			public Object proceedWithInvocation() throws Throwable {
+                 // 这里也是类似AOP的链式调用，底层是同一个接口，实现类不同
+				return invocation.proceed();
+			}
+		});
+	}
+    protected Object invokeWithinTransaction(Method method, Class<?> targetClass, final InvocationCallback invocation) throws Throwable {
+        
+        // If the transaction attribute is null, the method is non-transactional.
+		final TransactionAttribute txAttr = 
+            getTransactionAttributeSource().getTransactionAttribute(method, targetClass);
+        // 获取事务管理器
+		final PlatformTransactionManager tm = determineTransactionManager(txAttr);
+		final String joinpointIdentification = methodIdentification(method, targetClass, txAttr);
+
+		if (txAttr == null || !(tm instanceof CallbackPreferringPlatformTransactionManager)) {
+			// Standard transaction demarcation with getTransaction and commit/rollback calls.
+			TransactionInfo txInfo = createTransactionIfNecessary(tm, txAttr, joinpointIdentification);
+			Object retVal = null;
+			try {
+				// This is an around advice: Invoke the next interceptor in the chain.
+				// This will normally result in a target object being invoked.
+                // 执行原方法
+				retVal = invocation.proceedWithInvocation();
+			}
+			catch (Throwable ex) {
+				// target invocation exception
+                // 异常回滚rollback
+				completeTransactionAfterThrowing(txInfo, ex);
+				throw ex;
+			}
+			finally {
+				cleanupTransactionInfo(txInfo);
+			}
+            // 正常提交commit
+			commitTransactionAfterReturning(txInfo);
+			return retVal;
+		}
+        
+        // ...
+    }
+}
+public abstract class TransactionAspectSupport implements BeanFactoryAware, InitializingBean {
+    
+    // 获取事务管理器
+    protected PlatformTransactionManager determineTransactionManager(TransactionAttribute txAttr) {
+		// Do not attempt to lookup tx manager if no tx attributes are set
+		if (txAttr == null || this.beanFactory == null) {
+			return getTransactionManager();
+		}
+		String qualifier = txAttr.getQualifier();
+        // 看看@Transactional(transactionManager="")有无指定事务管理器transactionManager
+		if (StringUtils.hasText(qualifier)) {
+            // 有则直接返回
+			return determineQualifiedTransactionManager(qualifier);
+		}
+		else if (StringUtils.hasText(this.transactionManagerBeanName)) {
+			return determineQualifiedTransactionManager(this.transactionManagerBeanName);
+		}
+		else {
+			PlatformTransactionManager defaultTransactionManager = getTransactionManager();
+			if (defaultTransactionManager == null) {
+				defaultTransactionManager = 
+                    this.transactionManagerCache.get(DEFAULT_TRANSACTION_MANAGER_KEY);
+				if (defaultTransactionManager == null) {
+                    // 没有指定事务管理器，则从IOC容器中获取PlatformTransactionManager类型的Bean
+                    // 因此，我们想要指定某个事务处理器，可以直接@Bean导入一个即可,不需额外配置
+					defaultTransactionManager = 
+                        this.beanFactory.getBean(PlatformTransactionManager.class);
+					this.transactionManagerCache.putIfAbsent(
+							DEFAULT_TRANSACTION_MANAGER_KEY, defaultTransactionManager);
+				}
+			}
+			return defaultTransactionManager;
+		}
+	}
+    
+    // 异常回滚事务
+    protected void completeTransactionAfterThrowing(TransactionInfo txInfo, Throwable ex) {
+        if (txInfo != null && txInfo.hasTransaction()) {
+            // @Transactional(rollbackOn=true)
+            if (txInfo.transactionAttribute.rollbackOn(ex)) {
+                // ...
+                txInfo.getTransactionManager().rollback(txInfo.getTransactionStatus());
+            } else {
+                // @Transactional(rollbackOn=false) 没开事务的就不进行回滚
+                // ... 
+                txInfo.getTransactionManager().commit(txInfo.getTransactionStatus());
+            }
+        }
+    }
+    // 正常提交事务
+    protected void commitTransactionAfterReturning(TransactionInfo txInfo) {
+		if (txInfo != null && txInfo.hasTransaction()) {
+			txInfo.getTransactionManager().commit(txInfo.getTransactionStatus());
+		}
+	}
+}
+```
 
