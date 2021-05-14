@@ -73,7 +73,7 @@ public class AOPComponent {
 
  ### 1.3. Spring4和Spring5的AOP执行顺序 
 
-- Spring4是先after后afterThrowing
+- Spring4是先after后afterThrowing/afterReturning
 - Spring5和Spring4相反
 
 ![1617634454281](E:\SoftwareNote\面试准备\Spring\img\Spring4和Spring5的AOP执行顺序.png)
@@ -392,6 +392,10 @@ protected void applyPropertyValues(String beanName, BeanDefinition mbd, BeanWrap
     }
 }
 ```
+
+
+
+
 
 
 

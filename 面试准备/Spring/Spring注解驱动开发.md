@@ -67,6 +67,86 @@ public class BeanConfig {
 }
 ```
 
+- Import ->  ImportBeanDefinitionRegistrar原理
+
+```java
+public void refresh() throws BeansException, IllegalStateException {
+    // ...
+    invokeBeanFactoryPostProcessors(beanFactory);
+    // ...
+}
+
+protected void invokeBeanFactoryPostProcessors(ConfigurableListableBeanFactory beanFactory) {
+    PostProcessorRegistrationDelegate.invokeBeanFactoryPostProcessors(beanFactory, 			getBeanFactoryPostProcessors());
+
+    // ...
+}
+
+public static void invokeBeanFactoryPostProcessors(
+    ConfigurableListableBeanFactory beanFactory, List<BeanFactoryPostProcessor> beanFactoryPostProcessors) {
+    // ...
+    invokeBeanDefinitionRegistryPostProcessors(currentRegistryProcessors, registry, beanFactory.getApplicationStartup());
+    // ...
+}
+
+private static void invokeBeanDefinitionRegistryPostProcessors(
+			Collection<? extends BeanDefinitionRegistryPostProcessor> postProcessors, BeanDefinitionRegistry registry, ApplicationStartup applicationStartup) {
+
+    for (BeanDefinitionRegistryPostProcessor postProcessor : postProcessors) {
+        StartupStep postProcessBeanDefRegistry = applicationStartup.start("spring.context.beandef-registry.post-process")
+            .tag("postProcessor", postProcessor::toString);
+        postProcessor.postProcessBeanDefinitionRegistry(registry);
+        postProcessBeanDefRegistry.end();
+    }
+}
+
+public void postProcessBeanDefinitionRegistry(BeanDefinitionRegistry registry) {
+    int registryId = System.identityHashCode(registry);
+    if (this.registriesPostProcessed.contains(registryId)) {
+        throw new IllegalStateException(
+            "postProcessBeanDefinitionRegistry already called on this post-processor against " + registry);
+    }
+    if (this.factoriesPostProcessed.contains(registryId)) {
+        throw new IllegalStateException(
+            "postProcessBeanFactory already called on this post-processor against " + registry);
+    }
+    this.registriesPostProcessed.add(registryId);
+
+    processConfigBeanDefinitions(registry);
+}
+
+public void processConfigBeanDefinitions(BeanDefinitionRegistry registry) {
+    // ...
+    // ConfigurationClassBeanDefinitionReader
+    this.reader.loadBeanDefinitions(configClasses);
+    // ..
+}
+
+public void loadBeanDefinitions(Set<ConfigurationClass> configurationModel) {
+    TrackedConditionEvaluator trackedConditionEvaluator = new TrackedConditionEvaluator();
+    for (ConfigurationClass configClass : configurationModel) {
+        loadBeanDefinitionsForConfigurationClass(configClass, trackedConditionEvaluator);
+    }
+}
+
+private void loadBeanDefinitionsForConfigurationClass(
+    ConfigurationClass configClass, TrackedConditionEvaluator trackedConditionEvaluator) {
+    // ...
+    // 取到所有ImportBeanDefinitionRegistrar实现类configClass.getImportBeanDefinitionRegistrars()
+    loadBeanDefinitionsFromRegistrars(configClass.getImportBeanDefinitionRegistrars());
+}
+
+private void loadBeanDefinitionsFromRegistrars(Map<ImportBeanDefinitionRegistrar, AnnotationMetadata> registrars) {
+    // registrar->AspectJAutoProxyRegistrar
+    // metadata -> StandAnnotationMetadata
+    // 遍历调用ImportBeanDefinitionRegistrar实现类.registerBeanDefinitions即AspectJAutoProxyRegistrar.registerBeanDefinitions
+    registrars.forEach((registrar, metadata) ->
+                       registrar.registerBeanDefinitions(metadata, this.registry, 		this.importBeanNameGenerator));
+}
+```
+
+
+
 ### 1.4 FactoryBean
 
 - 通过FactoryBean的id获取Bean，默认得到的是FactoryBean调用getObject()方法返回的对象
@@ -744,4 +824,354 @@ public Person person01() {
 ### 10.1 使用见Spring.md#1
 
 ### 10.2 原理
+
+#### 10.2.1 开启切面支持 @EnableAspectJAutoProxy
+
+1. Enable注解导入的其他Bean @Import（AspectJAutoProxyRegistrar.class）
+
+```java
+@Target(ElementType.TYPE)
+@Retention(RetentionPolicy.RUNTIME)
+@Documented
+@Import(AspectJAutoProxyRegistrar.class)
+public @interface EnableAspectJAutoProxy {
+    
+}
+```
+
+2. Import注册器实现类： Import原理见# 1.3
+
+   注册了Bean ： AnnotationAwareAspectJAutoProxyCreator
+
+```java
+class AspectJAutoProxyRegistrar implements ImportBeanDefinitionRegistrar {
+    /**
+	 * Register, escalate, and configure the AspectJ auto proxy creator based on the value
+	 * of the @{@link EnableAspectJAutoProxy#proxyTargetClass()} attribute on the importing
+	 * {@code @Configuration} class.
+	 */
+	@Override
+	public void registerBeanDefinitions(
+        AnnotationMetadata importingClassMetadata, BeanDefinitionRegistry registry) {
+		// 注册一些信息 org.springframework.aop.config.internalAutoProxyCreator
+        AopConfigUtils.registerAspectJAnnotationAutoProxyCreatorIfNecessary(registry);
+
+        AnnotationAttributes enableAspectJAutoProxy =
+            AnnotationConfigUtils.attributesFor(importingClassMetadata, EnableAspectJAutoProxy.class);
+        if (enableAspectJAutoProxy != null) {
+            if (enableAspectJAutoProxy.getBoolean("proxyTargetClass")) {
+                AopConfigUtils.forceAutoProxyCreatorToUseClassProxying(registry);
+            }
+            if (enableAspectJAutoProxy.getBoolean("exposeProxy")) {
+                AopConfigUtils.forceAutoProxyCreatorToExposeProxy(registry);
+            }
+        }
+	}
+}
+
+public static BeanDefinition registerAspectJAnnotationAutoProxyCreatorIfNecessary(BeanDefinitionRegistry registry) {
+    return registerAspectJAnnotationAutoProxyCreatorIfNecessary(registry, null);
+}
+
+public static BeanDefinition registerAspectJAnnotationAutoProxyCreatorIfNecessary(BeanDefinitionRegistry registry, Object source) {
+    return registerOrEscalateApcAsRequired(AnnotationAwareAspectJAutoProxyCreator.class, registry, source);
+}
+
+private static BeanDefinition registerOrEscalateApcAsRequired(Class<?> cls, BeanDefinitionRegistry registry, Object source) {
+    Assert.notNull(registry, "BeanDefinitionRegistry must not be null");
+    if (registry.containsBeanDefinition(AUTO_PROXY_CREATOR_BEAN_NAME)) {
+        BeanDefinition apcDefinition = registry.getBeanDefinition(AUTO_PROXY_CREATOR_BEAN_NAME);
+        if (!cls.getName().equals(apcDefinition.getBeanClassName())) {
+            int currentPriority = findPriorityForClass(apcDefinition.getBeanClassName());
+            int requiredPriority = findPriorityForClass(cls);
+            if (currentPriority < requiredPriority) {
+                apcDefinition.setBeanClassName(cls.getName());
+            }
+        }
+        return null;
+    }
+    // cls = AnnotationAwareAspectJAutoProxyCreator.class
+    RootBeanDefinition beanDefinition = new RootBeanDefinition(cls);
+    beanDefinition.setSource(source);
+    beanDefinition.getPropertyValues().add("order", Ordered.HIGHEST_PRECEDENCE);
+    beanDefinition.setRole(BeanDefinition.ROLE_INFRASTRUCTURE);
+    // 注册Bean internalAutoProxyCreator
+    registry.registerBeanDefinition(AUTO_PROXY_CREATOR_BEAN_NAME, beanDefinition);
+    return beanDefinition;
+}
+```
+
+3. AnnotationAwareAspectJAutoProxyCreator的继承关系： 顶层实现了BeanPostProcessor和BeanFactoryAware
+
+   ![1620967407930](E:\SoftwareNote\面试准备\Spring\img\AnnotationAwareAspectJAutoProxyCreator继承关系图.png)
+
+4. 由# 6可知，实现了BeanPostProcessor，在bean初始化前后会做一些set操作。当有被切入的bean创建时，就会调用以下方法构建bean对应的代理类。
+
+   ```java
+   postProcessBeforeInitialization
+   postProcessAfterInitialization
+   
+   public abstract class AbstractAutoProxyCreator {
+       public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
+               if (bean != null) {
+                   Object cacheKey = getCacheKey(bean.getClass(), beanName);
+                   if (!this.earlyProxyReferences.contains(cacheKey)) {
+                       return wrapIfNecessary(bean, beanName, cacheKey);
+                   }
+               }
+               return bean;
+           }
+           
+       public Object postProcessBeforeInitialization(Object bean, String beanName) {
+   		return bean;
+   	}
+   	
+   	protected Object wrapIfNecessary(Object bean, String beanName, Object cacheKey) {
+   		if (beanName != null && this.targetSourcedBeans.contains(beanName)) {
+   			return bean;
+   		}
+   		if (Boolean.FALSE.equals(this.advisedBeans.get(cacheKey))) {
+   			return bean;
+   		}
+   		if (isInfrastructureClass(bean.getClass()) || shouldSkip(bean.getClass(), beanName)) {
+   			this.advisedBeans.put(cacheKey, Boolean.FALSE);
+   			return bean;
+   		}
+   
+   		// Create proxy if we have advice.
+   		// 返回所有的切面方法，如果该bean有方法作为切点的话
+   		Object[] specificInterceptors = getAdvicesAndAdvisorsForBean(bean.getClass(), beanName, null);
+   		// 如果不为空，则进行代理类注册
+   		if (specificInterceptors != DO_NOT_PROXY) {
+   			this.advisedBeans.put(cacheKey, Boolean.TRUE);
+   			// 创建代理类
+   			Object proxy = createProxy(
+   					bean.getClass(), beanName, specificInterceptors, new SingletonTargetSource(bean));
+   			this.proxyTypes.put(cacheKey, proxy.getClass());
+   			return proxy;
+   		}
+   
+   		this.advisedBeans.put(cacheKey, Boolean.FALSE);
+   		return bean;
+   	}
+   	
+   	protected Object createProxy(
+   			Class<?> beanClass, String beanName, Object[] specificInterceptors, TargetSource targetSource) {
+   
+   		if (this.beanFactory instanceof ConfigurableListableBeanFactory) {
+   			AutoProxyUtils.exposeTargetClass((ConfigurableListableBeanFactory) this.beanFactory, beanName, beanClass);
+   		}
+   		// 创建代理工厂
+   		ProxyFactory proxyFactory = new ProxyFactory();
+   		proxyFactory.copyFrom(this);
+   
+   		if (!proxyFactory.isProxyTargetClass()) {
+   			if (shouldProxyTargetClass(beanClass, beanName)) {
+   				proxyFactory.setProxyTargetClass(true);
+   			}
+   			else {
+   				evaluateProxyInterfaces(beanClass, proxyFactory);
+   			}
+   		}
+   		// 切面方法
+   		Advisor[] advisors = buildAdvisors(beanName, specificInterceptors);
+   		proxyFactory.addAdvisors(advisors);
+   		proxyFactory.setTargetSource(targetSource);
+   		customizeProxyFactory(proxyFactory);
+   
+   		proxyFactory.setFrozen(this.freezeProxy);
+   		if (advisorsPreFiltered()) {
+   			proxyFactory.setPreFiltered(true);
+   		}
+   		// 创建代理类
+   		return proxyFactory.getProxy(getProxyClassLoader());
+   	}
+   }
+   public class ProxyFactory extends ProxyCreatorSupport {
+   	public Object getProxy(ClassLoader classLoader) {	
+   		return createAopProxy().getProxy(classLoader);
+   	}
+   	
+   	protected final synchronized AopProxy createAopProxy() {
+   		if (!this.active) {
+   			activate();
+   		}
+   		return getAopProxyFactory().createAopProxy(this);
+   	}
+   }
+   
+   
+   public class DefaultAopProxyFactory implements AopProxyFactory, Serializable {
+   
+   	@Override
+   	public AopProxy createAopProxy(AdvisedSupport config) throws AopConfigException {
+   		if (config.isOptimize() || config.isProxyTargetClass() || hasNoUserSuppliedProxyInterfaces(config)) {
+   			Class<?> targetClass = config.getTargetClass();
+   			if (targetClass == null) {
+   				throw new AopConfigException("TargetSource cannot determine target class: " + "Either an interface or a target is required for proxy creation.");
+   			}
+   			if (targetClass.isInterface() || Proxy.isProxyClass(targetClass)) {
+   				// 有接口，用JDK静态代理
+   				return new JdkDynamicAopProxy(config);
+   			}
+   			// CGLib代理模式，默认都是
+   			return new ObjenesisCglibAopProxy(config);
+   		}
+   		else {
+   			// 用JDK静态代理
+   			return new JdkDynamicAopProxy(config);
+   		}
+   	}
+   }
+   
+   	
+   ```
+
+
+#### 10.2.2 代理被切类:在创建Bean的时候
+
+见# 10.2.1 -4  
+
+#### 10.2.3 代理方法调用
+
+```java
+class CglibAopProxy implements AopProxy, Serializable {
+    private static class DynamicAdvisedInterceptor implements MethodInterceptor, Serializable {
+        // 1. 调用方法时，用的是代理类调用 SpirngAOPDemo$$EnhancerBySpringCGLIB$$acd54dcc@4550
+        public Object intercept(Object proxy, Method method, Object[] args, MethodProxy methodProxy) throws Throwable {
+            // ...
+            // 获取该方法的所有切面方法，按顺序，并且会存再缓存里面，key为方法全名，value为链路
+            List<Object> chain = 
+                this.advised.getInterceptorsAndDynamicInterceptionAdvice(method, targetClass);
+            // ...
+            // 执行CglibMethodInvocation.proceed()方法做增强动作以及原始调用
+            retVal = new CglibMethodInvocation(proxy, target, method, args, targetClass, chain, 
+                                               methodProxy).proceed();
+            
+        }
+    }
+}
+
+public class ReflectiveMethodInvocation implements ProxyMethodInvocation, Cloneable {
+    public Object proceed() throws Throwable {
+        //	We start with an index of -1 and increment early.
+        // 遍历interceptorsAndDynamicMethodMatchers，即外层时chain，切面调用链，interceptorsAndDynamicMethodMatchers里面是有序的，顺序正好是AOP不同切入方式的顺序。
+        // 注意Spring4和5的区别，5修改了4的顺序。
+        // 4.after->先afterThrowing/afterReturning
+        // 5.先afterThrowing/afterReturning->after  明显5更符合逻辑
+        if (this.currentInterceptorIndex == this.interceptorsAndDynamicMethodMatchers.size()-1) 		{ 
+            // 遍历结束，调用方法
+            return invokeJoinpoint(); 
+        }
+		Object interceptorOrInterceptionAdvice =
+				this.interceptorsAndDynamicMethodMatchers.get(++this.currentInterceptorIndex);
+		if (interceptorOrInterceptionAdvice instanceof InterceptorAndDynamicMethodMatcher) {
+			// Evaluate dynamic method matcher here: static part will already have
+			// been evaluated and found to match.
+			InterceptorAndDynamicMethodMatcher dm =
+					(InterceptorAndDynamicMethodMatcher) interceptorOrInterceptionAdvice;
+			if (dm.methodMatcher.matches(this.method, this.targetClass, this.arguments)) {
+				return dm.interceptor.invoke(this);
+			}
+			else {
+				// Dynamic matching failed.
+				// Skip this interceptor and invoke the next in the chain.
+				return proceed();
+			}
+		}
+		else {
+			// It's an interceptor, so we just invoke it: The pointcut will have
+			// been evaluated statically before this object was constructed.
+            // 遍历出来的元素即切面，每次调用invoke
+			return ((MethodInterceptor) interceptorOrInterceptionAdvice).invoke(this);
+		}
+    }
+}
+
+// @Before
+public class MethodBeforeAdviceInterceptor implements MethodInterceptor, Serializable {
+	public Object invoke(MethodInvocation mi) throws Throwable {
+		this.advice.before(mi.getMethod(), mi.getArguments(), mi.getThis() );
+		return mi.proceed();
+	}
+}
+
+// @AfterThrowing
+public class AspectJAfterThrowingAdvice extends AbstractAspectJAdvice
+		implements MethodInterceptor, AfterAdvice, Serializable {
+	public Object invoke(MethodInvocation mi) throws Throwable {
+		try {
+			return mi.proceed();
+		}
+		catch (Throwable ex) {
+			if (shouldInvokeOnThrowing(ex)) {
+				invokeAdviceMethod(getJoinPointMatch(), null, ex);
+			}
+			throw ex;
+		}
+	}
+}
+
+class CglibAopProxy implements AopProxy, Serializable {
+    private static class CglibMethodInvocation extends ReflectiveMethodInvocation {
+    	protected Object invokeJoinpoint() throws Throwable {
+			if (this.publicMethod) {
+                // 执行原始方法
+				return this.methodProxy.invoke(this.target, this.arguments);
+			}
+			else {
+				return super.invokeJoinpoint();
+			}
+		}
+    }
+}
+
+// 最终是通过这里跳进切面执行方法，就是反射而已
+public abstract class AbstractAspectJAdvice implements Advice, AspectJPrecedenceInformation, Serializable {
+	protected Object invokeAdviceMethodWithGivenArgs(Object[] args) throws Throwable {
+		Object[] actualArgs = args;
+		if (this.aspectJAdviceMethod.getParameterTypes().length == 0) {
+			actualArgs = null;
+		}
+		try {
+			ReflectionUtils.makeAccessible(this.aspectJAdviceMethod);
+			// TODO AopUtils.invokeJoinpointUsingReflection
+			// aspectJAdviceMethod = “public void com.codeman.springaop.demo.AOPComponent.before(org.aspectj.lang.JoinPoint)”
+			// this.aspectInstanceFactory.getAspectInstance()=“AOPComponent”切面类
+			return 	
+			this.aspectJAdviceMethod.invoke(this.aspectInstanceFactory.getAspectInstance(), 
+				actualArgs);
+		}
+		catch (IllegalArgumentException ex) {
+			throw new AopInvocationException("Mismatch on arguments to advice method [" +
+					this.aspectJAdviceMethod + "]; pointcut expression [" +
+					this.pointcut.getPointcutExpression() + "]", ex);
+		}
+		catch (InvocationTargetException ex) {
+			throw ex.getTargetException();
+		}
+	}
+```
+
+- MethodInterceptor的实现，各种增强，@After @Before等等的底层
+
+![1620978423232](E:\SoftwareNote\面试准备\Spring\img\MethodInterceptor的实现.png)
+
+- Spring4的AOP增强调用顺序
+
+![1620955408293](E:\SoftwareNote\面试准备\Spring\img\Spring4的AOP增强调用顺序.png)
+
+### 10.3 总结
+
+1. 注解@EnableAspectJAutoProxy会开启AOP公告
+2. 在注解@EnableAsepctJAutoProxy内部，有@Import(AsepctJAutoProxyRegistrar.class) ，即开启AOP的同时，会导入另外一个Bean -> AsepctJAutoProxyRegistrar
+3. 而这个Bean是实现了ImportBeanDefinitionRegistrar，即重写registerBeanDefinitions方法，可以在Bean创建时，手动添加注册Bean，AsepctJAutoProxyRegistrat内部注册了AnnotationAwareAspectJAutoProxyCreator
+4. AnnotationAwareAspectJAutoProxyCreator实现了BeanPostProcessor，意味着Spring所有的Bean在初始化前后，都会调用该实现类的postProcessBeforeInitialization和postProcessAfterInitialization方法。
+5. AnnotationAwareAspectJAutoProxyCreator的父类AbstractAutoProxyCreator重写了后置处理器方法postProcessAfterInitialization，该方法内部对所有Bean进行判断，如果有被增强（切点为该bean的方法），那么就会创建该bean的代理Bean（proxyFactory.getProxy默认采用ObjenesisCglibAopProxy，即CGLIB代理模式，而非JdkDynamicAopProxy），并且带有所有的增强方法。
+6. 以上，完成了代理Bean的创建。接下来就是代理Bean来执行方法调用（增强原方法）
+7. 执行原方法时，就会被代理类接管，跳到CglibAopProxy.DynamicAdvisedInterceptor.intercept。方法内部是利用拦截器的链式戒指，依次进入每个拦截器进行执行（类似CP的bizRuleCheck）。
+8. 注意Spring4和5的区别，5修改了4的顺序。
+
+- Spring4 ： before -> 目标方法 -> after->先afterThrowing/afterReturning
+- Spring5 ： before -> 目标方法 -> afterThrowing/afterReturning->after  明显5更符合逻辑
 
