@@ -2144,3 +2144,34 @@ deferredResult.setResult(data);
 - 请求异步处理的应用场景：不同应用之间的异步
 
 ![1621077793188](E:\SoftwareNote\面试准备\Spring\img\请求异步处理的应用场景.png)
+
+## 15. Spring的容器的创建refresh()
+
+![1621091759169](E:\SoftwareNote\面试准备\Spring\img\refresh_01.png)
+
+![1621086059338](E:\SoftwareNote\面试准备\Spring\img\refresh_02.png)
+
+![1621092703195](E:\SoftwareNote\面试准备\Spring\img\refresh_03.png)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
