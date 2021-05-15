@@ -232,7 +232,7 @@ void getBeanFormConfiguration() {
         includeFilters = {
                 @ComponentScan.Filter(type = FilterType.ANNOTATION, classes = {Controller.class}),
                 @ComponentScan.Filter(type = FilterType.CUSTOM, classes = CustomTypeFilter.class)},
-        useDefaultFilters = false)
+        useDefaultFilters = false) // useDefaultFilters只扫描，需要禁掉默认规则
 @ComponentScans(value = @ComponentScan({"com.codeman"}))
 @Configuration
 public class BeanConfig {
@@ -1555,3 +1555,592 @@ public abstract class TransactionAspectSupport implements BeanFactoryAware, Init
 }
 ```
 
+## 12 . 拓展
+
+### 12.1 BeanFactoryPostProcessor 
+
+- 类似BeanPostProcessor, 是BeanFactory的后置处理器.
+- 在BeanFactory标准初始化之后调用,来指定和修改BeanFactroy内容.
+- 所有的Bean定义已经保存在BeanFactroy,但此时Bean还没创建
+- fresh的invokeBeanFactoryPostProcessors(beanFactory)方法内部,找到所有BeanFactoryPostProcessor的实现,调用postProcessBeanFactory方法.在其他组件初始化前执行
+
+### 12.2 BeanDefinitionRegistryPostProcessor
+
+- BeanDefinitionRegistryPostProcessor extends BeanFactoryPostProcessor
+- 实现postProcessBeanDefinitionRegistry方法
+- 在所有Bean定义信息将要被加载,Bean实例还未创建.优先于BeanFactoryPostProcessor执行
+- 利用该实现,可以z再给容器增加一些组件
+
+### 12.3 监听器ApplicationListener
+
+- 自定义监听器
+
+```java
+@Component
+public class MyApplicationListener implements ApplicationListener {
+
+    @Override
+    public void onApplicationEvent(ApplicationEvent event) {
+        System.out.println("收到收到：" + event);
+    }
+}
+
+方式二:
+@EventListener(classes={ApplicatinEvent.class})
+public void test(ApplicationEvent event) {
+    
+}
+```
+
+- 发布事件
+
+```
+applicationContext.publishEvent(new ApplicationEvent("你好啊") {});
+
+```
+
+- 源码解析
+
+```java
+public void refresh() {
+ 	finishRefresh();   
+}
+
+protected void finishRefresh() {
+	// Publish the final event.
+    publishEvent(new ContextRefreshedEvent(this));
+}
+```
+
+## 13. Servlet3.0
+
+### 13.1 @WebServlet 替换web.xml (tomcat7+)
+
+同理还有@WebFilter  @WebListener
+
+```xml
+<servlet>
+    <servlet-name>hello2</servlet-name>
+</servlet>
+<servlet-mapping>
+    <servlet-name>hello2</servlet-name>
+    <url-pattern>/index.jsp</url-pattern>
+</servlet-mapping>
+```
+
+```java
+@WebServlet("/hello")
+public class MyServlet extends HttpServlet {
+
+    @Override
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        resp.getWriter().write("hello  world");
+//        super.doGet(req, resp);
+    }
+}
+```
+
+### 13.2 @HandlesTypes + ServletContainerInitializer
+
+```java
+// 感兴趣的type
+@HandlesTypes(value = {Object.class})
+public class MyServeltContainerInitialier implements ServletContainerInitializer {
+
+    @Override
+    // 启动时，可以拿到HandlesTypes里面的所有子类集合set
+    public void onStartup(Set<Class<?>> set, ServletContext servletContext) throws ServletException {
+        System.out.println("---------------");
+        System.out.println(set);
+        System.out.println("---------------");
+    }
+}
+
+// 创建文件
+META-INF/services/javax.servlet.ServletContainerInitializerjavax.servlet.ServletContainerInitializer
+// 里面放ServletContainerInitializer的实现类全类名
+com.codemna.springservlet.servlet.MyServeltContainerInitialier
+// 这样启动web时，就会调用实现类的onStartup方法
+```
+
+### 13.3 使用ServletContext注册三大组件，替换web.xml，实现SpringMVC
+
+```java
+@HandlesTypes(value = {Object.class})
+public class MyServeltContainerInitialier implements ServletContainerInitializer {
+
+    @Override
+    public void onStartup(Set<Class<?>> set, ServletContext servletContext) throws ServletException {
+//        System.out.println("---------------");
+//        System.out.println(set);
+//        System.out.println("---------------");
+
+        System.out.println("ServletContainerInitializer.onStartup......");
+
+        // servlet
+        ServletRegistration.Dynamic servlet1 = servletContext.addServlet("servlet1", new MyServlet());
+        servlet1.addMapping("/my");
+
+        // listener
+        servletContext.addListener(MyListener.class);
+
+        // filter
+        FilterRegistration.Dynamic filter1 = servletContext.addFilter("filter1", new MyFilter());
+        // 配置filter映射信息
+        // 拦截所有请求 /*
+        filter1.addMappingForUrlPatterns(EnumSet.of(DispatcherType.REQUEST), true, "/*" );
+
+    }
+}
+
+//@WebServlet("/hello")
+public class MyServlet extends HttpServlet {
+
+    @Override
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        resp.getWriter().write("hello  world");
+//        System.out.println("MyServlet doGet...");
+//        super.doGet(req, resp);
+    }
+}
+
+public class MyFilter extends HttpFilter {
+    @Override
+    public void doFilter(ServletRequest req, ServletResponse res, FilterChain chain) throws IOException, ServletException {
+        System.out.println("MyFilter  doFilter...");
+        chain.doFilter(req, res);
+    }
+
+    @Override
+    protected void doFilter(HttpServletRequest req, HttpServletResponse res, FilterChain chain) throws IOException, ServletException {
+        System.out.println("MyFilter  doFilter2...");
+        chain.doFilter(req, res);
+    }
+}
+
+public class MyListener implements ServletContextListener {
+    @Override
+    public void contextInitialized(ServletContextEvent sce) {
+        System.out.println("MyListener.contextInitialized");
+    }
+
+    @Override
+    public void contextDestroyed(ServletContextEvent sce) {
+        System.out.println("MyListener.contextDestroyed");
+    }
+}
+
+// 创建文件
+META-INF/services/javax.servlet.ServletContainerInitializerjavax.servlet.ServletContainerInitializer
+// 里面放ServletContainerInitializer的实现类全类名
+com.codemna.springservlet.servlet.MyServeltContainerInitialier
+// 这样启动web时，就会调用实现类的onStartup方法
+```
+
+### 13.4 Servlet3支持异步处理请求
+
+- 在Servlet3之前，**Servlet采用Thread-Per-Request方式处理请求**。即每次Http请求都由某一个线程从头到尾负责处理。
+
+  在等待业务逻辑处理时，请求线程不能及时放回线程池供其他请求调用，并发越来越大就会出现严重性能问题。而**Spring/Struts这种高层矿机都是建立在Servlet的基础上，因此也有相同的性能问题**。
+
+  于是在**Servelt3.0(2009.12)引入了异步处理**。**Servlet3.1(2013.5)加入了非阻塞IO**来进一步增强异步处理的性能！
+
+- Servlet3.0之前，一个线程处理请求
+
+![1621070790084](E:\SoftwareNote\面试准备\Spring\img\Servlet3.0之前，一个线程处理请求.png)
+
+- Servlet3.0开始，Http请求线程和工作异步线程分开。（可以快速回收请求线程，请求线程只是个带路的）
+
+![1621071150381](E:\SoftwareNote\面试准备\Spring\img\Servlet3.0开始，Http请求线程和工作异步线程分开.png)
+
+- 代码HttpServletRequest.startAsync().start(runnable)
+  - 方式一：@WebServlet(value = "/hello", asyncSupported = true)，asyncSupported 异步支持打开
+  - 方式二：ServletContainerInitializer的onStartup方法中开启servlet1.setAsyncSupported(true);
+
+```java
+//@WebServlet(value = "/hello", asyncSupported = true)
+public class MyServlet extends HttpServlet {
+
+    @Override
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+
+        System.out.println("Main thread " + Thread.currentThread().getName() + "start " + System.currentTimeMillis());
+        // 业务处理
+//        BizMethod();
+        // 如果当前请求不在异步模式下，则调用此方法是非法的（即isAsyncStarted（）返回false）
+        AsyncContext asyncContext = req.startAsync();
+        asyncContext.start(() -> {
+            BizMethod();
+            asyncContext.complete();
+        });
+
+        resp.getWriter().write("hello  world");
+        System.out.println("Main thread " + Thread.currentThread().getName() + "end " + System.currentTimeMillis());
+//        System.out.println("MyServlet doGet...");
+//        super.doGet(req, resp);
+    }
+}
+
+@HandlesTypes(value = {Object.class})
+public class MyServeltContainerInitialier implements ServletContainerInitializer {
+
+    @Override
+    public void onStartup(Set<Class<?>> set, ServletContext servletContext) throws ServletException {
+//        System.out.println("---------------");
+//        System.out.println(set);
+//        System.out.println("---------------");
+
+        System.out.println("ServletContainerInitializer.onStartup......");
+
+        // servlet
+        //@WebServlet(value="/servlet1", asyncSupported=true)
+        ServletRegistration.Dynamic servlet1 = servletContext.addServlet("servlet1", new MyServlet());
+        servlet1.setAsyncSupported(true);
+        servlet1.addMapping("/my");
+    }
+}
+```
+
+
+
+## 14. SpringMVC整合Servlet3.0
+
+### 14.1 SpringMVC是根据#13.2的servlet特性基础上开发的 
+
+-  javax.servlet.ServletContainerInitializer，servlet中的接口，会找项目中的META-INF/services/javax.servlet.ServletContainerInitializerjavax.servlet.ServletContainerInitializer文件（里面必须是ServletContainerInitializer接口的实现类全类名）然后执行onStartup方法。
+
+  其中方法的入参之一Set<Class<?>> webAppInitializerClasses为实现类的注解@HandlesTypes中带的class的子类且非抽象类集合
+
+  这样就可以用HandlesTypes定义接口的实现类来做一些mvc启动事情
+
+  ```java
+  public interface javax.servlet.ServletContainerInitializer {
+      void onStartup(Set<Class<?>> var1, ServletContext var2) throws ServletException;
+  }
+  
+  @HandlesTypes(WebApplicationInitializer.class)
+  public class org.springframework.web.SpringServletContainerInitializer implements ServletContainerInitializer {
+      @Override
+  	public void onStartup(Set<Class<?>> webAppInitializerClasses, ServletContext servletContext)
+  			throws ServletException {
+  
+  		List<WebApplicationInitializer> initializers = new LinkedList<WebApplicationInitializer>();
+  
+  		if (webAppInitializerClasses != null) {
+  			for (Class<?> waiClass : webAppInitializerClasses) {
+  				// Be defensive: Some servlet containers provide us with invalid classes,
+  				// no matter what @HandlesTypes says...
+                  // WebApplicationInitializer的子类且非抽象类
+  				if (!waiClass.isInterface() && 
+                      !Modifier.isAbstract(waiClass.getModifiers()) &&
+  						WebApplicationInitializer.class.isAssignableFrom(waiClass)) {
+  					try {
+  						initializers.add((WebApplicationInitializer) 
+                                           waiClass.newInstance());
+  					}
+  					catch (Throwable ex) {
+  						throw new ServletException("Failed to instantiate 
+                                                     WebApplicationInitializer class", ex);
+  					}
+  				}
+  			}
+  		}
+  
+  		if (initializers.isEmpty()) {
+  			servletContext.log("No Spring WebApplicationInitializer types detected on 
+                                 classpath");
+  			return;
+  		}
+  
+  		servletContext.log(initializers.size() + " Spring WebApplicationInitializers 
+                             detected on classpath");
+  		AnnotationAwareOrderComparator.sort(initializers);
+  		for (WebApplicationInitializer initializer : initializers) {
+              // 调用WebApplicationInitializer.onStartup方法
+              // 还故意把方法名字写成一样
+  			initializer.onStartup(servletContext);
+  		}
+  	}
+  }
+  ```
+
+- WebApplicationInitializer的实现类们：都是抽象类，因此需要自己实现
+
+  ```java
+  abstract class AbstractAnnotationConfigDispatcherServletInitializer
+        extends abstract AbstractDispatcherServletInitializer
+        	extends abstract AbstractContextLoaderInitializer
+        		implements WebApplicationInitializer
+        		
+        		
+  /* 总的来说：
+  1. WebApplicationInitializer(0)暴露onStartup()给子类重写
+  2. AbstractContextLoaderInitializer(1)重写了onStartup，暴露了createRootApplicationContext()方法给子类重写
+  3. AbstractDispatcherServletInitializer(2)增强了(1)的重写了onStartup，暴露了createServletApplicationContext()给子类重写
+  4. AbstractAnnotationConfigDispatcherServletInitializer(3)重写(1)和(2)暴露的createRootApplicationContext()和createServletApplicationContext()方法，但是又对外暴露了getRootConfigClasses()和getServletConfigClasses()方法，用来隔离App容器和Root容器
+  5. 于是，子类只需要继承AbstractAnnotationConfigDispatcherServletInitializer(3)，重写getRootConfigClasses()和getServletConfigClasses()方法即可。
+  */
+  ```
+
+  - AbstractContextLoaderInitializer
+
+    留createRootApplicationContext()方法给子类重写，该方法就是注册Root容器
+
+  ```java
+  public abstract class AbstractContextLoaderInitializer implements WebApplicationInitializer {
+      @Override
+      // 重写接口onStartup方法
+      public void onStartup(ServletContext servletContext) throws ServletException {
+  		registerContextLoaderListener(servletContext);
+  	}
+      
+      protected void registerContextLoaderListener(ServletContext servletContext) {
+          // createRootApplicationContext()方法为实现，这是等实现类重写
+          // 这是注册Root容器
+  		WebApplicationContext rootAppContext = createRootApplicationContext();
+  		if (rootAppContext != null) {
+  			ContextLoaderListener listener = new ContextLoaderListener(rootAppContext);
+  			listener.setContextInitializers(getRootApplicationContextInitializers());
+              // 添加到servlet上下文（容器？）中
+  			servletContext.addListener(listener);
+  		}
+  		else {
+  			logger.debug("")
+  		}
+  	}
+      
+      protected abstract WebApplicationContext createRootApplicationContext();
+      
+      protected ApplicationContextInitializer<?>[] getRootApplicationContextInitializers() {
+  		return null;
+  	}
+  }
+  ```
+
+  - AbstractDispatcherServletInitializer
+
+    留createServletApplicationContext()给子类重写，该抽象类做的就是注册App容器
+
+  ```java
+  public abstract class AbstractDispatcherServletInitializer extends AbstractContextLoaderInitializer {
+      @Override
+      // 重写接口onStartup方法
+  	public void onStartup(ServletContext servletContext) throws ServletException {
+          // 即AbstractContextLoaderInitializer.onStartup
+          // 不完全重写，是增强父类功能，在父类方法基础上拓展
+  		super.onStartup(servletContext);
+  		registerDispatcherServlet(servletContext);
+  	}
+  }
+  
+  protected void registerDispatcherServlet(ServletContext servletContext) {
+  		String servletName = getServletName();
+  		Assert.hasLength(servletName, "getServletName() must not return empty or null");
+  		// createServletApplicationContext()留给子类重写
+  		WebApplicationContext servletAppContext = createServletApplicationContext();
+  		Assert.notNull(servletAppContext,
+  				"createServletApplicationContext() did not return an application " +
+  				"context for servlet [" + servletName + "]");
+  
+  		FrameworkServlet dispatcherServlet = createDispatcherServlet(servletAppContext);
+      // getServletApplicationContextInitializers()留给子类重写
+      dispatcherServlet.setContextInitializers(getServletApplicationContextInitializers());
+  
+  		ServletRegistration.Dynamic registration = servletContext.addServlet(servletName, dispatcherServlet);
+  		Assert.notNull(registration,
+  				"Failed to register servlet with name '" + servletName + "'." +
+  				"Check if there is another servlet registered under the same name.");
+  		// servlet容器的一些属性设置
+  		registration.setLoadOnStartup(1);
+  		registration.addMapping(getServletMappings());
+  		registration.setAsyncSupported(isAsyncSupported()); //是否开启请求异步处理功能
+  
+  		Filter[] filters = getServletFilters();
+  		if (!ObjectUtils.isEmpty(filters)) {
+  			for (Filter filter : filters) {
+  				registerServletFilter(servletContext, filter);
+  			}
+  		}
+  		// 留给子类重写
+  		customizeRegistration(registration);
+  	}
+  
+  	protected ApplicationContextInitializer<?>[] getServletApplicationContextInitializers() 	{ return null; }
+  	protected void customizeRegistration(ServletRegistration.Dynamic registration) { }
+  }
+  ```
+
+  - AbstractAnnotationConfigDispatcherServletInitializer
+
+  ```java
+  public abstract class AbstractAnnotationConfigDispatcherServletInitializer
+      extends AbstractDispatcherServletInitializer {
+      @Override
+      // 重写了AbstractContextLoaderInitializer的createRootApplicationContext方法
+  	protected WebApplicationContext createRootApplicationContext() {
+          // getServletConfigClasses()留给子类重写getRootConfigClasses()
+  		Class<?>[] configClasses = getRootConfigClasses();
+  		if (!ObjectUtils.isEmpty(configClasses)) {
+  			AnnotationConfigWebApplicationContext rootAppContext = new 
+                  	AnnotationConfigWebApplicationContext();
+  			rootAppContext.register(configClasses);
+  			return rootAppContext;
+  		}
+  		else {
+  			return null;
+  		}
+  	}
+      
+      @Override
+      // 重写了AbstractDispatcherServletInitializer.createServletApplicationContext
+  	protected WebApplicationContext createServletApplicationContext() {
+  		AnnotationConfigWebApplicationContext servletAppContext = new 
+              AnnotationConfigWebApplicationContext();
+          // getServletConfigClasses()留给子类重写
+  		Class<?>[] configClasses = getServletConfigClasses();
+  		if (!ObjectUtils.isEmpty(configClasses)) {
+  			servletAppContext.register(configClasses);
+  		}
+  		return servletAppContext;
+  	}
+      
+      protected abstract Class<?>[] getRootConfigClasses();
+      
+      protected abstract Class<?>[] getServletConfigClasses();
+  }
+  ```
+
+### 14.2 重写WebApplicationInitializerd的子类AbstractAnnotationConfigDispatcherServletInitializer
+
+```java
+public class CustomSpringMVC extends AbstractAnnotationConfigDispatcherServletInitializer {
+
+    @Override
+    protected Class<?>[] getRootConfigClasses() {
+        return new Class[]{RootConfig.class};
+    }
+
+    @Override
+    protected Class<?>[] getServletConfigClasses() {
+        return new Class[]{AppConfig.class};
+    }
+
+    @Override
+    // 拦截请求
+    // “/” 拦截所有的请求（*.js/*.css），但不包含*.jsp
+    // “/*” 拦截所有请求
+    protected String[] getServletMappings() {
+        return new String[]{"/"};
+    }
+}
+
+@ComponentScan(value = "com.codeman.springmvcannotation", useDefaultFilters = false,
+        // 和AppConfig互补
+        excludeFilters = {
+                @ComponentScan.Filter(type = FilterType.ANNOTATION, value = {Controller.class})
+        }
+)
+public class RootConfig {
+}
+
+@ComponentScan(value = "com.codeman.springmvcannotation", useDefaultFilters = false,
+        // 和RootConfig互补
+        includeFilters = {
+                @ComponentScan.Filter(type = FilterType.ANNOTATION, value = {Controller.class})
+        }
+)
+public class AppConfig extends WebMvcConfigurerAdapter {
+}
+```
+
+### 14.3  定制SpringMVC（接管MVC。即web.xml中所有mvc相关的配置）
+
+- 开启注解@EnableWebMvc，该注解相当于web.xml的`<mvc:annotation-driven/>`
+- 继承WebMvcConfigurerAdapter（实现WebMvcConfigurer），实现内部方法(配置组件：视图解析器/视图映射/静态资源映射/拦截器等等)
+- 具体可以参考官方文档[https://docs.spring.io/spring-framework/docs/5.0.2.RELEASE/spring-framework-reference/web.html#mvc-config]
+
+```java
+@ComponentScan(value = "com.codeman.springmvcannotation", useDefaultFilters = false,
+        // 和RootConfig互补
+        includeFilters = {
+                @ComponentScan.Filter(type = FilterType.ANNOTATION, value = {Controller.class})
+        }
+)
+// 接管MVC。即web.xml中所有mvc相关的配置，都可以移至这里
+@EnableWebMvc
+public class AppConfig extends WebMvcConfigurerAdapter {
+
+    @Override
+    // 配置视图解析器
+    /*
+    <mvc:view-resolvers>
+        <mvc:content-negotiation>
+            <mvc:default-views>
+                <bean class="org.springframework.web.servlet.view.json.MappingJackson2JsonView"/>
+            </mvc:default-views>
+        </mvc:content-negotiation>
+        <mvc:jsp/>
+    </mvc:view-resolvers>
+    */
+    public void configureViewResolvers(ViewResolverRegistry registry) {
+        // 配置View&Controller的映射
+        // jsp("/WEB-INF/", ".jsp");
+//        registry.jsp();
+        // /WEB-INF/view/底下的所有.jsp文件，都通过Controller层的返回值映射找到相应的页面
+        registry.jsp("/WEB-INF/view/", ".jsp");
+    }
+
+    @Override
+    // 配置静态资源访问
+    /*
+    <mvc:default-servlet-handler/>
+    */
+    public void configureDefaultServletHandling(DefaultServletHandlerConfigurer configurer) {
+        configurer.enable();
+    }
+
+    // TODO 还有很多，可以看官方文档，是全的
+    // https://docs.spring.io/spring-framework/docs/5.0.2.RELEASE/spring-framework-reference/web.html#mvc-config
+}
+```
+
+### 14.4 SpringMVC的异步处理：在controller返回特殊的返回值Callable/DeferredResult
+
+```
+// 方式一：
+@PostMapping
+public Callable<String> processUpload(final MultipartFile file) {
+
+    return new Callable<String>() {
+        public String call() throws Exception {
+            // ...
+            return "someView";
+        }
+    };
+}
+
+// 方式二
+@RequestMapping("/quotes")
+@ResponseBody
+public DeferredResult<String> quotes() {
+    DeferredResult<String> deferredResult = new DeferredResult<String>();
+    // Save the deferredResult somewhere..
+    // 先返回，把对象deferredResult存在某个地方，比如消息队列
+    return deferredResult;
+}
+
+// In some other thread...
+// 在其他地方处理完接口，在setResult，请求就能响应
+deferredResult.setResult(data);
+```
+
+- Callable的形式
+  1.  请求线程请求，控制器**直接返回Callable**
+  2.  Spring启动**起步处理** ，讲Callable提交到TaskExecutor，使用一个隔离的线程处理请求任务
+  3. DispatcherServelt和所有的Filter退出web容器的线程，但是**response保持打开状态** 
+  4. Callable有返回结果，**SpringMVC将请求重新派发（因此又请求了一次，只是本次不走业务逻辑，而是之前返回callable结果）**给容器，恢复之前的处理
+  5. 根据Callable的返回结果，SpringMVC继续进行视图渲染等工作
+
+- 请求异步处理的应用场景：不同应用之间的异步
+
+![1621077793188](E:\SoftwareNote\面试准备\Spring\img\请求异步处理的应用场景.png)
