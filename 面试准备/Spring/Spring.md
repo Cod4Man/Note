@@ -13,6 +13,8 @@
 
 ### 1.2. AOP
 
+***AOP可以拦截注解***
+
 ```java
 @EnableAspectJAutoProxy // 开启
 @SpringBootApplication
@@ -28,9 +30,17 @@ public class SpringannotationresourceApplication {
 @Aspect // 声明这个类是个切面
 public class AOPComponent {
 
+    // AOP可以拦截注解
+    @Around("@annotation(com.cod4man.fakenews.annotation.redis.RedisSelect)")
     @Pointcut(value = "execution(public int com.codeman.springaop..*.test*(..))")
     public void pointCut() {
 
+    }
+    
+    // 注解作为入参
+    @Around(value = "@annotation(redissionLock)")
+    public Object redLock(ProceedingJoinPoint joinPoint, RedissionLock redissionLock) {
+        
     }
 
     @Before(value = "pointCut()")
@@ -100,6 +110,182 @@ public class SpringaopApplicationTests {
         spirngAOPDemo.test01("param01");
     }
 
+}
+```
+
+### 1.5 应用
+
+#### 1.5.1 日志处理
+
+#### 1.5.2 权限控制
+
+- 比如切点为某特定注解
+- 标注该注解的方法，都需要被拦截，校验权限
+
+```java
+@RestController
+@RequestMapping("/area")
+@Api(value = "Area", tags = "地区表")
+// 整个关键Controller都会被拦截查看权限
+@PreAuth(replace = "area:")
+public class AreaController extends
+    SuperCacheController<AreaService, Long, Area, AreaPageDTO, AreaSaveDTO, AreaUpdateDTO> {
+
+    @ApiOperation(value = "检测地区编码是否重复", notes = "检测地区编码是否重复")
+    @GetMapping("/check/{code}")
+    @SysLog("检测地区编码是否重复")
+    public R<Boolean> check(@RequestParam(required = false) Long id, @PathVariable String code) {
+        int count = baseService.count(Wraps.<Area>lbQ().eq(Area::getCode, code).ne(Area::getId, id));
+        return success(count > 0);
+    }
+
+
+    @Override
+    // 删除方法会被拦截
+    public R<Boolean> handlerDelete(List<Long> ids) {
+        //TODO 重点测试递归删除
+        return R.success(baseService.recursively(ids));
+    }
+}
+
+
+// Aspect
+{
+    // 切PreAuth注解
+    @Around("execution(public * com.zkthink.base.controller.*.*(..)) || " +
+            "@annotation(com.zkthink.security.annotation.PreAuth) || " +
+            "@within(com.zkthink.security.annotation.PreAuth)"
+    )
+    public Object preAuth(ProceedingJoinPoint point) throws Throwable {
+        // 校验权限
+        if (handleAuth(point)) {
+            return point.proceed();
+        }
+        // 校验不通过，直接throw Exception
+        throw BizException.wrap(ExceptionCode.UNAUTHORIZED);
+    }
+    
+    private boolean handleAuth(ProceedingJoinPoint point) {
+        MethodSignature ms = (MethodSignature) point.getSignature();
+        Method method = ms.getMethod();
+        // 读取权限注解，优先方法上，没有则读取类
+        PreAuth preAuth = null;
+        if (point.getSignature() instanceof MethodSignature) {
+            method = ((MethodSignature) point.getSignature()).getMethod();
+            if (method != null) {
+                preAuth = method.getAnnotation(PreAuth.class);
+            }
+        }
+        // 读取目标类上的权限注解
+        PreAuth targetClass = point.getTarget().getClass().getAnnotation(PreAuth.class);
+        //方法和类上 均无注解
+        if (preAuth == null && targetClass == null) {
+            log.debug("执行方法[{}]无需校验权限", method.getName());
+            return true;
+        }
+
+        // 方法上禁用
+        if (preAuth != null && !preAuth.enabled()) {
+            log.debug("执行方法[{}]无需校验权限", method.getName());
+            return true;
+        }
+
+        // 类上禁用
+        if (targetClass != null && !targetClass.enabled()) {
+            log.debug("执行方法[{}]无需校验权限", method.getName());
+            return true;
+        }
+
+        String condition = null;
+        if (preAuth == null) {
+            condition = targetClass.value();
+        } else {
+            // 判断表达式
+            condition = preAuth.value();
+        }
+        if (StrUtil.isBlank(condition)) {
+            return true;
+        }
+        if (condition.contains("{}")) {
+            if (targetClass != null && StrUtil.isNotBlank(targetClass.replace())) {
+                condition = StrUtil.format(condition, targetClass.replace());
+            } else {
+                // 子类类上边没有 @PreAuth 注解，证明该方法不需要简要权限
+                return true;
+            }
+        }
+
+        Expression expression = SPEL_PARSER.parseExpression(condition);
+        // 方法参数值
+        Object[] args = point.getArgs();
+        StandardEvaluationContext context = getEvaluationContext(method, args);
+        if (expression.getValue(context, Boolean.class)) {
+            return true;
+        }
+        throw BizException.wrap(ExceptionCode.UNAUTHORIZED.build("执行方法[%s]需要[%s]权限", method.getName(), condition));
+    }
+}
+```
+
+#### 1.5.3 分布式事务
+
+```java
+class {
+    @RedisLock(lockName = "insertUser", key = "#appConnect.appId + ':' + #appConnect.bizUserId")
+    @Caching(evict = {
+			@CacheEvict(cacheNames = "yami_user", key = "#appConnect.appId + ':' + 
+                        #appConnect.bizUserId"),
+			@CacheEvict(cacheNames = "AppConnect", key = "#appConnect.appId + ':' + 
+                        #appConnect.bizUserId")
+	})
+    public void insertUserIfNecessary(AppConnect appConnect) {
+        
+    }
+}
+
+@Aspect
+@Component
+public class RedisLockAspect {
+
+	@Autowired
+	private RedissonClient redissonClient;
+
+	private static final String REDISSON_LOCK_PREFIX = "redisson_lock:";
+
+    // 拦截自定义注解@redisLock
+	@Around("@annotation(redisLock)")
+	public Object around(ProceedingJoinPoint joinPoint, RedisLock redisLock) throws Throwable {
+		String spel = redisLock.key();
+		String lockName = redisLock.lockName();
+
+		RLock rLock = redissonClient.getLock(getRedisKey(joinPoint,lockName,spel));
+
+		rLock.lock(redisLock.expire(),redisLock.timeUnit());
+
+		Object result = null;
+		try {
+			//执行方法
+			result = joinPoint.proceed();
+
+		} finally {
+			rLock.unlock();
+		}
+		return result;
+	}
+
+	/**
+	 * 将spel表达式转换为字符串
+	 * @param joinPoint 切点
+	 * @return redisKey
+	 */
+	private String getRedisKey(ProceedingJoinPoint joinPoint,String lockName,String spel) {
+		Signature signature = joinPoint.getSignature();
+		MethodSignature methodSignature = (MethodSignature) signature;
+		Method targetMethod = methodSignature.getMethod();
+		Object target = joinPoint.getTarget();
+		Object[] arguments = joinPoint.getArgs();
+		return REDISSON_LOCK_PREFIX + lockName + StrUtil.COLON + SpelUtil.parse(target,spel, targetMethod, arguments);
+	}
 }
 ```
 

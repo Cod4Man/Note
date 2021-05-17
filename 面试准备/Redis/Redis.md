@@ -384,6 +384,70 @@ public String buyGoods(@PathVariable Integer id) {
 }
 ```
 
+- AOP+Redission+SpEL
+
+```java
+class {
+    @RedisLock(lockName = "insertUser", key = "#appConnect.appId + ':' + #appConnect.bizUserId")
+    @Caching(evict = {
+			@CacheEvict(cacheNames = "yami_user", key = "#appConnect.appId + ':' + 
+                        #appConnect.bizUserId"),
+			@CacheEvict(cacheNames = "AppConnect", key = "#appConnect.appId + ':' + 
+                        #appConnect.bizUserId")
+	})
+    public void insertUserIfNecessary(AppConnect appConnect) {
+        
+    }
+}
+
+@Aspect
+@Component
+public class RedisLockAspect {
+
+	@Autowired
+	private RedissonClient redissonClient;
+
+	private static final String REDISSON_LOCK_PREFIX = "redisson_lock:";
+
+    // 拦截自定义注解@redisLock
+	@Around("@annotation(redisLock)")
+	public Object around(ProceedingJoinPoint joinPoint, RedisLock redisLock) throws Throwable {
+		String spel = redisLock.key();
+		String lockName = redisLock.lockName();
+
+		RLock rLock = redissonClient.getLock(getRedisKey(joinPoint,lockName,spel));
+
+		rLock.lock(redisLock.expire(),redisLock.timeUnit());
+
+		Object result = null;
+		try {
+			//执行方法
+			result = joinPoint.proceed();
+
+		} finally {
+			rLock.unlock();
+		}
+		return result;
+	}
+
+	/**
+	 * 将spel表达式转换为字符串
+	 * @param joinPoint 切点
+	 * @return redisKey
+	 */
+	private String getRedisKey(ProceedingJoinPoint joinPoint,String lockName,String spel) {
+		Signature signature = joinPoint.getSignature();
+		MethodSignature methodSignature = (MethodSignature) signature;
+		Method targetMethod = methodSignature.getMethod();
+		Object target = joinPoint.getTarget();
+		Object[] arguments = joinPoint.getArgs();
+		return REDISSON_LOCK_PREFIX + lockName + StrUtil.COLON + SpelUtil.parse(target,spel, targetMethod, arguments);
+	}
+}
+```
+
+
+
 - 分布式锁的续期
 
 ## 6. 内存 

@@ -102,12 +102,14 @@ eureka:
 
 - 客户服务+Eureka服务集群+提供者服务集群
 - 提供者服务集群会注册在Eureka集群中，客户服务调用前会先向Eureka查询注册信息，发现提供者URL再进行调用
+- eureka继承了Ribbon
+- @LoadBalanced // 注释了这个，服务间才可以发现彼此，用服务名调用，而不需要ip+port
 
 ![1606749404796](E:\SoftwareNote\微服务\SpringCloud\img\Eureka系统架构.png)
 
 ##### 4.1.1.2 Eureka组成
 
-- Eureka Server(@EnableEurekaServer)和Eureka Client(@EnableEurekaServer)
+- Eureka Server(@EnableEurekaServer)和Eureka Client(@EnableEurekaClient)
 - Eureka Server提供服务注册服务
 - Eureka Client通过注册中心进行访问。是一个JAVA客户端，用于简化Eureka Server的交互，客户端同时也具备一个内置的/使用轮询负载算法的负载均衡器。再应用启动后，将会向Euerka Server发送心跳（默认30s）。如果Eureka Server在多个心跳周期内美哟接收到某个节点的心跳，Eureka Server将会从服务注册表中把这个服务节点移除（默认90s）
 
@@ -126,6 +128,22 @@ eureka:
      			    eureka.instance.lease-expiration-duration-in-seconds=90
 
 #### 4.1.2 Zookeeper :2181(需要客户端)
+
+- Zookeeper工作机制
+
+  ![1621258653554](C:\Users\ASUS\AppData\Local\Temp\1621258653554.png)
+
+- Zookeeper特点
+
+  ![1621257515503](C:\Users\ASUS\AppData\Local\Temp\1621257515503.png)
+
+- 数据结构
+
+  ![1621257783507](C:\Users\ASUS\AppData\Local\Temp\1621257783507.png)
+
+- 应用场景
+
+![1621257828842](C:\Users\ASUS\AppData\Local\Temp\1621257828842.png)
 
 ```yaml
 spring:
@@ -168,9 +186,18 @@ spring:
 
 ### 4.3 服务调用
 
-#### 4.3.1 Ribbon
+#### 4.3.1 Ribbon（RestTemplate）
 
 - Eureka自带Ribbon依赖
+- 使用
+
+```java
+@Bean
+@LoadBalanced // 注释了这个，服务间才可以发现彼此，用服务名调用，而不需要ip+port
+public RestTemplate restTemplate {
+    return new RestTemplate();
+}
+```
 
 - 7大自带负载均衡规则
 
@@ -182,7 +209,7 @@ spring:
   - AvailabilityFilteringRule  先过滤掉故障实例，再选择并发较小的实例
   - ZoneAvoidanceRule 默认规则，复合判断server所在区域的性能和server的可用性选择服务器
 
-- 使用及替换负载均衡规则
+- 使用及替换负载均衡规则（放在**客户端，服务名写服务端** ）
 
   ```java
   // 规则Config类
@@ -196,8 +223,12 @@ spring:
       }
   }
   
-  // 入口指定服务及规则类
+  // 入口指定服务及规则类，这是写在customer的启动类
   @RibbonClient(name = "CLOUD-PAYMENT-SERVICE", configuration = RibbonRuleConfig.class)
+  // 多服务规则
+  @RibbonClients({
+          @RibbonClient(name = "SHOPCART-PRO", configuration = {LoadBalanceRuleConfig.class})
+  })
   ```
 
   
@@ -286,6 +317,59 @@ logging:
     com.atguigu.springcloud.service.PaymentFeignService: debug
  
 ```
+
+### 4.3.2 OpenFeign+Ribbon+Eureka的配合
+
+- 只有**Eureka**：
+
+  服务调用是通过ip+port+param调用
+
+  `restTemplate.getForObject("http://192.168.1.1:8001/mall4springcloud/mall_goods/get/1")`
+
+- 只有**Eureka+Ribbon**
+
+  Ribbot带了服务查找的作用，配合Eureka的服务集群，可以根据**RibbonRule算法** 调某一台服务器
+
+  SERVICE-A 集群: 192.168.1.1:8001 |  192.168.1.2:8002   |  192.168.1.3:8003
+
+  ``restTemplate.getForObject("http://SERVICE-B/mall4springcloud/mall_goods/get/1")``
+
+- **OpenFeign+Ribbon+Eureka** ： 简单说就是简化上面，并且有负载均衡的能力
+
+  把@FeignClient(name = "SHOPCART-PRO"）注解上的name作为服务名，与接口上面的  @RequestMapping(）拼接成上面的url，然后**借助Ribbon(OpenFeign集成了Ribbon)实现调用** 
+
+  ```java
+  @FeignClient(name = "SHOPCART-PRO", path = "/mall4springcloud/mall-shopcart", fallback = ShopcartFeignFallBackService.class)
+  public interface ShopcartFeignService {
+  
+      @RequestMapping("/getAll")
+      List<MallShopcart> getAll();
+  
+      @RequestMapping("/update/{uid}/{gid}")
+      String updateById(@PathVariable("uid") Integer uid,@PathVariable("gid") Integer gid);
+  }
+  
+  
+  @Component
+  @Slf4j
+  public class ShopcartFeignFallBackService implements ShopcartFeignService {
+      @Override
+      public List<MallShopcart> getAll() {
+          log.warn("getAll查不到数据，进入fallback");
+          return null;
+      }
+  
+      @Override
+      public String updateById(Integer uid, Integer gid) {
+          log.warn("updateById查不到数据，进入fallback");
+          return "查不到";
+      }
+  }
+  ```
+
+  
+
+![1621239536183](E:\SoftwareNote\微服务\SpringCloud\img\OpenFeign+Ribbon+Eureka的配合.png)
 
 ### 4.4 服务降级
 

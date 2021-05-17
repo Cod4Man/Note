@@ -50,7 +50,7 @@
   }
   ```
 
--  AnnotationConfigApplicationContext加载Configuration对象
+- AnnotationConfigApplicationContext加载Configuration对象
 
   ```java
   AnnotationConfigApplicationContext annotationConfigApplicationContext
@@ -58,6 +58,12 @@
   Object xiaozhang = annotationConfigApplicationContext.getBean("xiaozhang");
   System.out.println(xiaozhang);
   ```
+
+- @Configuration和@Component
+
+  Component注解也会当做配置类，但是并不会为其生成CGLIB代理Class，所以在生成Driver对象时和生成Car对象时调用car()方法执行了两次new操作，所以是不同的对象。当时Configuration注解时，生成当前对象的子类Class，并对方法拦截，第二次调用car()方法时直接从BeanFactory之中获取对象，所以得到的是同一个对象。
+
+  
 
 ### 1.3 通过注解 @Import 三种方式
 
@@ -771,12 +777,19 @@ public class Person {
       }
       ```
 
-    - 构造注入+单入参
+    - 构造注入
+
+      依赖不可变: 只有使用构造函数注入才能注入final 
+
+      在使用构造器的使用能避免注入的依赖是空的情况 
 
       ```java
-      // @Autowire 此处不写，dog依赖会注入
-      public Person(Dog dog) {
+      private Dog dog;
+      private final Cat cat;
+      // @Autowire 此处不写，dog/cat依赖会注入
+      public Person(Dog dog, Cat cat) {
           this.dog=dog;
+          this.cat=cat;
       }
       ```
 
@@ -843,6 +856,8 @@ public Person person01() {
 ```
 
 ## 10. Spring AOP
+
+***AOP可以拦截注解***
 
 ### 10.1 使用见Spring.md#1
 
@@ -1565,6 +1580,12 @@ public abstract class TransactionAspectSupport implements BeanFactoryAware, Init
 - fresh的invokeBeanFactoryPostProcessors(beanFactory)方法内部,找到所有BeanFactoryPostProcessor的实现,调用postProcessBeanFactory方法.在其他组件初始化前执行
 
 ### 12.2 BeanDefinitionRegistryPostProcessor
+
+- BeanDefinition是Bean的定义信息，里面包含了class/scope/abstract/lazyInit等等
+
+```tex
+Root bean: class [com.yami.shop.mp.config.WxMpConfiguration]; scope=singleton; abstract=false; lazyInit=false; autowireMode=0; dependencyCheck=0; autowireCandidate=true; primary=false; factoryBeanName=null; factoryMethodName=null; initMethodName=null; destroyMethodName=null; defined in file [E:\Java_Code\IDEA_CODE\mall4j\yami-shop-mp\target\classes\com\yami\shop\mp\config\WxMpConfiguration.class]
+```
 
 - BeanDefinitionRegistryPostProcessor extends BeanFactoryPostProcessor
 - 实现postProcessBeanDefinitionRegistry方法
