@@ -1570,6 +1570,36 @@ public abstract class TransactionAspectSupport implements BeanFactoryAware, Init
 }
 ```
 
+### 11.2 手动提交事务
+
+```java
+@Autowired private TransactionTemplate transactionTemplate;
+
+public String decrById(@PathVariable Integer id, HttpSession session) { 
+    //设置传播行为：总是新启一个事务，如果存在原事务，就挂起原事务PROPAGATION_REQUIRES_NEW
+    transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+    transactionTemplate.execute(status -> {
+                // 扣除商品库存
+                mallGoodsService.decrById(id);
+                // 从缓存中获取userid
+                Object uid = session.getAttribute("uid");
+                uid = uid == null ? "1" : uid;
+                try {
+                     shopcartFeignService.updateById(Integer.parseInt((String) uid), id);
+                }catch(Exception e) {
+                    //手动回滚事务
+                    status.setRollbackOnly(); 
+                }
+               
+                return null;
+            });
+
+            return "扣除成功";
+}
+```
+
+
+
 ## 12 . 拓展
 
 ### 12.1 BeanFactoryPostProcessor 
@@ -2175,6 +2205,14 @@ deferredResult.setResult(data);
 ![1621092703195](E:\SoftwareNote\面试准备\Spring\img\refresh_03.png)
 
 
+
+## 16. @PostConstruct: java自带 
+
+修饰的方法会在服务器加载Servlet的时候运行，并且只会被服务器执行一次。PostConstruct在构造函数之后执行，init（）方法之前执行。
+
+通常我们会是在Spring框架中使用到@PostConstruct注解 该注解的方法在整个Bean初始化中的执行顺序：
+
+Constructor(构造方法) -> @Autowired(依赖注入) -> @PostConstruct(注释的方法)
 
 
 

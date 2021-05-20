@@ -129,21 +129,95 @@ eureka:
 
 #### 4.1.2 Zookeeper :2181(需要客户端)
 
+- 进入容器docker exec -it zookeeper bin/zkCli.sh
+
 - Zookeeper工作机制
 
-  ![1621258653554](C:\Users\ASUS\AppData\Local\Temp\1621258653554.png)
+  Zookeeper从设计模式角度来理解：是一个基于**观察者模式设计**的分布式服务管理框架，它负 
+
+  责**存储和管理大家都关心的数据**，然后**接受观察者的注册**，一旦这些数据的状态发生变化 ， 
+
+  Zookeeper就将负责**通知已经在Zookeeper上注册的那些观察者**做出相应的反应.（就像消息推送和消息通知?）
+
+![1621258653554](E:\SoftwareNote\微服务\SpringCloud\img\Zookeeper工作机制.png)
 
 - Zookeeper特点
 
-  ![1621257515503](C:\Users\ASUS\AppData\Local\Temp\1621257515503.png)
+  1）Zookeeper：**一个领导者（Leader），多个跟随者（Follower）**组成的集群
+
+  2）集群只要有**半数以上**(>一半，所以Zookeper适合单数台服务器，因此最少需要3台服务器)节点存活，Zookeeper集群就能正常服务
+
+  3）全局数据一致：每个Server保存一份相同数据副本，Client无论连接到哪个Server，**数据都是一致的**
+
+  4）更新请求顺序进行，来自同一个Client的更新请求**按其发送顺序依次执行**
+
+  5）**数据更新原子性**，一次数据更新要么成功，要么失败
+
+  6）**实时性**，在一定时间范围内，Client能读到最新数据
 
 - 数据结构
 
-  ![1621257783507](C:\Users\ASUS\AppData\Local\Temp\1621257783507.png)
+  ZooKeeper数据模型的结构与**Unix文件系统很类似**，整体上可以看作是一棵树，每个节点称做一 
 
-- 应用场景
+  个ZNode。每一个ZNode默认能够**存储1M B**的数据，每个ZNode都可以通过其路径唯一标识。 
 
-![1621257828842](C:\Users\ASUS\AppData\Local\Temp\1621257828842.png)
+- 应用场景: 统一命名服务/统一配置管理/统一集群管理/服务器节点动态上下线(临时-e)/软负载均衡。
+
+  - 统一配置管理：
+
+    分布式环境下，配置文件同步非常常见。 一般要求一个集群中，所有节点的配置信息是 
+
+    一致的，比如 Kafka 集群。 对配置文件修改后，希望能够快速同步到各个节点上。 
+
+  - 统一集群管理：
+
+    分布式环境中，实时掌握每个节点的状态是必要的 。可以将分布式服务每个节点的信息写入zookeeper
+
+  - 服务器动态上下线
+
+    服务端在Zookeeper上注册的信息都是临时节点，当服务端挂掉后，zookeeper上的临时节点也被删除，zookeeper就会实时通知客户端服务端下线的信息
+
+  - 软负载均衡
+
+    Zoopeeker**会记录每台服务器的访问数**，让访问最少的服务器去处理最新请求。
+
+- zookeeper客户端配置文件zoo.cfg解读
+
+  - tickTime =2000：通信心跳数，Zookeeper 服务器与客户端心跳时间，单位毫秒 
+  - initLimit =10：Leader/Follower 初始通信时间限制 ，单位为tickTime ，10initLimit=10*ticktime=20s
+  - syncLimit =5：LF 同步通信时限。，假如响应超过syncLimit *  tickTime，Leader认为Follwer死掉，从服务器列表中删除Follwer
+  - dataDir：数据文件目录+数据持久化路径 
+  - clientPort =2181：客户端连接端口 
+
+- 客户端命令
+
+  命令基本语法 
+
+  功能描述 
+
+  help 显示所有操作命令 
+
+  ls path [watch] 使用 ls 命令来查看当前 znode 中所包含的内容 
+
+  ls2 path [watch] 查看当前节点数据并能看到更新次数等数据 
+
+  create 普通创建 
+
+  -s 含有序列 
+
+  -e 临时（重启或者超时消失） 
+
+  get path [watch] 获得节点的值 
+
+  set 设置节点的具体值 
+
+  stat 查看节点状态 
+
+  delete 删除节点 
+
+  rmr 递归删除节点 
+
+- yml配置
 
 ```yaml
 spring:
@@ -151,11 +225,113 @@ spring:
     name: cloud-payment-service  # Eureka发现需要
   cloud:
     zookeeper:
-      connect-string: 192.168.1.170:2181
+      connect-string: 192.168.1.170:2181,192.168.1.171:2181,192.168.1.172:2181
+
+// 启动类加@EnableDiscoveryClient注解，即可完成
 ```
 
+- pom依赖
+
+  ```yaml
+  <!-- https://mvnrepository.com/artifact/org.springframework.cloud/spring-cloud-starter-zookeeper-discovery -->
+  <dependency>
+  <groupId>org.springframework.cloud</groupId>
+  <artifactId>spring-cloud-starter-zookeeper-discovery</artifactId>
+  </dependency>
+  ```
+
+- 创建客户端
+
+````java
+private static String connectString = "hadoop102:2181,hadoop103:2181,hadoop104:2181";
+private static int sessionTimeout = 2000;
+ZooKeeper = zkClient = new ZooKeeper(connectString, sessionTimeout, new Watcher() {
+    @Override
+    public void process(WatchedEvent event) {
+    // 收到事件通知后的回调函数（用户的业务逻辑）
+    System.out.println(event.getType() + "--" + 
+    event.getPath());
+    // 再次启动监听
+    try {
+        zkClient.getChildren("/", true);
+    } catch (Exception e) {
+        e.printStackTrace();
+    } }
+});
+
+````
+
 - 无自我保护机制，没有心跳直接干掉服务。因此服务节点是临时性的
+
 - client : zkCli.sh, 可查看注册信息ls /
+
+- Zookeeper内部原理：
+
+  - 节点类型：两个类型都可选择带序列号的生成规则。在分布式系统中，顺序号可以被用于 为所有的事件进行全局排序，这样客户端可以**通过顺序号推断事件的顺序 ** 
+    - 持久（Persistent）：客户端和服务器端断开连接后，创建的节点不删除 
+    - 短暂（Ephemeral）：客户端和服务器端断开连接后，创建的节点自己删除 
+
+- **监听器原理**（面试）
+
+  1）Zookeeper客户端，会**创建两个线程，一个负责网络连接通信（connet），一个负责监听（listener）。 ** 
+
+  2）通过connect线程将注册的监听事件发送给Zookeeper。 
+
+  3）在Zookeeper的注册监听器列表中**将注册的监听事件添加到列表中**。 
+
+  4）Zookeeper监听到有数据或路径变化，就会将这个消息发送 给listener线程。 
+
+  5）listener线程内部调用了**process()**方法。（**回调，也就是watch定义的方法** ） 
+
+- 常见的监听
+
+  1）监听节点数据的变化  get path [watch] 
+
+  2）监听子节点增减的变化  ls path [watch]
+
+![1621311035387](E:\SoftwareNote\微服务\SpringCloud\img\Zookeeper监听原理.png)
+
+- **Zookeeper选举机制（面试）**
+
+  1. **半数机制**：集群中**半数以上(因此最少需要3台服务器)**机器存活，集群可用。所以 Zookeeper 适合安装奇数台服务器。
+
+  2. Zookeeper 虽然在配置文件中并没有指定 Master 和 Slave。但是，Zookeeper 工作时，是有一个节点为 Leader，其他则为 Follower，Leader 是通过**内部的选举机制临时产生**的。
+
+  3. 选举例子：5台服务器,每台服务器启动都会投自己和别人一票，然后看总票数高的，把票实际给他，在选举结果没出来前，状态都为Looking。选举出来则为Following和Leading。在选举出来后，再启动服务器，状态不为looikng的(即Following和Leading不会再投票)，4投给自己，但票数小于3，因为改变不了结果
+
+     （1）服务器 1 启动，发起一次选举。服务器 1 投自己一票。此时服务器 1 票数一票， 
+
+     不够半数以上（3 票），选举无法完成，服务器 1 状态保持为 LOOKING； 
+
+     （2）服务器 2 启动，再发起一次选举。服务器 1 和 2 分别投自己一票并交换选票信息： 
+
+     此时服务器 1 发现服务器 2 的 ID 比自己目前投票推举的（服务器 1）大，更改选票为推举 
+
+     服务器 2。此时服务器 1 票数 0 票，服务器 2 票数 2 票，没有半数以上结果，选举无法完成， 
+
+     服务器 1，2 状态保持 LOOKING 
+
+     （3）服务器 3 启动，发起一次选举。此时服务器 1 和 2 都会更改选票为服务器 3。此 
+
+     次投票结果：服务器 1 为 0 票，服务器 2 为 0 票，服务器 3 为 3 票。此时服务器 3 的票数已 
+
+     经超过半数，服务器 3 当选 Leader。服务器 1，2 更改状态为 FOLLOWING，服务器 3 更改 
+
+     状态为 LEADING； 
+
+     （4）服务器 4 启动，发起一次选举。此时服务器 1，2，3 已经不是 LOOKING 状态， 
+
+     不会更改选票信息。交换选票信息结果：服务器 3 为 3 票，服务器 4 为 1 票。此时服务器 4 
+
+     服从多数，更改选票信息为服务器 3，并更改状态为 FOLLOWING； 
+
+     （5）服务器 5 启动，同 4 一样当小弟。
+
+- Zookeeper写数据流程:client想server1写数据，如果server1不是leader，那么**serve1会把请求转发给leader**，**leader收到后广播给每个server**，每个server会**将请求加入待写入队列**，并**向leader发送成功信息**。
+
+  当**大于半数的server写入成功**，说明该写操作可以执行，leader**向每个server发送提交信息** ，然后每个server提交队列中的请求，此时写入成功。
+
+  ![1621311616938](E:\SoftwareNote\微服务\SpringCloud\img\Zookeeper写数据流程.png)
 
 #### 4.1.3 Consul: 8500(需要客户端)
 
