@@ -268,3 +268,13 @@ printf "%x\n" 24587  =》 600b
 ## 10. ntsysv 开启服务开机启动界面
 
 用“空格”选中，“tab”切换，“enter”确认
+
+## 11.  服务启动相关 
+
+![1621992961217](E:\SoftwareNote\Linux\images\服务启动相关1.png)
+
+![1621992940497](E:\SoftwareNote\Linux\images\服务启动相关2.png)
+
+
+
+![1621993001443](E:\SoftwareNote\Linux\images\服务启动相关3.png)

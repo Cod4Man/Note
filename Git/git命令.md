@@ -10,7 +10,9 @@
 
 ```shell
 git branch branch2 创建一个分支
+git checkout branch2 切换到创建好的分支
 
+# 一步到位，创建并切换分支
 git checkout -b branchname 创建branchname分支并切换至
 ```
 
@@ -32,9 +34,21 @@ git checkout - 切换至上一个分支
 ### 2.4 分支合并
 
 ```shell
-git merge resourceBranch 合并resourceBranch分支到本地当前分支（此时只是本地合并）
+git checkout master
+git merge dev 合并dev分支到本地当前分支（此时只是本地合并）
 git push  (会将本地合并后的分支提交到远程仓库)
 ```
+
+### 2.5 删除分支
+
+```shell
+# 先切换到主干
+git checkout master
+# 删除
+git branch -D <分支名>
+```
+
+
 
 ## 3. 拉取代码
 
@@ -154,3 +168,19 @@ git config core.quotepath false
 
 
 
+## 12. Git工作流
+
+- master：主干分支
+- develop：开发主分支
+- feature_goldstyle/fuature_game：开发功能模块分支
+
+1. 场景1：开发到一半，master的releaseV1.0发现严重生产bug
+
+   - 开发分支暂停开发/或者抽出一个人解决bug
+   - 由masterV1.0版本新建一个分支hotfix，**修复完成后合并到master发布V1.1版本**，**此时hotfix还不能删除，需要同步到开发主分支develop**
+   - 当feature_goldstyle/fuature_game开发功能模块分支开发完成后，**各自与开发主分支master合并**(此时develop已经带有hotfix分支内容)
+   - 然后在develop分支测试，测试发现bug，可以和master发现bug一样，在develop的基础上开一个新分支修复bug，然后再合并到develop分支
+
+   
+
+![1621994901333](E:\SoftwareNote\Git\img\Git工作流.png)

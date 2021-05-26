@@ -579,9 +579,148 @@ protected void applyPropertyValues(String beanName, BeanDefinition mbd, BeanWrap
 }
 ```
 
+## 3. Bean的作用域
 
+- singleton：单例
+- prototype：原型。lazy，调用时创建。
+- request：每次Http请求都会创建一个
+- session：同一个Http Session共享
 
+## 4. Spring事务的传播属性和隔离级别 
 
+### 4.1 传播属性（@Transactional(propagation=Propagation.REQUIRES_NEW)）
+
+|      传播属性      |                             描述                             |
+| :----------------: | :----------------------------------------------------------: |
+| **REQUIRED(默认)** | 如果有事务在运行，当前方法就加入这个事务运行；否则，另起一个新事务运行。 |
+|  **REQUIRES_NEW**  | 当前的事务**必须启动新的事务**，如果有事务正常运行(外层调用)，**则挂起原事务** |
+|      SUPPORTS      |           如果有事务则加入运行；**否则就不起事务**           |
+|   NOT_SUPPROTED    |        **当前事务不可在事务中运行**；有事务则挂起事务        |
+|     MANDATORY      |        当前**必须事务内运行**，没有事务**则抛出异常**        |
+|       NEVER        | 当前**不可**在事务内运行，**有事务则抛出异常**。(MANDATORY反例) |
+|       NESTED       | 如果有事务，则在**事务的嵌套事务运行**；否则起一个新事物运行。 |
+
+### 4.2 隔离级别
+
+**一个事务与其他事务的隔离程度成为隔离级别。**
+
+SQL标准中定义不同隔离级别，**隔离级别越高，数据一致性越好，但并发性越弱**。
+
+- **读未提交（READ UnCommitted）**
+
+  事务1可读取事务2**未提交**的修改。 
+
+- **读已提交（READ Committed）**（**Oracle**的默认隔离级别，**开始时常用**）
+
+  事务1**只能**读事务2**已提交**的修改
+
+- **可重复读（RePeatable READ）** （**MySQL**的默认隔离级别）
+
+  **事务1执行期间，禁止其他事务修改这个字段。**
+
+- **串行化（Serializable）**
+
+  （类似表锁）在事务1执行期间，禁止其他事务修改这个表。这样可避免任何并发问题，然鹅性能十分底下。
+
+> **隔离级别能力大赏**
+>
+> |                  | 脏读 | 不可重复读 | 幻读 |
+> | :--------------: | :--: | :--------: | :--: |
+> | READ uncommitted |  有  |     有     |  有  |
+> |  READ committed  |  无  |     有     |  有  |
+> | RePeatable READ  |  无  |     无     |  有  |
+> |   Serializable   |  无  |     无     |  无  |
+
+> **MySQL和Oracle对隔离级别的支持**
+>
+> |                  | Oracle  |  MySQL  |
+> | :--------------: | :-----: | :-----: |
+> | READ uncommitted |    ×    |    √    |
+> |  READ committed  | √(默认) |    √    |
+> | RePeatable READ  |    ×    | √(默认) |
+> |   Serializable   |    √    |    √    |
+
+### 4.3 数据库事务并发问题
+
+- 脏读
+
+  事务1还未提交(或者回滚)，事务2读到的是错误值
+
+- 不可重复读
+
+  事务1修改并提交，事务2前后2次读到的数据不一致(数据修改)
+
+- 幻读
+
+  事务1两次读取，事务2在两次中间插入的数据，事务1的两次读取不一致(多数据).
+
+## 5. 乱码问题
+
+### 5.1 SpringMVC
+
+- Post请求乱码
+
+  配置上Filter拦截器 extends CharacterEncodingFilter, encoding=UTF-8,forceRequestEncoding=true
+
+- Get请求乱码
+
+  Tomcat配置文件server.xml
+
+  \<Connector URIEncoding="UTF-8" />
+
+## 6. SpringMVC
+
+### 6.1 SpringMVC工作流程
+
+1. 客户端发送请求，请求到**达中央处理器（DispatcherServlet）**--ModelAndView的处理
+
+   `DispatcherServlet.doDispatch(HttpServletRequest, HttpServletResponse)`
+
+2. DispatcherServlet调用**处理器映射器**找到处理器**HandlerExcutionChain(url/controller映射关系)**
+
+   ```java
+   // Determine handler for the current request.
+   // 根据当前请求 @RequestMapping("/getAll"),获得对应的MappingHandler(就是url和controller的映射关系，注解或者xml配置)
+   // getAll -> com.codeman.mall4springcloud.controller.MallGoodsController#getAll()
+   HandlerExcutionChain mappedHandler = getHandler(processedRequest);
+   ```
+
+3. 通过HandlerExcutionChain**找到处理器适配器 HandlerAdapter(做controller逻辑处理和返回M&V)**
+
+   ```java
+   // Determine handler adapter for the current request.
+   // 
+   HandlerAdapter ha = getHandlerAdapter(mappedHandler.getHandler());
+   ```
+
+4. 通过处理器适配器**HandlerAdapter处理请求，也就是走controller逻辑，返回ModelAndView**
+
+   ```java
+   ModelAndView ha.handle(HttpServletRequest , HttpServletResponse , HandlerMethod) {
+       // 通过反射调用controller逻辑
+       invocableMethod.invokeAndHandle(webRequest, mavContainer);
+       // 加工返回ModelAndView
+       return getModelAndView(mavContainer, modelFactory, webRequest);
+   }
+   ```
+
+5. DispatcherServle**t调用视图解析器**，将M&V加成成View（将model添加到request.attribute,返回视图名）
+
+   ```java
+   for (String attrName : attrsToCheck) {
+       Object attrValue = attributesSnapshot.get(attrName);
+       if (attrValue == null) {
+           request.removeAttribute(attrName);
+       }
+       else if (attrValue != request.getAttribute(attrName)) {
+           request.setAttribute(attrName, attrValue);
+       }
+   }
+   ```
+
+   6. **渲染view视图响应**给客户端。
+
+![1621988799741](C:\Users\ASUS\AppData\Local\Temp\1621988799741.png)
 
 
 
