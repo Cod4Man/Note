@@ -11,6 +11,37 @@
 - 三大特性(JMM三大特性) 【详见JVM和并发包笔记】
 
   - 保证可见性（共享变量修改，各线程都可见）
+
+    **JVM运行程序得实体是线程，而每个线程创建时JVM都会为其开辟一个工作内存，工作内存是每个线程私有化的数据区域**。而Java内存模型中规定所有的变量都存在主内存，主内存是共享内存区域，所有线程都可以访问。**但是线程对变量的操作(读写)都必须在各自的工作内存中进行(变量副本)，所以各线程需要先把变量从主内存拷贝到工作内存，然后修改后再写回主内存**。不同线程线程变量副本是不可见的，线程之间的通信必须通过主内存来完成。这就是不可见性。
+
+  ![1622116860093](E:\SoftwareNote\面试准备\多线程\img\主内存和工作内存模型.png)
+
+  ```java
+  public class VolatileDdemo {
+  
+      volatile int num = 5;
+  
+      public static void main(String[] args) throws InterruptedException {
+          VolatileDdemo volatileDdemo = new VolatileDdemo();
+          new Thread(() -> {
+              try {
+                  Thread.sleep(200);
+              } catch (InterruptedException e) {
+                  e.printStackTrace();
+              }
+              volatileDdemo.num = 55;
+          }).start();
+  
+          while (volatileDdemo.num != 55) {
+  			// 不加volatile，main线程等不到num改变的消息
+          }
+  
+          System.out.println("Main线程收到num改变通知");
+      }
+  
+  }
+  ```
+
   - 不保证原子性(比如++操作，实际编译后有三个步骤，无法保证原子性【同时成功/同时失败】，所以多线程下会错乱)
   - 禁止指令重排（内存屏障）
 
@@ -84,11 +115,13 @@
 
   1).UnSafe
 
-   是CAS的核心类 由于Java 方法无法直接访问底层 ,需要通过本地(native)方法来访问,UnSafe相当于一个后面,基于该类可以直接操作特额定的内存数据.UnSafe类在于sun.misc包中,其内部方法操作可以向C的指针一样直接操作内存,因为Java中CAS操作的助兴依赖于UNSafe类的方法.UnSafe类在于sun.misc包中, 是CAS的核心类 由于Java 方法无法直接访问底层 ,需要通过本地(native)方法来访问,UnSafe相当于一个后面,基于该类可以直接操作特额定的内存数据.UnSafe类在于sun.misc包中,其内部方法操作可以向C的指针一样直接操作内存,因为Java中CAS操作的助兴依赖于UNSafe类的方法.
+   是CAS的核心类 由于Java 方法无法直接访问底层 ,需要通过本地(native)方法来访问,UnSafe相当于一个后面,基于该类可以直接操作特额定的内存数据.UnSafe类在于sun.misc包中,**其内部方法操作可以向C的指针一样直接操作内存**,因为Java中CAS操作的助兴依赖于UNSafe类的方法.UnSafe类在于sun.misc包中, 是CAS的核心类 由于Java 方法无法直接访问底层 ,需要通过本地(native)方法来访问,UnSafe相当于一个后面,基于该类可以直接操作特额定的内存数据.UnSafe类在于sun.misc包中,其内部方法操作可以向C的指针一样直接操作内存,因为Java中CAS操作的助兴依赖于UNSafe类的方法.
 
   注意UnSafe类中所有的方法都是native修饰的,也就是说UnSafe类中的方法都是直接调用操作底层资源执行响应的任务
 
-   2).变量ValueOffset,便是该变量在内存中的偏移地址,因为UnSafe就是根据内存偏移地址获取数据的偏移地址 
+   2).**变量ValueOffset,便是该类在内存中的偏移地址,因为UnSafe就是根据内存偏移地址获取数据的偏移地址**  
+
+  final static valueOffset可以看出，该属性是类属性即对象共享的。
 
   ```java
   /**
@@ -162,6 +195,8 @@ boolean compareAndSet(V   expectedReference,
 
 - 并发修改异常 java.util.concurrentModificationException
 
+  用Iterator或FroEach遍历，remove(Object)删除也会抛出该异常，CopyOnWriteArrayList可以解决
+
 - 解决方案：
 
   - new Vector();
@@ -197,7 +232,7 @@ boolean compareAndSet(V   expectedReference,
   }
   ```
 
-  - CopyOnWriteArrayList
+  - CopyOnWriteArrayList：底层用的ReentrantLock
 
   ```java
   public boolean add(E e) {
@@ -245,7 +280,9 @@ boolean compareAndSet(V   expectedReference,
 
 ### 5.1 公平锁/非公平锁
 
-- 概念公平锁： 是指多个线程按照申请锁的顺序来获取锁类似排队打饭 先来后到
+- 概念
+
+  公平锁： 是指多个线程按照申请锁的顺序来获取锁类似排队打饭 先来后到
 
   非公平锁：是指在多线程获取锁的顺序并不是按照申请锁的顺序,有可能后申请的线程比先申请的线程优先获取到锁,在高并发的情况下,有可能造成**优先级反转**或者**饥饿现象**(运气不好的，从头等到尾都没执行)
 
@@ -275,9 +312,9 @@ public ReentrantLock(boolean fair) {
 
 Java ReentrantLock而言,
 
-通过构造哈数指定该锁是否是公平锁 默认是非公平锁 非公平锁的优点在于吞吐量比公平锁大.
+通过构造哈数指定该锁是否是公平锁 默认是非公平锁 **非公平锁的优点在于吞吐量比公平锁大(因为线程切换需要消耗性能[不是下一个需要被挂起]，公平锁需要判断线程的先后，就需要做很多切换)**.
 
-对于synchronized而言 也是一种非公平锁.
+对于**synchronized而言 也是一种非公平锁(需要抢)**.
 
 
 
@@ -352,8 +389,10 @@ private static ReentrantLock lock = new ReentrantLock();
 
     public void mySpinLock() {
         Thread thread = Thread.currentThread();
+        // 如果是当前线程为空，则抢到锁，上锁
+        // 抢锁应该是持久进行的，别得线程一释放，马上要抢，因此需要循环
         while (!atomicReference.compareAndSet(null, thread)) {
-
+			// 没修改成功说明有别的线程在使用，死循环等待锁释放
         }
     }
 
@@ -399,86 +438,69 @@ private static ReentrantLock lock = new ReentrantLock();
 - demo
 
 ```java
-    private volatile Map<String, String> map = new HashMap<>();
+public class ReetrantReadWriteLockDemo2 {
 
-    private ReentrantLock reentrantLock = new ReentrantLock();
-
-    private ReentrantReadWriteLock reentrantReadWriteLock = new ReentrantReadWriteLock();
-
-    public void putMap(String key, String value) {
-        try {
-//            reentrantLock.lock();
-            reentrantReadWriteLock.writeLock().lock();
-            System.out.printf("【%s】线程， 写【%s】， start ... \r\n", Thread.currentThread().getName(), key);
-            map.put(key, value);
-            Thread.sleep(10);
-            System.out.printf("【%s】线程， 写【%s】， end ... \r\n", Thread.currentThread().getName(), key);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        } finally {
-//            reentrantLock.unlock();
-            reentrantReadWriteLock.writeLock().unlock();
-        }
-    }
-
-    public String getMap(String key) {
-        try {
-            reentrantReadWriteLock.readLock().lock();
-            System.out.printf("【%s】线程， 读【%s】， start ... \r\n", Thread.currentThread().getName(), key);
-            return map.get(key);
-        } finally {
-            System.out.printf("【%s】线程， 读【%s】， end ... \r\n", Thread.currentThread().getName(), key);
-            reentrantReadWriteLock.readLock().unlock();
-        }
-    }
+    private final static ReentrantReadWriteLock readWriteLock = new ReentrantReadWriteLock();
 
     public static void main(String[] args) {
+//        new Thread(ReetrantReadWriteLockDemo2::readTest).start();
+        new Thread(ReetrantReadWriteLockDemo2::readTest).start();
+        new Thread(ReetrantReadWriteLockDemo2::writeTest).start();
+//        new Thread(ReetrantReadWriteLockDemo2::writeTest).start();
+    }
 
-        ReentrantReadWriteLockDemo reentrantReadWriteLockDemo = new ReentrantReadWriteLockDemo();
-
-        for (int i = 0; i < 5; i++) {
-            final int ii = i;
-            new Thread(() -> {
-                reentrantReadWriteLockDemo.putMap(ii+"", ii + "");
-            }).start();
-        }
-
-
-
-        for (int i = 0; i < 5; i++) {
-            final int ii = i;
-            new Thread(() -> {
-                System.out.println(reentrantReadWriteLockDemo.getMap(ii + ""));
-            }).start();
+    static void readTest() {
+        ReentrantReadWriteLock.ReadLock readLock = readWriteLock.readLock();
+        try {
+            readLock.lock();
+            for (int i = 0; i < 50; i++) {
+                System.out.println(Thread.currentThread().getName() + "  " + i);
+            }
+        } finally {
+            readLock.unlock();
         }
     }
 
+    static void writeTest() {
+        ReentrantReadWriteLock.WriteLock writeLock = readWriteLock.writeLock();
+        try {
+            writeLock.lock();
+            for (int i = 0; i < 50; i++) {
+                System.out.println(Thread.currentThread().getName() + "  " + i);
+            }
+        } finally {
+            writeLock.unlock();
+        }
+    }
+}
+
 // *************************************
-【Thread-0】线程， 写【0】， start ... 
-【Thread-0】线程， 写【0】， end ... 
-【Thread-2】线程， 写【2】， start ... 
-【Thread-2】线程， 写【2】， end ... 
-【Thread-1】线程， 写【1】， start ... 
-【Thread-1】线程， 写【1】， end ... 
-【Thread-3】线程， 写【3】， start ... 
-【Thread-3】线程， 写【3】， end ... 
-【Thread-4】线程， 写【4】， start ... 
-【Thread-4】线程， 写【4】， end ... 
-【Thread-5】线程， 读【0】， start ... 
-【Thread-5】线程， 读【0】， end ... 
-【Thread-7】线程， 读【2】， start ... 
-【Thread-7】线程， 读【2】， end ... 
-【Thread-6】线程， 读【1】， start ...  // 读是可以并发的
-【Thread-8】线程， 读【3】， start ...  // 读是可以并发的
-【Thread-8】线程， 读【3】， end ... 
-【Thread-9】线程， 读【4】， start ... 
-【Thread-9】线程， 读【4】， end ...   
-【Thread-6】线程， 读【1】， end ... 
+// 写写 写读 读写都是互斥得
+Thread-0  0
+Thread-0  1
+Thread-0  2
+Thread-0  3
+Thread-0  4
+Thread-1  0
+Thread-1  1
+Thread-1  2
+Thread-1  3
+Thread-1  4
+// 读读
+Thread-1  0
+Thread-0  1 // 线程交替进行，说明读读可以共享
+Thread-1  1 // 线程交替进行，说明读读可以共享
+Thread-1  2
+Thread-1  3
+Thread-1  4
+Thread-0  2
+Thread-0  3
+Thread-0  4
 ```
 
 ## 6. CountDownLatch/CyclicBarrier/Semaphore
 
-### 6.1 CountDownLatch 
+### 6.1 CountDownLatch(减法，等待) 
 
 - 让一些线程阻塞直到另外一些完成后才被唤醒
 - CountDownLatch主要有两个方法,**当一个或多个线程调用await方法时,调用线程会被阻塞** .其他线程调用countDown方法计数器减1(调用countDown方法时线程不会阻塞),**当计数器的值变为0** ,因调用await方法被阻塞的线程会被唤醒,继续执行
@@ -498,6 +520,8 @@ for (int i = 0; i < 6; i++) {
 
 try {
     countDownLatch.await();
+    // 也可加过期时间，100天后，大势所趋，秦一统天下
+    countDownLatch.await(100, TimeUnit.DAYS);
 } catch (InterruptedException e) {
     e.printStackTrace();
 }
@@ -515,13 +539,13 @@ System.out.println("[秦国]统一中国。");
 
 
 
-### 6.2 CyclicBarrier
+### 6.2 CyclicBarrier(加法，一起完成)
 
 - CyclicBarrier的字面意思是可循环(Cyclic) 使用的屏障(barrier).它要做的事情是,让一组线程到达一个屏障(也可以叫做同步点)时被阻塞,直到最后一个线程到达屏障时,屏障才会开门,所有被屏障拦截的线程才会继续干活,线程进入屏障通过CyclicBarrier的await()方法.
 - demo
 
 ```java
-CyclicBarrier cyclicBarrier = new CyclicBarrier(7, () -> System.out.println("集齐七颗龙珠，准备召唤神龙...."));
+CyclicBarrier cyclicBarrier = new CyclicBarrier(7, () -> System.out.println("集齐七颗龙珠，准备召唤神龙，报数先...."));
 
 for (int i = 0; i < 7; i++) {
     final int ii = i;
@@ -547,7 +571,7 @@ for (int i = 0; i < 7; i++) {
 获得[3]星球，等待其他星球收齐……
 获得[6]星球，等待其他星球收齐……
 获得[5]星球，等待其他星球收齐……
-集齐七颗龙珠，准备召唤神龙....
+集齐七颗龙珠，准备召唤神龙，报数先....
 全部收集完毕，[5]
 全部收集完毕，[0]
 全部收集完毕，[2]
@@ -557,7 +581,7 @@ for (int i = 0; i < 7; i++) {
 全部收集完毕，[1]
 ```
 
-### 6.3 Semaphore 信号量 
+### 6.3 Semaphore 信号量(有点像阻塞对象BQ，控制并发流量) 
 
 - 信号量的主要用户两个目的,一个是用于多个共享资源的相互排斥使用,另一个用于并发资源数的控制
 - demo
@@ -615,7 +639,7 @@ for (int i = 0; i < 6; i++) {
 
   ![1611663298626](E:\SoftwareNote\面试准备\多线程\img\BlockingQueue核心API.png)
 
-  抛出异常组：
+  抛出**异常**组：
 
   add(e)  添加， java.lang.IllegalStateException: Queue full
 
@@ -623,7 +647,7 @@ for (int i = 0; i < 6; i++) {
 
   element() 看首位，java.util.NoSuchElementException
 
-  特殊值组：
+  **特殊值组：**
 
   boolean offer(e) : return true-加入成功;false-加入失败
 
@@ -631,15 +655,19 @@ for (int i = 0; i < 6; i++) {
 
   E peek()：返回首位
 
-  阻塞：
+  **阻塞：**
 
   put(e) : 队列满了，插不进去会阻塞
 
   E take()：队列为空，拿不到阻塞
 
-  超时：
+  **超时：**
 
-  阻塞一段时间，后不阻塞
+  **阻塞一段时间，后不阻塞**
+
+   offer(e,time,TimeUnit)
+
+  poll(time,TimeUnit) 
 
 - 架构介绍
 
@@ -647,25 +675,25 @@ for (int i = 0; i < 6; i++) {
 
 - 阻塞队列种类
 
-  - ArrayBlockingQueue: 由数组结构组成的有界阻塞队列.
+  - ArrayBlockingQueue: 由**数组结构**组成的**有界**阻塞队列.
 
-  - LinkedBlockingDeque: 由链表结构组成的有界(但大小默认值Integer>MAX_VALUE)阻塞队列.
+  - LinkedBlockingDeque: 由**链表结构**组成的**有界**(但大小默认值Integer>MAX_VALUE)阻塞队列.
 
-  - PriorityBlockingQueue:支持优先级排序的无界阻塞队列.
+  - PriorityBlockingQueue:支持**优先级排序**的**无界**阻塞队列.
 
-  - DelayQueue: 使用优先级队列实现的延迟无界阻塞队列.
+  - DelayQueue: 使用**优先级队列**实现的延迟**无界**阻塞队列.
 
   - SynchronousQueue:不存储元素的阻塞队列,也即是单个元素的队列.
 
     SynchronousQueue没有容量
 
-    与其他BlcokingQueue不同,SynchronousQueue是一个不存储元素的BlcokingQueue
+    与其他BlcokingQueue不同,SynchronousQueue是一个**不存储元素**的BlcokingQueue
 
-    每个put操作必须要等待一个take操作,否则不能继续添加元素,反之亦然.
+    **每个put操作必须要等待一个take操作(有点像锁)**,否则不能继续添加元素,反之亦然.（但是take和put必须再不同线程）
 
-  - LinkedTransferQueue:由链表结构组成的无界阻塞队列.
+  - LinkedTransferQueue:由**链表**结构组成的**无界**阻塞队列.
 
-  - LinkedBlockingDeque:由了解结构组成的双向阻塞队列.
+  - LinkedBlockingDeque:由**链表**结构组成的**双向**阻塞队列.
 
 - 阻塞队列实现生产者消费者
 
@@ -853,6 +881,7 @@ private BlockingQueue<String> blockingQueue = null;
           System.out.println(name + "获取锁"); 
           Thread.sleep(5000);
           condition1.signal(); // 线程2，5秒后唤醒condition1的await
+          // 要先await才能signal
       } catch (InterruptedException e) {
           e.printStackTrace();
       } finally {
@@ -863,31 +892,46 @@ private BlockingQueue<String> blockingQueue = null;
 
 ## 9. Callable
 
-- 
+- FutureTask implement Runnable； new FutureTask(Callable);FutureTask的run里面调用Callable.call
 - demo
 
 ```java
-Callable<String> callable = new Callable() {
-            @Override
-            public Object call() throws Exception {
-                System.out.println("进入");
-                Thread.sleep(2000);
-                return "返回值";
+public static void main(String[] args) throws ExecutionException, InterruptedException {
+    Callable<String> callable = new Callable<String>() {
+        @Override
+        public String call() throws Exception {
+            System.out.println("执行call");
+            if (Thread.currentThread().isInterrupted()) {
+                System.out.println("取消任务...");
+                return null;
             }
-        };
-        FutureTask<String> futureTask = new FutureTask<String>(callable);
+            Thread.sleep(2000);
+            return "执行完成";
+        }
+    };
 
-        new Thread(futureTask).start();
-
+    FutureTask<String> futureTask = new FutureTask<>(callable);
+    new Thread(futureTask).start();
+    new Thread(() -> {
         try {
-            String s = futureTask.get();
-            System.out.println("Main线程逻辑");
-            System.out.println("result" + s);
+            // get会阻塞线程的
+            if (futureTask.get() != null) {
+                System.out.println("拿到值了");
+            }
         } catch (InterruptedException e) {
             e.printStackTrace();
         } catch (ExecutionException e) {
             e.printStackTrace();
         }
+    }).start();
+    System.out.println("--------end-----------");
+    //        取消任务
+    task.cancel(true);
+}
+
+// 执行call
+// --------end-----------
+// 拿到值了
 ```
 
 
@@ -904,7 +948,7 @@ Callable<String> callable = new Callable() {
 
   第二: 提高响应速度.当任务到达时,任务可以不需要等到线程和粗昂就爱你就能立即执行.
 
-  第三: 提高线程的可管理性.线程是稀缺资源,如果无限的创阿金,不仅会消耗资源,还会较低系统的稳定性,使用线程池可以进行统一分配,调优和监控.
+  第三: 提高线程的可管理性.线程是稀缺资源,如果无限的创建,不仅会消耗资源,还会较低系统的稳定性,使用线程池可以进行统一分配,调优和监控.
 
 ### 10.2 线程池架构
 
@@ -1006,7 +1050,7 @@ MaximumPoolSize和阻塞队列都满了，则执行拒绝策略
   java.util.concurrent.RejectedExecutionException: Task com.codeman.JUCNThread.ExecutorsDemo$$Lambda$1/1078694789@3b9a45b3 rejected from java.util.concurrent.ThreadPoolExecutor@7699a589[Running, pool size = 5, active threads = 4, queued tasks = 0, completed tasks = 3]
   ```
 
-- CallerRunPolicy:"调用者运行"一种调节机制,该策略既不会抛弃任务,也不会抛出异常,而是让调用者执行
+- CallerRunsPolicy:"调用者运行"一种调节机制,该策略既不会抛弃任务,也不会抛出异常,而是让调用者执行
 
 - DiscardOldestPolicy:抛弃队列中等待最久的任务,然后把当前任务加入队列中尝试再次提交
 
@@ -1023,11 +1067,17 @@ MaximumPoolSize和阻塞队列都满了，则执行拒绝策略
 - demo
 
   ```java
-  ExecutorService executorService2 = new ThreadPoolExecutor(3,
-                                                            5,
-                                                            2,
-                                                            TimeUnit.SECONDS, 
-                                                            new LinkedBlockingQueue<>(3));
+  ThreadPoolExecutor threadPoolExecutor
+  			  // 4个值班员工，最大窗口数9个(8核)，1个小时空闲就先下班
+                  = new ThreadPoolExecutor(4, 9, 1, TimeUnit.HOURS ,
+                 // 大厅座位只有50个，
+                  new LinkedBlockingQueue<>(50),
+                  Executors.defaultThreadFactory(),
+                  new ThreadPoolExecutor.AbortPolicy()
+  //                new ThreadPoolExecutor.DiscardOldestPolicy()
+  //                new ThreadPoolExecutor.DiscardPolicy()
+  //                new ThreadPoolExecutor.CallerRunsPolicy()
+          );
   try {
       for (int i = 0; i < 9; i++) {
           executorService2.execute(() -> {
@@ -1340,7 +1390,7 @@ class ReentrantLock {
     public ReentrantLock(boolean fair) {
        sync = fair ? new FairSync() : new NonfairSync();
     }
-    // ReentrantLock.lock()底层是Sync.lock()
+    // ReentrantLock.lock()底层是Sync.lock()，即FairSync.lock()或NonfairSync.lock()
     public void lock() {
         sync.lock();
 	}
@@ -1369,9 +1419,14 @@ static final class NonfairSync extends Sync {
 
 ```java
 public final void acquire(int arg) {
+    // 2种情况可以抢到锁，
+    // A.state=0
+    // B.thread = currThread; 重入锁
     if (!tryAcquire(arg)  // 尝试获取锁，获取!false则不阻塞自己
         && acquireQueued(addWaiter(Node.EXCLUSIVE), arg))
-        selfInterrupt(); // true-阻塞自己
+        // acquireQueued()返回true，说明在park阻塞期间，有外界主动中断线程
+        // 因此，unpark阻塞结束后就显示中断线程。
+        selfInterrupt(); // true-中断线程
 }
 
 ```
@@ -1521,9 +1576,12 @@ final boolean acquireQueued(final Node node, int arg) {
                 failed = false;
                 return interrupted; // false=本线程无需阻塞
             }
-            // 如果shouldParkAfterFailedAcquire(p, node)则parkAndCheckInterrupt()
+            // 如果shouldParkAfterFailedAcquire(p, node)则走parkAndCheckInterrupt()
             if (shouldParkAfterFailedAcquire(p, node) &&
                 parkAndCheckInterrupt()) // 线程阻塞在if这行
+                // 如果外界有中断操作则parkAndCheckInterrupt返回true
+                // 那么把中断标记置为true，返回到最外层acquire()
+                // 最外层再显示调用中断方法中断线程
                 interrupted = true;
         }
     } finally {
@@ -1544,7 +1602,13 @@ private void setHead(Node node) {
     node.thread = null;
     node.prev = null;
 }
-// 该线程尝试获得锁失败，是否应该被park
+// 功能：该线程尝试获得锁失败，是否应该被park
+// 分析：
+// shouldParkAfterFailedAcquire这个需要配合unpark看
+// unpark的时候，会将head节点的waitstate改为0
+// 那么unpark的一瞬间shouldParkAfterFailedAcquire直接return false，就无需走parkAndCheckInterrupt的park阻塞线程。
+// 这样可以减少一些检查的park阻塞，让他们先去上面逻辑尝试抢锁
+// 抢不到下来再把head的waitstate改为-1，然后阻塞park（unpark的一瞬间，先抢锁，再阻塞）
 private static boolean shouldParkAfterFailedAcquire(Node pred, Node node) {
     int ws = pred.waitStatus; // 默认是0
     // 外层自旋，第二次进来 -1=-1，return true，该线程应该被park
@@ -1578,7 +1642,7 @@ private static boolean shouldParkAfterFailedAcquire(Node pred, Node node) {
 private final boolean parkAndCheckInterrupt() {
     // 阻塞当前线程，线程阻塞在这一行，直至其他线程调用LockSuport.unPark(this)
     LockSupport.park(this);
-    return Thread.interrupted(); // currentThread().isInterrupted(true);当前线程是否被阻塞
+    return Thread.interrupted(); // currentThread().isInterrupted(true);当前线程是否被阻塞,外层显示调用Thread.interrupted
 }
 ```
 
@@ -1688,11 +1752,38 @@ abstract static class Sync extends AbstractQueuedSynchronizer{
   - 守护线程：一般是为工作线程服务的，所有用户线程结束，守护线程自动结束。如垃圾回收机制GC 
 
   ```java
-  main {
-      thread00.start();
-      // 将thread01设置为main的守护线程，当全部工作线程结束时，thread01才结束
-      thread01.setDaemon(true);
-      thread01.start();
+  public class DaemonThread {
+      public static void main(String[] args) throws InterruptedException {
+          Thread thread = new Thread(() -> {
+  
+              while (true) {
+                  try {
+                      Thread.sleep(1000);
+                  } catch (InterruptedException e) {
+                      e.printStackTrace();
+                  }
+                  System.out.println("守护线程");
+              }
+          });
+  
+          new Thread(() -> {
+              while (true) {
+                  try {
+                      Thread.sleep(1000);
+                  } catch (InterruptedException e) {
+                      e.printStackTrace();
+                  }
+                  System.out.println("线程2");
+              }
+          }).start();
+  
+          // 设置为守护线程，当其他线程全部结束，守护线程才会结束，强制结束
+          thread.setDaemon(true);
+          thread.start();
+          Thread.sleep(5_000);
+  
+          System.out.println(thread.isAlive());
+      }
   }
   ```
 

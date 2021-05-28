@@ -36,7 +36,7 @@ JVM的优化问题主要在**线程共享的数据区**：**堆/方法区**
 
 - 栈中存储的是什么
 
-  栈帧是栈的元素。每个方法在执行时都会创建一个栈帧。栈帧中存储了局部变量表/操作数栈/动态连接/方法出口等信息。
+  栈帧是栈的元素。每个方法在执行时都会创建一个栈帧。**栈帧中存储了局部变量表/操作数栈/动态连接/方法出口等信息。** 
 
   每个方法从调用到执行结束，就相当于一个栈帧压栈到出栈。
 
@@ -125,7 +125,7 @@ JVM通过局部变量表的索引来使用局部变量。其中普通方法和st
   [Full GC (System.gc()) [PSYoungGen: 872K->0K(114176K)] [ParOldGen: 8K->668K(261120K)] 880K->668K(375296K)
   ```
 
-  这是因为，局部变量是否被回收的关键在于：局部变量表中的slot是否还存有关于该变量对象的引用。当被另一个新局部变量复用后，原变量再局部变量表中再没有引用了(被替换)，GC就会回收。
+  这是因为，**局部变量是否被回收的关键在于**：**局部变量表中的slot是否还存有关于该变量对象的引用**。当被另一个新局部变量复用后，原变量再局部变量表中再没有引用了(被替换)，GC就会回收。
 
 #### 1.2.2 操作数栈
 
@@ -180,7 +180,7 @@ Java堆分为：
 
   - 伊甸园（Eden）
 
-    研究表明，有将近 98%的对象是朝生夕死，所以针对这一现状，大多数情况下，对象会在新生代 Eden 区中进行分配。
+    研究表明，有将近 **98%的对象是朝生夕**死，所以针对这一现状，大多数情况下，对象会在新生代 Eden 区中进行分配。
 
     当 Eden 区没有足够空间进行分配时，虚拟机会发起一次 Minor GC，Minor GC 相比 Major GC 更频繁，回收速度也更快。
 
@@ -246,7 +246,7 @@ Minor GC 执行后，Eden 区被清空了，存活的对象放到了 Survivor �
 | -XX:NewSize（-Xns）             | 年轻代内存初始大小                                           |
 | -XX:MaxNewSize（-Xmn）          | 年轻代内存最大允许大小，也可以缩写                           |
 | -XX:NewRatio                    | 新生代和老年代的比值 值为4 表示 新生代:老年代=1:4，即年轻代占堆的1/5 |
-| -XX:SurvivorRatio=8             | 年轻代中Eden区与Survivor区的容量比例值，默认为8 表示两个Survivor :eden=2:8，即一个Survivor占年轻代的1/10 |
+| -XX:SurvivorRatio=8             | 年轻代中Eden区与Survivor区的容量比例值，默认为8 表示两个Survivor :Eden=2:8，即一个Survivor占年轻代的2/10,其中From和To各占一份 |
 | -XX:+HeapDumpOnOutOfMemoryError | 内存溢出时，导出堆信息到文件                                 |
 | -XX:+HeapDumpPath               | 堆Dump路径 -Xmx20m -Xms5m -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=d:/a.dump |
 | -XX:OnOutOfMemoryError          | 当发生OOM内存溢出时，执行一个脚本 -XX:OnOutOfMemoryError=D:/tools/jdk1.7_40/bin/printstack.bat %p %p表示线程的id pid |
@@ -263,7 +263,7 @@ Minor GC 执行后，Eden 区被清空了，存活的对象放到了 Survivor �
 
 
 
-元空间并不在JVM中，而是使用的**本地内存**。元空间两个参数：
+元空间并不在JVM中，而是使用的**本地内存 (计算机内存)**。元空间两个参数：
 
 - MetaSpaceSize：初始元空间的大小，控制发生GC的阈值
 - MaxMetaspaceSize：限制元空间大小的上限，防止异常占用过多的物理内存。 

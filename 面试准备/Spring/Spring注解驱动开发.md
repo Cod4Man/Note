@@ -2216,7 +2216,13 @@ Constructor(构造方法) -> @Autowired(依赖注入) -> @PostConstruct(注释�
 
 
 
+## 17. @Async 
 
+注释在方法上，则该方法可以异步执行。
+
+启动类注解@EnableAsync
+
+~~可重写AsyncTaskExecutor~~
 
 
 
