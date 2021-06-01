@@ -14,7 +14,7 @@
 
   允许你独立的扩展或修改两边的处理过程，只要确保它们(消费者和生产者)**遵守同样的接口约束**。 
 
-- 可恢复性：消息有持久化，系统崩溃再次上限可以继续处理。
+- 可恢复性**：消息有持久化**，系统崩溃再次上限可以继续处理。
 
   系统的一部分组件失效时，不会影响到整个系统。消息队列降低了进程间的耦合度，所以即使一个处理消息的进程挂掉，加入队列中的消息仍然可以在系统恢复后被处理。 
 
@@ -170,6 +170,8 @@ kafka-console-consumer.sh --bootstrap-server hadoop102:9092 --topic first
 
 # --from-beginning：会把主题中以往所有的数据都读取出来。
 kafka-console-consumer.sh --bootstrap-server hadoop102:9092 --from-beginning --topic first
+
+docker exec -it kafka0 /opt/kafka/bin/kafka-console-consumer.sh --bootstrap-server 192.168.1.170:9092  --from-beginning --topic output
 ```
 
 6）查看某个 Topic 的详情  : --describe
@@ -219,7 +221,7 @@ index 和 log 文件以当前 segment 的第一条消息的 offset 命名。下�
 
 又可以有多个 Partition 组成，因此整个集群就可以适应任意大小的数据了； 
 
-（2）可以**提高并发**，因为可以以 Partition 为单位读写了。 
+（2）可以**提高并发**，因为可以以 Partition 为单位读写了。即**同一个消费者组可以分开读/并发读取不同分区的消息，提交同一个消费者组消息读取的并发**
 
 #### 5.1.2 分区原则
 
@@ -235,7 +237,7 @@ ProducerRecode(@NotNull String, Integer partition, Long timestamp, String key, S
 
 ### 5.2 数据可靠性保证：发送ack
 
-为保证 producer 发送的数据，能可靠的发送到指定的 topic，topic 的每个 partition 收到producer 发送的数据后，都需要向 producer 发送 **ack（acknowledgement 确认收到）**，如果producer 收到 ack，就会进行下一轮的发送，**否则重新发送数据(因此要确保ack正确返回，否则会消息重复)**。 
+为保证 producer 发送的数据，能可靠的发送到指定的 topic，**topic 的每个 partition** 收到producer 发送的数据后，都需要向 producer 发送 **ack（acknowledgement 确认收到）**，如果producer 收到 ack，就会进行下一轮的发送，**否则重新发送数据(因此要确保ack正确返回，否则会消息重复)**。 
 
 #### 5.2.1 **何时发送ack**
 
@@ -260,7 +262,7 @@ Kafka 选择了第二种方案（全部同步完成才发送ack），然后**在
 
 采用第二种方案之后，设想以下情景：leader 收到数据，所有 follower 都开始同步数据，但有一个 follower，因为某种故障，迟迟不能与 leader 进行同步，那 leader 就要一直等下去，直到它完成同步，才能发送 ack。这个问题怎么解决呢？ 
 
-**Leader 维护了一个动态的 in-sync replica set (ISR)，意为和 leader 保持同步的 follower 集合。当 ISR 中的 follower 完成数据的同步之后，leader 就会给 follower 发送 ack。如果 follower长时间 未 向 leader 同 步 数 据 ， 则 该 follower 将 被 踢 出 ISR ， 该 时 间 阈 值 由replica.lag.time.max.ms 参数设定。Leader 发生故障之后，就会从 ISR 中选举新的 leader。**
+**Leader 维护了一个动态的 in-sync replica set (ISR)，意为和 leader 保持同步的 <u>follower 集合</u>。当 ISR 中的 follower 完成数据的同步之后，leader 就会给 follower 发送 ack。如果 follower长时间 未 向 leader 同 步 数 据 ， 则 该 <u>follower 将 被 踢 出 ISR</u> ， 该 时 间 阈 值 由replica.lag.time.max.ms 参数设定。Leader 发生故障之后，就会<u>从 ISR 中选举</u>新的 leader。**
 
 #### 5.2.4 ack应答机制
 

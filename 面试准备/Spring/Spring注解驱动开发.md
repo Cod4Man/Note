@@ -1,4 +1,6 @@
-# Spring注解驱动开发（https://www.bilibili.com/video/BV1gW411W7wy）
+# Spring注解驱动开发
+
+（https://www.bilibili.com/video/BV1gW411W7wy）
 
 ## 1. 获取Bean （@Configuration + @Bean）
 
@@ -32,9 +34,27 @@
 
 - @Configuration + @Bean(可以导入没有类注解的类，如第三方包)
 
+- **@Configuration（proxyBeanMethods =false）**
+
+  ```java
+  proxyBeanMethods = true 或不写，是Full模式
+  
+  proxyBeanMethods = false 是lite模式
+  
+  不带@Configuration的类叫Lite配置类
+  
+  ConfigurationClassUtils 
+  ```
+
+  proxyBeanMethods默认true，代理Configuration，调用内部方法会去IOC中查找是否有bean，有就直接使用，单例。为fals获得的BeanConfig对象不再是代理对象，调用bean创建方法personXiaozhang()得到的也不再是单例,false这样可以提高创建效率，因为不需要再去IOC中查找Bean。
+
+  spring5.2开始，底层全部改成了false，并且推荐使用false。这是因为Configuration类，基本上属于Bean配置类，一般不会来调用里面的方法创建Bean，也就是说，Bean的调用都是Configuration生效时创建一次，后续都不会再调用，因此，Configuration类可以无需检查，直接创建
+
+  
+
   ```java
   // 生命该类为配置文件类
-  @Configuration
+  @Configuration(proxyBeanMethods=true)
   public class BeanConfig {
       // 注册Bean，id为xiaozhang
       @Bean(name = "xiaozhang")
@@ -217,7 +237,9 @@ void getBeanFormConfiguration() {
 
 ```
 
+### 1.5 @ImportResource("bean.xml")
 
+通过加载Bean配置文件的形式
 
 ## 2. Bean扫描 @ComponentScan / @ComponentScans
 
@@ -2224,7 +2246,14 @@ Constructor(构造方法) -> @Autowired(依赖注入) -> @PostConstruct(注释�
 
 ~~可重写AsyncTaskExecutor~~
 
+## 18. @ConfigurationProperties(prefix = "xxx.yyy")
 
+和properties绑定，可以注入属性参数
+
+生效的两个方式
+
+1. 该配置类，需要配注册到IOC，可以加＠Component
+2. 使jar包中的配置类生效，可以用＠EnableConfigurationProperties(XXConfig.class)
 
 
 

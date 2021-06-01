@@ -527,6 +527,32 @@ B+树的内部结点并没有指向关键字具体信息的指针。因此其内
 - Where**条件里用不到的字段**不创建索引。
 - **字段包含的值区间分布广(尽量不重复)**：假如一个表有10万行记录，有一个字段A只有true和false两种值，并且每个值的分布概率大约为50%，那么对A字段建索引一般不会提高数据库的查询速度。索引的选择性是指索引列中不同值的数目与表中记录数的比。如果一个表中有2000条记录，表索引列有1980个不同的值，那么这个索引的选择性就是1980/2000=0.99。一个索引的选择性越接近于1，这个索引的效率就越高。
 
+### 8.9 强制走索引
+
+**像一些查询范围占比全表10%左右的，索引就失效了，走的全表扫描，因为Mysql有优化，自认为全表扫描更快** 
+
+**mysql强制使用索引:force index(索引名或者主键PRI)**
+
+****例如:
+
+select * from table force index(PRI) limit 2;(强制使用主键)
+
+select * from table force index(ziduan1_index) limit 2;(强制使用索引"ziduan1_index")
+
+select * from table force index(PRI,ziduan1_index) limit 2;(强制使用索引"PRI和ziduan1_index")
+
+### 8.10 禁用索引
+
+**mysql禁止某个索引：ignore index(索引名或者主键PRI)**
+
+****例如:
+
+select * from table ignore index(PRI) limit 2;(禁止使用主键)
+
+select * from table ignore index(ziduan1_index) limit 2;(禁止使用索引"ziduan1_index")
+
+select * from table ignore index(PRI,ziduan1_index) limit 2;(禁止使用索引"PRI,ziduan1_index")
+
 ## 9. Explain 性能分析 
 
 ### 9.1 概念
@@ -1963,5 +1989,102 @@ Master_SSL_Verify_Server_Cert: No
 1 row in set (0.00 sec)
 ```
 
+## 17. Mysql与Oracle区别
 
+1. **Oracle是大型数据库而Mysql是中小型数据库**，Oracle市场占有率达40%，Mysql只有20%左右，同时Mysql是开源的而Oracle价格非常高。 
 
+2. **Oracle支持大并发，大访问量**，是OLTP最好的工具。 
+
+3. **安装所用的空间差别**也是很大的，Mysql安装完后才152M而Oracle有3G左右，且使用的时候**Oracle占用特别大的内存空间和其他机器性能。** 
+
+4. 4.Oracle也Mysql操作上的一些区别 
+
+   ①**主键** 
+
+   Mysql一般使用自动增长类型，在创建表时只要指定表的主键为auto increment,插入记录时，不需要再指定该记录的主键值，Mysql将自动增长；Oracle没有自动增长类型，**主键一般使用的序列**，插入记录时将序列号的下一个值付给该字段即可；只是ORM框架是只要是native主键生成策略即可。 
+
+   ②单引号的处理 
+
+   MYSQL里可以用双引号包起字符串，**ORACLE里只可以用单引号包起字符串**。在插入和修改字符串前必须做单引号的替换：把所有出现的一个单引号替换成两个单引号。 
+
+   ③翻页的SQL语句的处理 
+
+   MYSQL处理翻页的SQL语句比较简单，用LIMIT 开始位置, 记录个数；ORACLE处理翻页的SQL语句就比较繁琐了。**每个结果集只有一个ROWNUM字段标明它的位置,** 并且**只能用ROWNUM<100, 不能用ROWNUM>80** 
+
+   ④ 长字符串的处理 
+
+   长字符串的处理ORACLE也有它特殊的地方。INSERT和UPDATE时最大可操作的字符串长度小于等于**4000个单**字节, 如果要插入更长的字符串,  请考虑字段用**CLOB类型**，方法借用ORACLE里自带的DBMS_LOB程序包。插入修改记录前一定要做进行非空和长度判断，不能为空的字段值和超出长度字段值都应该提出警告,返回上次操作。 
+
+   ⑤空字符的处理 
+
+   **MYSQL的非空字段也有空的内容，ORACLE里定义了非空字段就不容许有空的内容**。按MYSQL的NOT NULL来定义ORACLE表结构, 导数据的时候会产生错误。因此导数据时要对空字符进行判断，如果为NULL或空字符，需要把它改成一个空格的字符串。 
+
+   ⑥字符串的模糊比较 
+
+   MYSQL里用 字段名 like '%字符串%',ORACLE里也可以用 字段名 like '%字符串%' 但这种方法不能使用索引, 速度不快。 
+
+   ⑦Oracle实现了ANSII SQL中大部分功能，如，**事务的隔离级别、传播特性**等而Mysql在这方面还是比较的弱。 
+
+## 18 大数据量测试
+
+>  1000万数据，四个字段 id(PK) username   gender  password
+
+- 硬盘存储：888MB
+
+- 调用存储过程
+
+  - call myproc() => 此时数据表的引擎为MyISAM ，无事务，可以快速插入
+
+    Time: 569.570s   
+
+  ​	插入效率： 1000w / 569.570s = 17,557 row/s 
+
+  - alter table test_user ENGINE='INNODB'
+
+    Time: 34.615s 再改成InnoDB节省时间
+
+- 非主键无索引搜索
+
+  `select * from test_user where username='15232';`  **4.404s**
+
+- 主键搜搜
+
+  `select * from test_user where id=15232`  **0.056s**
+
+- 创建普通单列索引
+
+  `alter table test_user add index index1(username)  ` **21.047s**
+
+  硬盘大小变化： 888MB -> 1100MB , 相当于 一个1000w数据量的普通index占用222MB
+
+- 有索引查询
+
+  `select * from test_user where username='15232';`  **0.052s ** ，4.402/0.052=84.69 效率提升8400%
+
+- 范围查询
+
+  - `select * from test_user where username like '1%'; ` **4.892s** 
+
+   查询结果count: 1111112 占比总数据为1111112/10000000=**11.11% 索引失效，type由range变成all**
+
+  - `select * from test_user where username like '15%';` **0.368s**    **range**
+
+   查询结果count: 111112 占比总数据为111112/10000000=**1.11% 索引未失效，type为range**
+
+- **大数据量，mysql会优化不走索引，可以走强制索引**
+
+  `select * from test_user  force index(index1) where username like '1%';` 
+
+  5s -> 3.9s 时间少了1s， 查询条数rows由992w->222w， type 由 all -> range
+
+- order by 和 group by
+
+  `select * from test_user Group BY username;` -- 33s
+
+  `select * from test_user order BY username;` -- 20.8s
+
+- 索引覆盖
+
+  select username from test_user   order BY username; -- 3.997s  索引 覆盖查询
+
+  select username from test_user   group BY username; -- 4.892s  索引覆盖查询

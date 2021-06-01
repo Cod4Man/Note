@@ -111,7 +111,7 @@ eureka:
 
 - Eureka Server(@EnableEurekaServer)和Eureka Client(@EnableEurekaClient)
 - Eureka Server提供服务注册服务
-- Eureka Client通过注册中心进行访问。是一个JAVA客户端，用于简化Eureka Server的交互，客户端同时也具备一个内置的/使用轮询负载算法的负载均衡器。再应用启动后，将会向Euerka Server发送心跳（默认30s）。如果Eureka Server在多个心跳周期内美哟接收到某个节点的心跳，Eureka Server将会从服务注册表中把这个服务节点移除（默认90s）
+- Eureka Client通过注册中心进行访问。是一个JAVA客户端，用于简化Eureka Server的交互，客户端同时也具备一个内置的/使用轮询负载算法的负载均衡器。再应用启动后，将会向Euerka Server发送心跳（默认**30s**）。如果Eureka Server在多个心跳周期内没有接收到某个节点的心跳，Eureka Server将会从服务注册表中把这个服务节点移除（默认90s）
 
 ##### 4.1.1.3 Eureka集群原理 
 
@@ -119,7 +119,7 @@ eureka:
 
 ##### 4.1.1.4 Eureka 自我保护机制
 
-- 注册在Eureka的服务，一定时间间隔向Eureka注册中心发送心跳包，当超过时间间隔注册中心没有收到心跳包(可能是网络阻塞等)，并不会立即删除该服务，而是触发自我保护机制，仍然保留着失效的服务。
+- 注册在Eureka的服务，一定时间间隔向Eureka注册中心发送心跳包，当超过时间间隔注册中心没有收到心跳包(可能是网络阻塞等)，**并不会立即删除该服务，而是触发自我保护机制，仍然保留着失效的服**务。
 
 - Eureka服务端：eureka.server.enable-self-preservation = false
 
@@ -185,7 +185,7 @@ eureka:
 
   - tickTime =2000：通信心跳数，Zookeeper 服务器与客户端心跳时间，单位毫秒 
   - initLimit =10：Leader/Follower 初始通信时间限制 ，单位为tickTime ，10initLimit=10*ticktime=20s
-  - syncLimit =5：LF 同步通信时限。，假如响应超过syncLimit *  tickTime，Leader认为Follwer死掉，从服务器列表中删除Follwer
+  - syncLimit =5：LF 同步通信时限。，假如响应超过syncLimit *  tickTime，**Leader认为Follwer死掉，从服务器列表中删除Follwer**
   - dataDir：数据文件目录+数据持久化路径 
   - clientPort =2181：客户端连接端口 
 
@@ -233,6 +233,7 @@ spring:
 - pom依赖
 
   ```yaml
+  服务端，客户端都依赖
   <!-- https://mvnrepository.com/artifact/org.springframework.cloud/spring-cloud-starter-zookeeper-discovery -->
   <dependency>
   <groupId>org.springframework.cloud</groupId>
@@ -259,6 +260,27 @@ ZooKeeper = zkClient = new ZooKeeper(connectString, sessionTimeout, new Watcher(
     } }
 });
 
+
+
+@Configuration
+@EnableFeignClients
+@EnableDiscoveryClient
+public class FeignService2 {
+    @Autowired
+    private TheClient theClient;
+
+    @FeignClient(name = "SHOPCART-PRO")
+    interface TheClient {
+
+        @RequestMapping(path = "/mall4springcloud/mall-shopcart/getAll", method = RequestMethod.GET)
+        @ResponseBody
+        List<MallShopcart> getAll();
+    }
+
+    public List<MallShopcart> getAll() {
+        return theClient.getAll();
+    }
+}
 ````
 
 - 无自我保护机制，没有心跳直接干掉服务。因此服务节点是临时性的
@@ -267,7 +289,7 @@ ZooKeeper = zkClient = new ZooKeeper(connectString, sessionTimeout, new Watcher(
 
 - Zookeeper内部原理：
 
-  - 节点类型：两个类型都可选择带序列号的生成规则。在分布式系统中，顺序号可以被用于 为所有的事件进行全局排序，这样客户端可以**通过顺序号推断事件的顺序 ** 
+  - 节点类型：两个类型都**可选择带序列号的生成规则**。在分布式系统中，顺序号可以被用于 为所有的事件进行全局排序，这样客户端可以**通过顺序号推断事件的顺序 ** 
     - 持久（Persistent）：客户端和服务器端断开连接后，创建的节点不删除 
     - 短暂（Ephemeral）：客户端和服务器端断开连接后，创建的节点自己删除 
 
@@ -362,7 +384,13 @@ spring:
 
 ### 4.3 服务调用
 
-#### 4.3.1 Ribbon（RestTemplate）
+#### 4.3.1 Ribbon负载均衡（RestTemplate）
+
+>  **Nginx和Ribbon做负载均衡的区别：**
+
+**Nginx是服务端的负载均衡**，所有请求都会请求到Nginx做转发
+
+**Ribbon是客户端的负载均衡**，做的事从注册中心获取地址的操作。
 
 - Eureka自带Ribbon依赖
 - 使用
@@ -494,7 +522,7 @@ logging:
  
 ```
 
-### 4.3.2 OpenFeign+Ribbon+Eureka的配合
+#### 4.3.2 OpenFeign+Ribbon+Eureka的配合
 
 - 只有**Eureka**：
 
@@ -514,8 +542,10 @@ logging:
 
   把@FeignClient(name = "SHOPCART-PRO"）注解上的name作为服务名，与接口上面的  @RequestMapping(）拼接成上面的url，然后**借助Ribbon(OpenFeign集成了Ribbon)实现调用** 
 
+  **contextId: 设置分区，FeignClient默认会以name来创建bean，那么多个相同的name创建的bean就重复了，可以采取分区的形式，就可以创建多个feign。这样可以更加灵活，比如有一半的方法想fallback，那么就设置一个分区，另一半方法不想fallback则创建一个新的分区，然后不加fallback即可。** 
+
   ```java
-  @FeignClient(name = "SHOPCART-PRO", path = "/mall4springcloud/mall-shopcart", fallback = ShopcartFeignFallBackService.class)
+  @FeignClient(name = "SHOPCART-PRO", path = "/mall4springcloud/mall-shopcart", fallback = ShopcartFeignFallBackService.class, contextId="one" /*分区一*/)
   public interface ShopcartFeignService {
   
       @RequestMapping("/getAll")
@@ -543,7 +573,13 @@ logging:
   }
   ```
 
-  
+- **fallback需要开启**
+
+  ```yml
+  feign:
+      hystrix:
+          enabled: true
+  ```
 
 ![1621239536183](E:\SoftwareNote\微服务\SpringCloud\img\OpenFeign+Ribbon+Eureka的配合.png)
 
@@ -651,7 +687,7 @@ feign:
 
 ##### 4.4.1.7 服务熔断
 
-- 熔断机制概述： 服务降级触发熔断，**当检测到该节点微服务调用响应正常后，恢复调用链路**。
+- 熔断机制概述：超过了保险丝(系统设定的一些上限参数：入失败率/响应时间/请求数等)触发熔断，**当检测到该节点微服务调用响应正常后，恢复调用链路**。
 - 例子：
 
 ```java
@@ -671,7 +707,7 @@ feign:
 
   - 熔断打开：请求不再进行调用当前服务，内部设置时钟一般为MTTR(平均故障处理时间)，当打开时长达到所设时钟则进入熔断状态
   - 熔断关闭：熔断关闭不会对服务进行熔断
-  - 熔断半开：请求不再进行调用当前服务，内部设置时钟一般为MTTR(平均故障处理时间)，当打开时长达到所设时钟则进入熔断状态
+  - 熔断半开：熔断状态时，过了一段时间(睡眠期，默认5s)会尝试一个请求，尝试成功解除熔断，不成功还是熔断。
 
 - 官网断路器流程图
 
@@ -683,11 +719,25 @@ feign:
   - 当失败率达到一定(默认10秒内超过50%的请求失败)
   - 达到以上阈值，断路器将会开启
   - 当开启的时候，所有请求都不会进行转发
-  - 一段时候之后(默认是5秒)，这个时候断路器是半开状态，会让其中一个请求进行转发。如果成功，断路器会关闭，若事变，继续开启
+  - 一段时间(睡眠期)之后(默认是5秒)，这个时候断路器是半开状态，会让其中一个请求进行转发。如果成功，断路器会关闭，若事变，继续开启
 
-- 准实时的调用监控 Hystrix Dashboard
+- 准实时的调用监控 Hystrix Dashboard @EnableHystrixDashboard
 
   - 注意：新版本Hystrix需要在主启动类MainAppHystrix8001中指定监控路径
+
+  pom
+
+  ```xml
+  <dependency>
+      <groupId>org.springframework.cloud</groupId>
+      <artifactId>spring-cloud-starter-hystrix-dashboard</artifactId>
+  </dependency>
+  
+  <dependency>
+      <groupId>org.springframework.cloud</groupId>
+      <artifactId>spring-cloud-starter-netflix-hystrix-dashboard</artifactId>
+  </dependency>
+  ```
 
   ```java
   public ServletRegistrationBean getServlet(){
@@ -700,7 +750,7 @@ feign:
   }
   ```
 
-  - 
+  url：host:port/hystrix
 
 ### 4.5 服务网关
 
@@ -724,23 +774,23 @@ feign:
 
 - Gateway 是在Spring 生态系统之上构建的API网关服务，基于Spring5， SpringBoot2, Project Reactor等技术。旨在提供一种简单而有效的方式来对API进行路由，以及提供一些强大的过滤器功能，如：熔断/限流/重试等。
 
-- GateWay目标是替代Zuul。在SpringCloud2.0以上的版本中，没有对新版本的Zuul2.0以上最新最高性能版本进行集成，仍然使用的Zuul1.0非Reactor模式的老版本。而为了提高网关的性能，SpringCloud-Gateway是基于WebFlux框架实现的，而WebFlux框架底层则使用了高性能的Reactor模式通信框架Netty。
+- GateWay目标是替代Zuul。在SpringCloud2.0以上的版本中，没有对新版本的Zuul2.0以上最新最高性能版本进行集成，仍然使用的Zuul1.0非Reactor模式的老版本。而为了提高网关的性能，SpringCloud-**Gateway是基于WebFlux框架实现的，而WebFlux框架底层则使用了高性能的Reactor模式通信框架Netty。**
 
-- Gateway的目标：提供统一的路由方式且基于Filter链的方式提供了网关的基本功能，如：安全/监控/指标/限流等。
+- Gateway的目标：提供统一的路由方式且**基于Filter链的方式**提供了网关的基本功能，如：**安全/监控/指标/限流等。**
 
 - Gateway源码架构（模型）
 
   ![1608451987988](E:\SoftwareNote\微服务\SpringCloud\img\Gateway源码架构.png)
 
   - 传统的web框架，如struts2，springMVC等都是基于servletAPI和Servelt容器基础之上进行的。
-  - 在Servelt3.1之后有了异步非阻塞的支持。而WebFlux式一个典型的非阻塞异步的框架，它的核心是基于Reactor的相关API实现的。相对于传统的web框架来说，它可以运行在诸如Netty，Undertow以及支持Servlet3.1的容器上。非阻塞+函数式变成(Spring5必须使用JAVA8)
+  - **在Servelt3.1之后有了异步非阻塞的支持**。而WebFlux式一个典型的非阻塞异步的框架，它的核心是基于Reactor的相关API实现的。相对于传统的web框架来说，它可以运行在诸如Netty，Undertow以及支持Servlet3.1的容器上。**非阻塞+函数式编程(Spring5必须使用JAVA8)**
   - Spring WebFlux式Spring5.0引入的新的响应式框架，区别于SpringMVC，它不依赖ServeltAPI，他是完全异步非阻塞的，并且基于Reactor来实现响应式流规范
 
 - 用途
 
-  - 反向代理
+  - 反向代理：类似nginx，访问的入口是gateway，可以给gateway外再加一层nginx
   - 鉴权
-  - 流量控制
+  - 流量控制(可以加权重，相同入境配合权重转发到不同服务上)
   - 熔断
   - 日志监控
   - ...
@@ -756,23 +806,23 @@ feign:
     - Gateway是SpringCloud团队开发的，多了很多Zuul没有的功能，使用也更加简单便捷
   - Gateway具有如下特性：
     - 基于SpringFramework5，Project Reactor，SpringBoot2.0进行构建
-    - 动态路由：能够匹配任何请求属性
+    - **动态路由：能够匹配任何请求属性**
     - 可以对路由进行指定Predicate(断言)和Filter(过滤器)
-    - 集成Hystrix的断路器功能
-    - 集成SpringCloud服务发现功能
+    - **集成Hystrix的断路器功能**
+    - **集成SpringCloud服务发现功能**
     - 易于编写Predicate和Filter
     - 请求限流功能
-    - 支持路径重写
+    - **支持路径重写**
 
   
 
 - Gateway和zuul的区别
 
   - Zuul1.x是以及基于阻塞I/O的API Gateway
-  - Zuul1.x基于Servlet2.5使用阻塞架构，它不支持任何长连接（如WebSocket），Zuul的涉及模式和Nginx比较像，而JVM本身会有第一次加载较慢的情况，使得Zuul的性能相对差
+  - **Zuul1.x基于Servlet2.5使用阻塞架构**，它不支持任何长连接（如WebSocket），Zuul的涉及模式和Nginx比较像，而JVM本身会有第一次加载较慢的情况，使得Zuul的性能相对差
   - Zuul2.x理念更先进，像基于Netty非阻塞和支持长连接，但SpringCloud目前还没有进行整合。Zuul2.x的性能相对1.x有较大的提升。官方Gateway的RPS(每秒请求数)是Zuul的1.6倍
-  - Gateway基于SpringFramework5，Project Reactor，SpringBoot2.0进行构建，非阻塞API
-  - Gateway还支持WebSocket，并与Spring紧密集成拥有更好的开发体验
+  - Gateway基于SpringFramework5，Project Reactor，SpringBoot2.0进行构建**，非阻塞API**
+  - Gateway还支持WebSocket，并与**Spring紧密集成拥有更好的开发体验(毕竟时Spring的东西)**
 
 - Gatway三大核心概念
 
@@ -780,7 +830,7 @@ feign:
 
   - Predicate(断言)：参考的是java8的java.util.function.Predicate开发人员可以匹配HTTP请求中的所有内容（例如请求头或请求参数），如果请求与断言相匹配则进行路由
 
-  - Filter(过滤)：指的是Spring框架中GatewayFilter的实例，使用过滤器，可以在请求被路由前或者之后对请求进行修改。
+  - Filter(过滤)：指的是Spring框架中GatewayFilter的实例，使用过滤器，可以在请求被路由前或者之后对请求进行修改。（拦截了可以做很多事情）
 
     ![1608462225245](E:\SoftwareNote\微服务\SpringCloud\img\Gateway总体图.png)
 
@@ -836,9 +886,9 @@ feign:
       @Override
       public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
           log.info("*********come in MyLogGateWayFilter: "+new Date());
-          String uname = exchange.getRequest().getQueryParams().getFirst("username");
-          if(StringUtils.isEmpty(uname)){
-              log.info("*****用户名为Null 非法用户,(┬＿┬)");
+          String token = exchange.getRequest().getQueryParams().getFirst("token");
+          if(StringUtils.isEmpty(token)){
+              log.info("*****token为Null 非法用户,(┬＿┬)");
               exchange.getResponse().setStatusCode(HttpStatus.NOT_ACCEPTABLE);//给人家一个回应
               return exchange.getResponse().setComplete();
           }
@@ -853,7 +903,71 @@ feign:
   
   ```
 
+  ##### 4.5.3.4 pom
+
+  ```xml
+  <dependency>
+      <groupId>org.springframework.cloud</groupId>
+      <artifactId>spring-cloud-starter-gateway</artifactId>
+  </dependency>
   
+  <!-- https://mvnrepository.com/artifact/org.springframework.cloud/spring-cloud-starter-eureka-server -->
+  <dependency>
+      <groupId>org.springframework.cloud</groupId>
+      <artifactId>spring-cloud-starter-netflix-eureka-server</artifactId>
+      <!-- gateway 和webstarter冲突 -->
+      <exclusions>
+          <exclusion>
+              <groupId>org.springframework.boot</groupId>
+              <artifactId>spring-boot-starter-web</artifactId>
+          </exclusion>
+      </exclusions>
+  </dependency>
+  <!-- gateway 和webstarter冲突，取消webstart后，缺失mvc依赖 -->
+  <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-webmvc</artifactId>
+  </dependency>
+  ```
+
+  ##### 4.5.3.5 yml
+
+  ```yaml
+  server:
+    port: 9527
+  spring:
+    application:
+      name: cloud-gateway
+    cloud:
+      gateway:
+        discovery:
+          locator:
+            enabled: true  #开启从注册中心动态创建路由的功能，利用微服务名进行路由
+        routes:
+        - id: payment_routh #路由的ID，没有固定规则但要求唯一，建议配合服务名
+          #uri: http://localhost:8001   #匹配后提供服务的路由地址
+          uri: lb://cloud-payment-service
+          predicates:
+          - Path=/payment/get/**   #断言,路径相匹配的进行路由
+          ## - Before=2020-03-08T10:59:34.102+08:00[Asia/Shanghai]
+  
+        - id: payment_routh2
+          #uri: http://localhost:8001   #匹配后提供服务的路由地址
+          uri: lb://cloud-payment-service
+          predicates:
+          - Path=/payment/lb/**   #断言,路径相匹配的进行路由
+  
+  
+  eureka:
+    instance:
+      hostname: cloud-gateway-service
+    client:
+      service-url:
+        register-with-eureka: true
+        fetch-registry: true
+        defaultZone: http://eureka7001.com:7001/eureka
+  
+  ```
 
 ### 4.6 配置中心
 
@@ -870,7 +984,7 @@ feign:
 - 用途：
 
   - 集中管理配置文件
-  - 不同环境不同配置，动态化的配置更新，分环境部署比如dev/test/prod/beta/release
+  - 不同环境不同配置，**动态化的配置更新，分环境部署**比如dev/test/prod/beta/release
   - 运行期间动态调整配置，不再需要在每个服务部署的机器上编写配置文件，服务会向配置中心统一拉取配置自己的信息
   - 当配置发生变动时，服务不需要重启即可感知到配置的变化并应用新的配置
   - 将配置信息以REST接口的形式暴露(post、curl访问刷新均可....)
@@ -887,10 +1001,10 @@ feign:
       config:
         server:
           git:
-            uri: git@github.com:Cod4Man/microservice-config.git
+            uri: git@github.com:Cod4Man/microservice-config.git # git管理路径
             search-paths:
-            - microservice-config
-        label: master
+            - microservice-config # 查找文件路径
+        label: master # Git 分支
   eureka:
     client:
       service-url:
@@ -908,7 +1022,7 @@ feign:
 
 - 主启动类
 
-  @EnableConfigServer
+  **@EnableConfigServer**
 
 - 配置读取规则
 
@@ -918,7 +1032,7 @@ feign:
 
 - bootstap.yml
 
-  application.yml是用户级的资源配置项，而bootstrap.yaml是系统级的，优先级更高。
+  application.yml是用户级的资源配置项，**而bootstrap.yaml是系统级的，优先级更高。**
 
   SpringCloud会创建一个“Bootstrap Context”, 作为Spring应用的‘Application Context’ 的父上下文。初始化的时候，‘Bootstrap Context’负责从外部源加载配置属性并解析配置。这两个上下文共享一个从外部获取的‘Environment’。
 
@@ -935,9 +1049,17 @@ feign:
         <groupId>org.springframework.cloud</groupId>
         <artifactId>spring-cloud-starter-config</artifactId>
     </dependency>
+    
+    或者这个？
+    <dependency>
+        <groupId>org.springframework.cloud</groupId>
+        <artifactId>spring-cloud-config-client</artifactId>
+    </dependency>
     ```
 
 - Config客户端-动态刷新
+
+  就算客户端重启，也不会刷新的，要么就重启服务端；要么动态刷新。
 
   - pom引入actuator监控
 
@@ -950,7 +1072,19 @@ feign:
 
   - 修改yml，暴露监控端口
 
-    ```yml
+    ```yaml
+    ## Spring相关配置
+    spring:
+      application:
+        name: goods-pro
+      profiles:
+        active: dev
+      cloud:
+        config:
+          fail-fast: true
+          uri: http://localhost:8899,http://localhost:8898 # Config服务端地址
+          label: master
+    
     management:
       endpoints:
         web:
@@ -985,7 +1119,7 @@ feign:
 
 - SpringCloud Bus 是用来将分布式系统的节点与轻量级消息系统链接起来的框架，它整合了JAVA的事件处理机制和消息中间件的功能。
 
-- SpringCloud Bus目前支持的消息中间件：RabbitMQ和Kafka
+- SpringCloud Bus**目前支持的消息中间件：RabbitMQ和Kafka**
 
 - 用途：SpringCloud Bus能管理和传播分布式系统间的消息，就像一个分布式执行器，可用于广播状态更改/事件推送等，也可以当作微服务间的通信通道。
 
@@ -993,15 +1127,15 @@ feign:
 
 - 总线：在微服务架构的系统中，通常会使用轻量级的消息代理来构建一个共用的消息主题，并让系统中所有微服务实例都连接上来。由于该主题中产生的消息会被所有实例监听和消费，所以称它为消息总线。在总线上的各个实例，都可以方便的广播一些需要让其他连接在该主题上的实例都知道的消息。
 
-- 基本原理：ConfigClient实例都监听MQ中同一个topic(默认是SpringCloudBus)。当一个服务刷新数据的时候，它会把这个信息放入到Topic中，这样其他监听同一Topic的服务就能得到通知，然后去更新自身的配置。
+- 基本原理：ConfigClient实例都监听MQ中同一个topic(默认是SpringCloudBus)。当一个服务刷新数据的时候，它会把这个信息放入到Topic中，**这样其他监听同一Topic的服务就能得到通知，然后去更新自身的配置**。
 
 - 设计架构：
 
-  - 方案一：利用消息总线触发一个客户端/bus/refresh,而刷新所有客户端的配置
+  - 方案一：**利用消息总线触发一个客户端/bus/refresh,而刷新所有客户端的配置**
 
     ![1608995149065](E:\SoftwareNote\微服务\SpringCloud\img\SpringCloudBus设计架构1.png)
 
-  - 方案二：利用消息总线触发一个服务端ConfigServer的/bus/refresh端点,而刷新所有客户端的配置（更加推荐）
+  - 方案二：**利用消息总线触发一个服务端ConfigServer的/bus/refresh端点,而刷新所有客户端的配置（更加推荐）**
 
     ![1608995201829](E:\SoftwareNote\微服务\SpringCloud\img\SpringCloudBus设计架构2.png)
 
@@ -1014,10 +1148,17 @@ feign:
   - pom
 
   ```xml
+  rabbitMQ
   <dependency>
               <groupId>org.springframework.cloud</groupId>
               <artifactId>spring-cloud-starter-bus-amqp</artifactId>
   </dependency>
+  
+  Kafka
+  <dependency>
+              <groupId>org.springframework.cloud</groupId>
+              <artifactId>spring-cloud-starter-bus-kafka</artifactId>
+          </dependency>
   ```
 
   - yml
@@ -1048,6 +1189,7 @@ feign:
       port: 5672
       username: guest
       password: guest
+      
   ```
 
 - 发送POST请求刷新配置
@@ -1079,14 +1221,14 @@ feign:
 
   应用程序通过inputs或outputs来与SpringCloudStream中binder对象交互。通过我们配置来binding(绑定)，而SpringCloudStream的binder对象负责与消息中间件交互。因此，开发人员只需搞清楚如何与SpringCLoudStream交互就可以方便使用消息驱动的方式。
 
-  通过使用Spring Integration来连接消息代理中间件以实现消息事件驱动。SpringCloudStream为一些供应商的消息中间件产品提供了个性化的自动化配置实现，引用了发布-订阅/消费组/分区的三大核心概念。
+  通过使用Spring Integration来连接消息代理中间件以实现消息事件驱动。SpringCloudStream为一些供应商的消息中间件产品提供了个性化的自动化配置实现，引用了**发布-订阅/消费组/分区**的三大核心概念。
 
 - 目前仅支持**Rabbit MQ和Kafka**
 
 #### 4.8.2 为什么用SpringCloudStream
 
-- 不同消息中间件架构上不同，如Rabbit MQ有exchange，kafka有Topic和Partitions分区
-- 不同中间件的差异对我们实际项目开发造成了一定的困扰，在使用其他一种后，后续需求需要往另一种消息中间件迁移，这是非常麻烦的，因为它和我们的系统耦合了。SpringCloudStream则能达到解耦的效果。
+- 不同消息中间件架构上不同，**如Rabbit MQ有exchange，kafka有Topic和Partitions分区**
+- 不同中间件的差异对我们实际项目开发造成了一定的困扰，在使用其他一种后，**后续需求需要往另一种消息中间件迁移**，这是非常麻烦的，因为它和我们的系统耦合了。SpringCloudStream则能达到解耦的效果。
 
 #### 4.8.3 绑定器binder
 
@@ -1114,6 +1256,12 @@ feign:
 <dependency>
     <groupId>org.springframework.cloud</groupId>
     <artifactId>spring-cloud-starter-stream-rabbit</artifactId>
+</dependency>
+
+二者不可共存
+<dependency>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-starter-stream-kafka</artifactId>
 </dependency>
 ```
 
@@ -1278,7 +1426,7 @@ span:表示调用链路来源，通俗的理解span就是一次请求信息
       base-url: http://localhost:9411
     sleuth:
       sampler:
-      probability: 1  # 0-1 ， 1表示性能全开
+        probability: 1  # 0-1 ， 1表示性能全开
   ```
 
   
@@ -1287,20 +1435,20 @@ span:表示调用链路来源，通俗的理解span就是一次请求信息
 
 - 出现原因：Spring Cloud Netflix项目进入维护模式
 - SpringCloud alibaba带来了什么？
-  - 2018.10.31 SpringCloud Alibaba正式入驻了SpringCloud官方孵化器，并在Maven中央库发布了第一个版本
+  - 2018.10.31 SpringCloud Alibaba正式入驻了SpringCloud**官方孵化器**，并在Maven中央库发布了第一个版本
   - 用途：
-    - 服务限流降低：默认支持Servlet/Feign/RestTemplate/Dubbo/Rocket MQ限流降级功能的接入，可以在运行时通过控制台实时修改限流降级规则，还支持查看限流降低Metrics监控。
-    - 服务注册与发现：适配SpringCloud服务注册与发现标准，默认集成了Ribbon的支持
-    - 分布式配置管理：支持分布式系统中的外部化配置，配置更改时自动刷新。
-    - 消息驱动能力：基于SpringCloud Stream为微服务应用构建消息驱动能力。
-    - 阿里云对象存储：阿里云提供的海量/安全/低成本/高可靠的云存储服务。支持在任何应用/任何时间/任何地点存储和访问任意类型的数据。
-    - 分布式任务调度：提供秒级/精准/高可靠/高可用的定时(基于Cron表达式)任务调度服务。同时提供分布式的任务执行模型，如网格任务。网格任务支持海量子任务均匀的分配到所有Worker(schedulerx-client)上执行。
+    - **服务限流降低**：默认支持Servlet/Feign/RestTemplate/Dubbo/Rocket MQ限流降级功能的接入，可以在运行时通过控制台实时修改限流降级规则，还支持查看限流降低Metrics监控。
+    - **服务注册与发现**：适配SpringCloud服务注册与发现标准，默认集成了Ribbon的支持
+    - **分布式配置管理**：支持分布式系统中的外部化配置，**配置更改时自动刷新**。
+    - **消息驱动能力**：基于SpringCloud Stream为微服务应用构建消息驱动能力。
+    - **阿里云对象存储**：阿里云提供的海量/安全/低成本/高可靠的云存储服务。支持在任何应用/任何时间/任何地点存储和访问任意类型的数据。
+    - **分布式任务调度**：提供秒级/精准/高可靠/高可用的定时(基于Cron表达式)任务调度服务。同时提供分布式的任务执行模型，如网格任务。网格任务支持海量子任务均匀的分配到所有Worker(schedulerx-client)上执行。
   - 组件：
-    - Sentinel：把流量作为切入点，从流量控制、熔断降级、系统负载保护等多个维度保护服务的稳定性。
-    - Nacos：一个更易于构建云原生应用的动态服务发现、配置管理和服务管理平台。
-    - RocketMQ：一款开源的分布式消息系统，基于高可用分布式集群技术，提供低延时的、高可靠的消息发布与订阅服务。
-    - Dubbo：Apache Dubbo™ 是一款高性能 Java RPC 框架。
-    - Seata：阿里巴巴开源产品，一个易于使用的高性能微服务分布式事务解决方案。
+    - **Sentinel**：把流量作为切入点，从流量控制、熔断降级、系统负载保护等多个维度保护服务的稳定性。
+    - **Nacos：**一个更易于构建云原生应用的**动态服务发现、配置管理和服务管理平台**。
+    - **RocketMQ：**一款开源的分布式消息系统，基于高可用分布式集群技术，提供**低延时的、高可靠**的消息发布与订阅服务。
+    - **Dubbo**：Apache Dubbo™ 是一款**高性能 Java RPC 框架**。
+    - **Seata**：阿里巴巴开源产品，一个易于使用的**高性能微服务分布式事务解决方案**。
     - Alibaba Cloud ACM：一款在分布式架构环境中对应用配置进行集中管理和推送的应用配置中心产品。
     - Alibaba Cloud OSS: 阿里云对象存储服务（Object Storage Service，简称 OSS），是阿里云提供的海量、安全、低成本、高可靠的云存储服务。您可以在任何应用、任何时间、任何地点存储和访问任意类型的数据。
     - Alibaba Cloud SchedulerX: 阿里中间件团队开发的一款分布式任务调度产品，提供秒级、精准、高可靠、高可用的定时（基于 Cron 表达式）任务调度服务。
@@ -1308,9 +1456,15 @@ span:表示调用链路来源，通俗的理解span就是一次请求信息
 
 ### 5.1 Nacos 8848: 服务注册与配置中心 
 
-docker运行加上`--env MODE=standalone`
+对标：(Eureka/Zookeeper    Config+Bus)
+
+单机的话，环境变量需要配置为单机。docker运行加上`--env MODE=standalone`
+
+否则注册服务时启动报错 **failed to req API:/nacos/v1/ns/instance after all servers([nacos:8848]) tried**
 
 <http://localhost:8848/nacos/index.html>   默认账号密码是nacos/nacos 
+
+无需EnableDiscoveryClient
 
 #### 5.1.0 docker安装/配置
 
@@ -1426,6 +1580,11 @@ docker运行加上`--env MODE=standalone`
     <groupId>com.alibaba.cloud</groupId>
     <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
 </dependency>
+
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter</artifactId>
+</dependency>
 ```
 
 - 配置yml
@@ -1472,7 +1631,7 @@ service-url:
 
 ```
 
-- 请求方式 RestTemplate
+- 请求方式 RestTemplate，也可整合OpenFeign做RPC调用
 
 ```java
 @Configuration
@@ -1542,7 +1701,7 @@ spring:
 ####  application.yml  end  ####
 ```
 
-- @RefreshScope(Nacos自带动态刷新，无需发送POST请求)
+- @RefreshScope(Nacos自带动态刷新，**无需发送POST请求**)
 
 ```java
 @Component
@@ -1564,8 +1723,11 @@ public class CommonComponent {
 ![1609777293564](E:\SoftwareNote\微服务\SpringCloud\img\Nacos发布配置.png)
 
      - Nacos中的dataid的组成格式与SpringBoot配置文件中的匹配规则
-    
-       ![1609777524526](E:\SoftwareNote\微服务\SpringCloud\img\Nacos中的dataid的组成格式与SpringBoot配置文件中的匹配规则.png)
+
+
+​      
+
+ ![1609777524526](E:\SoftwareNote\微服务\SpringCloud\img\Nacos中的dataid的组成格式与SpringBoot配置文件中的匹配规则.png)
 
 - 设置DataId公式
 
@@ -1580,7 +1742,7 @@ public class CommonComponent {
 
   - Nacos结构:NameSpace>Group>Data ID(Service)
 
-    NameSpace主要用来实现隔离，比如dev/pro/test
+    **NameSpace主要用来实现隔离**，比如dev/pro/test
 
     Group用来做分组，把不同微服务分组
 
@@ -1636,9 +1798,11 @@ Nginx+Nacos(3+)+Mysql实现集群
 
 ### 5.2 SpringCloud Alibaba Sentinel实现熔断与限流：8080
 
+使用docker，启动默认端口为8858，需要暴露。也可以进入容器内部启动/bladex/sentinel/app.jar,默认端口为8080，也需要暴露出来
+
 #### 5.2.1 简介
 
-- 轻量级的流量控制/熔断降级的Java库
+- 轻量级的**流量控制/熔断降级**的Java库
 
 - 替代Hystrix
 
@@ -1709,7 +1873,9 @@ feign:
   sentinel:
     enabled: true # 激活Sentinel对Feign的支持
 
-
+#feign:
+#  hystrix:
+#    enabled: true # Openfeign fallback
 
 ```
 
@@ -1735,7 +1901,7 @@ feign:
 
   熔断降级避免级联错误。当资源被降级后，接下来的窗口期内，调用都会自动熔断（默认抛出	DegradeException）
 
-  Sentinel的断路器是没有半开状态的。(区别于Histrix)
+  **Sentinel的断路器是没有半开状态的。(区别于Histrix)**
 
 
 
@@ -1745,7 +1911,7 @@ feign:
 
   ![1610549651421](E:\SoftwareNote\微服务\SpringCloud\img\Sentinel热点Key规则介绍.png)
 
-- java:  @SentinelResource, 类似Histrix的@HistrixCommand, 可指定兜底方案blockHandler
+- java:  **@SentinelResource, 类似Histrix的@HistrixCommand, 可指定兜底方案<u>blockHandler</u>**
 
 ```java
 @GetMapping("/sentinel05/{id}/{name}")
@@ -1766,9 +1932,9 @@ feign:
 
 ![1610549846247](E:\SoftwareNote\微服务\SpringCloud\img\Sentinel系统规则介绍.png)
 
-#### 5.2.7 @SentinelResource
+#### 5.2.7 @SentinelResource 
 
-- 指定兜底类
+- 指定兜底类 **@SentinelResource（blockHandlerClass） 类方法需要static**
 
 ```java
 @GetMapping("/sentinel06/{id}/{name}")
@@ -1804,7 +1970,7 @@ public class CustomerBlockHandler {
 
 #### 5.2.8 服务熔断功能
 
-- Sentinel整合了Ribbon+OpenFeign+Fallback
+- **Sentinel整合了Ribbon+OpenFeign+Fallback**
 
 - @SentinelResource(value = "fallback",fallback = "handlerFallback",blockHandler = "blockHandler", exceptionsToIgnore = {IllegalArgumentException.class})
 
@@ -1813,7 +1979,7 @@ public class CustomerBlockHandler {
   - fallback管运行异常
   - blockHandler管配置违规
 
-- Feign
+- 激活sentinel对Feign熔断的支持
 
   ```yml
   feign:
@@ -1872,13 +2038,13 @@ Nacos配置json详解
   - Seata是一款开源的分布式事务解决方案，致力于在微服务架构下提供高性能和简单易用的分布式事务服务
   - 核心：1 ID + 3 组件
     - Transaction ID （XID）:  全局唯一的事务ID
-    - Transaction Coordinator(TC)： 事务协调器，维护全局事务的运行状态，负责协调并驱动全局事务的提交或回滚;
-    - Transaction  Manager(TM) :  控制全局事务的边界，负责开启一个全局事务，并最终发起全局提交或全局回滚的决议;
-    - Resource Manager(RM) ： 控制分支事务，负责分支注册，状态汇报，并接收事务协调器的指令，驱动分支（本地）事务的提交和回滚； 
+    - Transaction Coordinator(TC)： 事务协调器，维护全局事务的运行状态，负责**协调**并驱动全局事务的提交或回滚;
+    - Transaction  Manager(TM) :  控制全局事务的边界，负责开启一个全局事务，并**最终发起**全局提交或全局回滚的决议;
+    - Resource Manager(RM) ： 控制**分支事务，负责分支注册，状态汇报**，并接收事务协调器的指令，驱动**分支（本地）事务的提交和回滚；** 
 
 ![1610636230433](E:\SoftwareNote\微服务\SpringCloud\img\Seata核心处理过程.png)
 
-- 全局@GlobalTransactional
+- **全局@GlobalTransactional**
 
   ![1610636348781](E:\SoftwareNote\微服务\SpringCloud\img\Seata的分布式事务解决方案.png)
 
@@ -2014,6 +2180,27 @@ Nacos配置json详解
       @GlobalTransactional(name = "fsp-create-order",rollbackFor = Exception.class)
       ```
 
+  - pom
+
+  ```xml
+   <!--seata-->
+  <dependency>
+      <groupId>com.alibaba.cloud</groupId>
+      <artifactId>spring-cloud-starter-alibaba-seata</artifactId>
+      <exclusions>
+          <exclusion>
+              <artifactId>seata-all</artifactId>
+              <groupId>io.seata</groupId>
+          </exclusion>
+      </exclusions>
+  </dependency>
+  <dependency>
+      <groupId>io.seata</groupId>
+      <artifactId>seata-all</artifactId>
+      <version>1.4.0</version>
+  </dependency>
+  ```
+
   - 要用外网启动（看nacos里面注册的）
 
     ```shell
@@ -2049,3 +2236,42 @@ Nacos配置json详解
   - Seata的AT模式执行过程
 
 ![1610727172507](E:\SoftwareNote\微服务\SpringCloud\img\Seata的AT模式执行过程.png)
+
+
+
+## 6. 分布式事务
+
+https://zhuanlan.zhihu.com/p/183753774
+
+### 6.1 2PC
+
+### 6.2 3PC
+
+### 6.3 TCC
+
+`Try - Confirm - Cancel` 
+
+是一种补偿性事务思想，适用的范围更广，在业务层面实现，因此对业务的侵入性较大，每一个操作都需要实现对应的三个方法。
+
+TCC分为三个阶段：
+
+1. **Try** 阶段是做业务检查(一致性)及资源预留(隔离)，此阶段仅是一个初步操作，它和后续的Confirm 一起才能真正构成一个完整的业务逻辑。
+2. **Confirm** 阶段是做确认提交，Try阶段所有分支事务执行成功后开始执行 Confirm。通常情况下，采用TCC则认为 Confirm阶段是不会出错的。即：只要Try成功，Confirm一定成功。若Confirm阶段真的出错了，需引入重试机制或人工处理。
+3. **Cancel** 阶段是在业务执行错误需要回滚的状态下执行分支事务的业务取消，预留资源释放。通常情况下，采用TCC则认为Cancel阶段也是一定成功的。若Cancel阶段真的出错了，需引入重试机制或人工处理。
+4. TM事务管理器
+   TM事务管理器可以实现为独立的服务，也可以让**全局事务发起方**充当TM的角色，TM独立出来是为了成为公用组件，是为了考虑系统结构和软件复用。
+
+　　TM在发起全局事务时生成全局事务记录，全局事务ID贯穿整个分布式事务调用链条，用来记录事务上下文，追踪和记录状态，由于Confirm 和cancel失败需进行重试，因此需要实现为幂等，幂等性是指同一个操作无论请求多少次，其结果都相同。 
+
+### 6.4 **本地消息表**
+
+本地消息表其实就是利用了 **各系统本地的事务**来实现分布式事务。
+
+本地消息表顾名思义就是会有一张存放本地消息的表，一般都是放在数据库中，然后在执行业务的时候 **将业务的执行和将消息放入消息表中的操作放在同一个事务中**，这样就能保证消息放入本地表中业务肯定是执行成功的。
+
+可以看到本地消息表其实实现的是**最终一致性**，容忍了数据暂时不一致的情况。 
+
+### 6.5 **消息事务** 
+
+
+

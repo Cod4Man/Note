@@ -353,6 +353,20 @@ user www www;
 
 #nginx进程数，建议设置为等于CPU总核心数。
 worker_processes 8;
+#nginx默认是没有开启利用多核cpu的配置的。需要通过增加worker_cpu_affinity配置参数来充分利用多核cpu。
+#worker_processes最多开启8个，8个以上性能提升不会再提升了，而且稳定性变得更低，所以8个进程够用了。  
+#两颗CPU参数配置
+#   worker_processes  2;
+#   worker_cpu_affinity 0101 1010;
+#四颗CPU参数配置
+#   worker_processes  4;
+#   worker_cpu_affinity 0001 0010 0100 1000;
+#八颗CPU参数配置
+#   worker_processes  8;
+#   worker_cpu_affinity 00000001 00000010 00000100 00001000 00010000 00100000 01000000 10000000;
+#八颗CPU参数配置
+#   worker_processes  8;
+#   worker_cpu_affinity 0001 0010 0100 1000 0001 0010 0100 1000;
 
 #全局错误日志定义类型，[ debug | info | notice | warn | error | crit ]
 error_log /usr/local/nginx/logs/error.log info;
@@ -620,15 +634,15 @@ http
 
             #后端服务器连接的超时时间_发起握手等候响应超时时间
             #nginx跟后端服务器连接超时时间(代理连接超时)
-            proxy_connect_timeout 90;
+            proxy_connect_timeout 5;
 
             #后端服务器数据回传时间(代理发送超时)
             #后端服务器数据回传时间_就是在规定时间之内后端服务器必须传完所有的数据
-            proxy_send_timeout 90;
+            proxy_send_timeout 5;
 
             #连接成功后，后端服务器响应时间(代理接收超时)
             #连接成功后_等候后端服务器响应时间_其实已经进入后端的排队之中等候处理（也可以说是后端服务器处理请求的时间）
-            proxy_read_timeout 90;
+            proxy_read_timeout 5;
 
             #设置代理服务器（nginx）保存用户头信息的缓冲区大小
             #设置从被代理服务器读取的第一部分应答的缓冲区大小，通常情况下这部分应答中包含一个小的应答头，默认情况下这个值的大小为指令proxy_buffers中指定的一个缓冲区的大小，不过可以将其设置为更小

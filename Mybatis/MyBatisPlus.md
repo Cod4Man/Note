@@ -437,3 +437,31 @@ public class SelectById extends AbstractMethod {
 }
 ```
 
+## 6. mapper-locations
+
+```yaml
+mybatis-plus:
+  mapper-locations: classpath:mapper/*.xml
+#mybatis:
+#  mapperLocations: classpath:/mapper/*.xml
+```
+
+## 7. 重写SqlSessionFactory
+
+注意将configuration改为MyBatisPlus的configuration **MybatisConfiguration** ,否则启动时基础方法注入就全部失效
+
+```java
+@Bean
+    public SqlSessionFactory sqlSessionFactoryBean(DataSourceProxy dataSourceProxy) throws Exception {
+        SqlSessionFactoryBean sqlSessionFactoryBean = new SqlSessionFactoryBean();
+        sqlSessionFactoryBean.setDataSource(dataSourceProxy);
+        MybatisConfiguration configuration = new MybatisConfiguration();
+        configuration.setDefaultScriptingLanguage(MybatisXMLLanguageDriver.class);
+        configuration.setJdbcTypeForNull(JdbcType.NULL);
+        sqlSessionFactoryBean.setConfiguration(configuration);
+        sqlSessionFactoryBean.setMapperLocations(new PathMatchingResourcePatternResolver().getResources(mapperLocations));
+        sqlSessionFactoryBean.setTransactionFactory(new SpringManagedTransactionFactory());
+        return sqlSessionFactoryBean.getObject();
+    }
+```
+
