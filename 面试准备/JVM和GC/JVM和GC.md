@@ -824,3 +824,101 @@ Java HotSpot(TM) 64-Bit Server VM (build 25.112-b15, mixed mode)
 - 可以精确控制停顿。该收集器把整个堆（新生代/老年代）划分成多个固定大小的区域，每次根据允许停顿的时间去收集垃圾最多的区域
 
   
+
+## 11. Java命令
+
+### 11.1 jps 查看进程端口号pid
+
+```shell
+C:\Users\ASUS>jps
+8704 Jps
+28388
+3560 Launcher
+10428 Launcher
+```
+
+### 11.2 jmap -heap pid 查看堆内存分配情况 
+
+```shell
+C:\Users\ASUS>jmap -heap 10428
+Attaching to process ID 10428, please wait...
+Debugger attached successfully.
+Server compiler detected.
+JVM version is 25.112-b15
+
+using thread-local object allocation.
+Parallel GC with 10 thread(s)
+
+Heap Configuration:
+   MinHeapFreeRatio         = 0
+   MaxHeapFreeRatio         = 100
+   MaxHeapSize              = 734003200 (700.0MB)
+   NewSize                  = 133169152 (127.0MB)
+   MaxNewSize               = 244318208 (233.0MB)
+   OldSize                  = 267386880 (255.0MB)
+   NewRatio                 = 2
+   SurvivorRatio            = 8
+   MetaspaceSize            = 21807104 (20.796875MB)
+   CompressedClassSpaceSize = 1073741824 (1024.0MB)
+   MaxMetaspaceSize         = 17592186044415 MB
+   G1HeapRegionSize         = 0 (0.0MB)
+
+Heap Usage:
+PS Young Generation
+Eden Space:
+   capacity = 100663296 (96.0MB)
+   used     = 6868864 (6.5506591796875MB)
+   free     = 93794432 (89.4493408203125MB)
+   6.8236033121744795% used
+From Space:
+   capacity = 16252928 (15.5MB)
+   used     = 0 (0.0MB)
+   free     = 16252928 (15.5MB)
+   0.0% used
+To Space:
+   capacity = 16252928 (15.5MB)
+   used     = 0 (0.0MB)
+   free     = 16252928 (15.5MB)
+   0.0% used
+PS Old Generation
+   capacity = 172490752 (164.5MB)
+   used     = 8508624 (8.114456176757812MB)
+   free     = 163982128 (156.3855438232422MB)
+   4.932800107451558% used
+
+6227 interned Strings occupying 530192 bytes.
+```
+
+### 11.3 jinfo [-flags] pid 查看VM参数详情 
+
+```java
+C:\Users\ASUS>jinfo -flags 12340
+Attaching to process ID 12340, please wait...
+Debugger attached successfully.
+Server compiler detected.
+JVM version is 25.112-b15
+Non-default VM flags: -XX:CICompilerCount=4 -XX:InitialHeapSize=400556032 -XX:MaxHeapSize=6404702208 -XX:MaxNewSize=2134900736 -XX:MetaspaceSize=134217728 -XX:MinHeapDeltaBytes=524288 -XX:NewSize=133169152 -XX:OldSize=267386880 -XX:+PrintGCDetails -XX:+UseCompressedClassPointers -XX:+UseCompressedOops -XX:+UseFastUnorderedTimeStamps -XX:-UseLargePagesIndividualAllocation -XX:+UseParallelGC
+Command line:  -XX:+PrintGCDetails -XX:MetaspaceSize=128m -javaagent:C:\Program Files (x86)\IDEA\IntelliJ IDEA 2018.2.2\lib\idea_rt.jar=6608:C:\Program Files (x86)\IDEA\IntelliJ IDEA 2018.2.2\bin -Dfile.encoding=UTF-8
+```
+
+### 11.4 jstack pid 查看栈信息(死锁等)
+
+```shell
+ E:\Java_Code\IDEA_CODE\ligong\UpUp2021\out\production\UpUp2021\com\codeman\JUCNThread>jstack 15912
+  
+  Java stack information for the threads listed above:
+  ===================================================
+  "线程2":
+          at com.codeman.JUCNThread.DeadLock.run(DeadLockDemo.java:36)
+          - waiting to lock <0x0000000740d96a60> (a java.lang.Object) // 相互等待
+          - locked <0x0000000740d96a70> (a java.lang.Object)
+          at java.lang.Thread.run(Thread.java:745)
+  "线程1":
+          at com.codeman.JUCNThread.DeadLock.run(DeadLockDemo.java:36)
+          - waiting to lock <0x0000000740d96a70> (a java.lang.Object) // 相互等待
+          - locked <0x0000000740d96a60> (a java.lang.Object)
+          at java.lang.Thread.run(Thread.java:745)
+  
+  Found 1 deadlock.
+```
+

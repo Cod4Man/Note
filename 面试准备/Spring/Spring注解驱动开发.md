@@ -1087,6 +1087,118 @@ private static BeanDefinition registerOrEscalateApcAsRequired(Class<?> cls, Bean
    	
    ```
 
+**增强后的代理类：可以看到一个方法带着多个增强方法**
+
+![1622967875065](E:\SoftwareNote\面试准备\Spring\img\SpringAOP被代理类一览.png)
+
+- 获取所有的AOP增强方法
+
+```jAVA
+abstract class AbstractAdvisorAutoProxyCreator {
+    protected List<Advisor> findEligibleAdvisors(Class<?> beanClass, String beanName) {
+        // 获取所有的切面方法
+        // 查找方法是找Advisor.class类型的Bean，即增强方法
+		List<Advisor> candidateAdvisors = findCandidateAdvisors();
+        // 匹配该Bean是否被这些切面方法candidateAdvisors增强，返回最终的增强方法eligibleAdvisors
+		List<Advisor> eligibleAdvisors = findAdvisorsThatCanApply(candidateAdvisors, beanClass, beanName);
+		extendAdvisors(eligibleAdvisors);
+		if (!eligibleAdvisors.isEmpty()) {
+            // 排序
+			eligibleAdvisors = sortAdvisors(eligibleAdvisors);
+		}
+		return eligibleAdvisors;
+	}
+}
+```
+
+
+
+- 匹配Bean方法是否被AOP切到，切到后续就要创建代理类
+
+```java
+classs AopUtils {
+    
+    // candidateAdvisors为所有的AOP增强方法
+    // clazz 为当前Bean
+    // return 当前Bean被哪些AOP增加方法匹配到，eligibleAdvisors.size<=candidateAdvisors.size
+    public static List<Advisor> findAdvisorsThatCanApply(List<Advisor> candidateAdvisors, Class<?> clazz) {
+		if (candidateAdvisors.isEmpty()) {
+			return candidateAdvisors;
+		}
+		List<Advisor> eligibleAdvisors = new ArrayList<>();
+		for (Advisor candidate : candidateAdvisors) {
+			if (candidate instanceof IntroductionAdvisor && canApply(candidate, clazz)) {
+				eligibleAdvisors.add(candidate);
+			}
+		}
+		boolean hasIntroductions = !eligibleAdvisors.isEmpty();
+		for (Advisor candidate : candidateAdvisors) {
+			if (candidate instanceof IntroductionAdvisor) {
+				// already processed
+				continue;
+			}
+            // 判断是否有方法匹配
+			if (canApply(candidate, clazz, hasIntroductions)) {
+				eligibleAdvisors.add(candidate);
+			}
+		}
+		return eligibleAdvisors;
+	}
+    
+    public static boolean canApply(Advisor advisor, Class<?> targetClass, boolean hasIntroductions) {
+		if (advisor instanceof IntroductionAdvisor) {
+			return ((IntroductionAdvisor) advisor).getClassFilter().matches(targetClass);
+		}
+		else if (advisor instanceof PointcutAdvisor) {
+			PointcutAdvisor pca = (PointcutAdvisor) advisor;
+            // 继续匹配
+			return canApply(pca.getPointcut(), targetClass, hasIntroductions);
+		}
+		else {
+			// It doesn't have a pointcut so we assume it applies.
+			return true;
+		}
+	}
+    
+    public static boolean canApply(Pointcut pc, Class<?> targetClass, boolean hasIntroductions) {
+		Assert.notNull(pc, "Pointcut must not be null");
+		if (!pc.getClassFilter().matches(targetClass)) {
+			return false;
+		}
+
+		MethodMatcher methodMatcher = pc.getMethodMatcher();
+		if (methodMatcher == MethodMatcher.TRUE) {
+			// No need to iterate the methods if we're matching any method anyway...
+			return true;
+		}
+
+		IntroductionAwareMethodMatcher introductionAwareMethodMatcher = null;
+		if (methodMatcher instanceof IntroductionAwareMethodMatcher) {
+			introductionAwareMethodMatcher = (IntroductionAwareMethodMatcher) methodMatcher;
+		}
+
+		Set<Class<?>> classes = new LinkedHashSet<>();
+		if (!Proxy.isProxyClass(targetClass)) {
+			classes.add(ClassUtils.getUserClass(targetClass));
+		}
+		classes.addAll(ClassUtils.getAllInterfacesForClassAsSet(targetClass));
+
+		for (Class<?> clazz : classes) {
+			Method[] methods = ReflectionUtils.getAllDeclaredMethods(clazz);
+			for (Method method : methods) {
+				if (introductionAwareMethodMatcher != null ?
+                    // introductionAwareMethodMatcher.matches()匹配成功
+						introductionAwareMethodMatcher.matches(method, targetClass, hasIntroductions) :
+						methodMatcher.matches(method, targetClass)) {
+					return true;
+				}
+			}
+		}
+
+		return false;
+	}
+}
+```
 
 #### 10.2.2 代理被切类:在创建Bean的时候
 
@@ -1223,17 +1335,22 @@ public abstract class AbstractAspectJAdvice implements Advice, AspectJPrecedence
 
 ### 10.3 总结
 
-1. 注解@EnableAspectJAutoProxy会开启AOP公告
-2. 在注解@EnableAsepctJAutoProxy内部，有@Import(AsepctJAutoProxyRegistrar.class) ，即开启AOP的同时，会导入另外一个Bean -> AsepctJAutoProxyRegistrar
-3. 而这个Bean是实现了ImportBeanDefinitionRegistrar，即重写registerBeanDefinitions方法，可以在Bean创建时，手动添加注册Bean，AsepctJAutoProxyRegistrat内部注册了AnnotationAwareAspectJAutoProxyCreator
-4. AnnotationAwareAspectJAutoProxyCreator实现了BeanPostProcessor，意味着Spring所有的Bean在初始化前后，都会调用该实现类的postProcessBeforeInitialization和postProcessAfterInitialization方法。
-5. AnnotationAwareAspectJAutoProxyCreator的父类AbstractAutoProxyCreator重写了后置处理器方法postProcessAfterInitialization，该方法内部对所有Bean进行判断，如果有被增强（切点为该bean的方法），那么就会创建该bean的代理Bean（proxyFactory.getProxy默认采用ObjenesisCglibAopProxy，即CGLIB代理模式，而非JdkDynamicAopProxy），并且带有所有的增强方法。
+1. 注解**@EnableAspectJAutoProxy**会开启AOP公告
+2. 在注解@EnableAsepctJAutoProxy内部，有@Import(**AsepctJAutoProxyRegistrar**.class) ，即开启AOP的同时，会导入另外一个Bean -> AsepctJAutoProxyRegistrar
+3. 而这个Bean是实现了ImportBeanDefinitionRegistrar，即重写registerBeanDefinitions方法，可以在Bean创建时，手动添加注册Bean，AsepctJAutoProxyRegistrat内部注册了**AnnotationAwareAspectJAutoProxyCreator**
+4. AnnotationAwareAspectJAutoProxyCreator实现了BeanPostProcessor，意味着Spring所有的Bean在初始化前后，都会调用该实现类的postProcessBeforeInitialization和**postProcessAfterInitialization**方法。(**Bean初始化后，所有Bean都会进来看看自己是否需要增强**)
+5. AnnotationAwareAspectJAutoProxyCreator的父类**AbstractAutoProxyCreator**重写了后置处理器方法postProcessAfterInitialization，该方法内部对所有Bean进行判断，如果有被增强（切点为该bean的方法），那么就会创建该bean的代理Bean**（proxyFactory.getProxy默认采用ObjenesisCglibAopProxy，即CGLIB代理模式，而非JdkDynamicAopProxy**），并且带有所有的增强方法。
+
+**增强后的代理类：可以看到一个方法带着多个增强方法**
+
+![1622967875065](E:\SoftwareNote\面试准备\Spring\img\SpringAOP被代理类一览.png)
+
 6. 以上，完成了代理Bean的创建。接下来就是代理Bean来执行方法调用（增强原方法）
-7. 执行原方法时，就会被代理类接管，跳到CglibAopProxy.DynamicAdvisedInterceptor.intercept。方法内部是利用拦截器的链式戒指，依次进入每个拦截器进行执行（类似CP的bizRuleCheck）。
+7. 执行原方法时，就会被代理类接管，跳到CglibAopProxy.DynamicAdvisedInterceptor.intercept。方法内部是利用**拦截器的链式调用**，依次进入每个拦截器进行执行（类似CP的bizRuleCheck）。
 8. 注意Spring4和5的区别，5修改了4的顺序。
 
-- Spring4 ： before -> 目标方法 -> after->先afterThrowing/afterReturning
-- Spring5 ： before -> 目标方法 -> afterThrowing/afterReturning->after  明显5更符合逻辑
+- Spring4 ： before -> 目标方法 -> after -> 先afterThrowing/afterReturning
+- Spring5 ： before -> 目标方法 -> afterThrowing/afterReturning -> after  明显5更符合逻辑
 
 ## 11. 事务
 

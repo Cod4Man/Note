@@ -256,7 +256,7 @@ mysql> select @@sql_mode;
 
 **四层： 连接层 -> 服务层 -> 引擎层 -> 存储层** 
 
-## 4. Mysqld大致查询流程
+## 4. Mysql大致查询流程
 
 mysql 的查询流程大致是： 
 
@@ -1017,6 +1017,10 @@ mysql> explain select * from t2 where id=2 and id=3;
   **口诀：字符要加单引号。**
 
 - **少用`or`**，用它来连接时会索引失效。
+
+- **更新无索引字段，条件也是非索引字段，会导致表锁。**
+
+  `update user set password='2' where password='1'` 
 
 ### 10.3 小案例分析 
 
@@ -2025,6 +2029,8 @@ Master_SSL_Verify_Server_Cert: No
 
    ⑦Oracle实现了ANSII SQL中大部分功能，如，**事务的隔离级别、传播特性**等而Mysql在这方面还是比较的弱。 
 
+   **⑧ group by ： Oracle是select字段必须在group by里面的；而MySQL不需要。**
+
 ## 18 大数据量测试
 
 >  1000万数据，四个字段 id(PK) username   gender  password
@@ -2037,7 +2043,7 @@ Master_SSL_Verify_Server_Cert: No
 
     Time: 569.570s   
 
-  ​	插入效率： 1000w / 569.570s = 17,557 row/s 
+  		插入效率： 1000w / 569.570s = 17,557 row/s 
 
   - alter table test_user ENGINE='INNODB'
 
@@ -2088,3 +2094,57 @@ Master_SSL_Verify_Server_Cert: No
   select username from test_user   order BY username; -- 3.997s  索引 覆盖查询
 
   select username from test_user   group BY username; -- 4.892s  索引覆盖查询
+
+- limit  1000w数据，limit页数越往后，速度越慢
+
+explain SELECT * FROM `test_user` limit 9000000,100  -- ALL  9665713   3.917S
+
+explain SELECT * FROM `test_user` limit 900000,100  -- ALL  9665713    0.412S
+
+explain SELECT * FROM `test_user` limit 90000,100  -- ALL  9665713    0.093S
+
+## 19. Limit原理及性能优化
+
+### 19.1 limit原理以及慢查询分析
+
+```sql
+limit m -> limt 0, m
+
+limit m,n ->  m < count < m+n
+
+select * from table_name  order by id limit 10000,10
+```
+
+这句 SQL 的执行逻辑是  
+
+1.从数据表中读取第N条数据添加到数据集中  
+
+2.**重复第一步直到 N = 10000 + 10**  
+
+3.**根据 offset 抛弃前面 10000 条数**  
+
+4.返回剩余的 10 条数据 
+
+**limit会按顺序查询数据，直至查到你写的偏移量10000，因此，页数越往后查询越慢**
+
+### 19.2 limit 慢查询优化
+
+`select * from table_name order by id limit 10000,10`
+
+1. 场景一(几乎没这种场景）：主键自增，且id不断
+
+   `select * from table_name where id > 10001 order by id limit 10`
+
+2.  先用索引列扫描，再子查询
+
+   ```sql
+   explain SELECT * FROM `test_user` order by id limit 9000000,10  -- 3.971
+   
+   explain SELECT id FROM `test_user` order by id limit 9000000,10  -- 2.998
+   
+   explain select * from test_user where id >= (select id from test_user order by id asc limit 9000000,1 ) order by id Limit 10;  -- 3.099
+   ```
+
+## 20. using(id) 语句
+
+join查询时，单on条件可以用using(相同的字段)来代替on条件内容

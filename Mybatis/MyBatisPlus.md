@@ -465,3 +465,26 @@ mybatis-plus:
     }
 ```
 
+## 8. 最大分页限制
+
+```java
+public class PaginationInterceptor extends AbstractSqlParserHandler implements Interceptor {
+
+    /**
+     * 单页限制 500 条，小于 0 如 -1 不受限制
+     */
+    protected long limit = 500L;
+    
+    public Object intercept(Invocation invocation) throws Throwable {
+        if (this.limit > 0 && this.limit <= page.getSize()) {
+            //处理单页条数限制
+            handlerLimit(page);
+        }
+    }
+    
+    // 超过500条，就会执行这个方法，limit默认是500，所以可以修改limit的值-1/或者是改page.setSize(-1)
+    protected void handlerLimit(IPage<?> page) {
+        page.setSize(this.limit);
+    }
+}
+```

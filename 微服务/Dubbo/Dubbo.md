@@ -480,3 +480,46 @@ Netty基本原理：
 ### 6.6 dubbo服务调用
 
 ![1621513963313](E:\SoftwareNote\微服务\Dubbo\img\dubbo服务调用.png)
+
+
+
+## 7. Dubbo协议
+
+### 7.1 各协议的比较
+
+| 协议名称   | 实现描述                                                     | 连接                                                         | 使用场景                                                     |
+| ---------- | ------------------------------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ |
+| **dubbo**  | 传输：mina、netty、grizzy  序列化：dubbo、hessian2、java、json | dubbo**缺省**采用单一长连接和NIO异步通讯                     | 1.传入传出参数数据包较小  2.消费者 比提供者多  3.常规远程服务方法调用  4.不适合传送大数据量的服务，比如文件、传视频 |
+| rmi        | 传输：java  rmi  序列化：java 标准序列化                     | 连接个数：多连接  连接方式：短连接  传输协议：TCP/IP  传输方式：BIO | 1.常规RPC调用  2.与原RMI客户端互操作  3.可传文件  4.不支持防火墙穿透 |
+| hessian    | 传输：Serverlet容器  序列化：hessian二进制序列化             | 连接个数：多连接     连接方式：短连接     传输协议：HTTP     传输方式：同步传输 | 1.提供者比消费者多  2.可传文件  3.跨语言传输                 |
+| http       | 传输：servlet容器  序列化：表单序列化                        | 连接个数：多连接     连接方式：短连接     传输协议：HTTP     传输方式：同步传输 | 1.提供者多余消费者  2.数据包混合                             |
+| webservice | 传输：HTTP  序列化：SOAP文件序列化                           | 连接个数：多连接     连接方式：短连接     传输协议：HTTP     传输方式：同步传输 | 1.系统集成  2.跨语言调用                                     |
+| thrift     | 与thrift RPC实现集成，并在基础上修改了报文头                 | 长连接、NIO异步传输                                          |                                                              |
+
+ 
+
+### 7.2 协议的配置：<dubbo:protocal>（只需在服务提供方配置即可）
+
+| 属性          | 类型   | 是否必填 | 缺省值                                                       | 描述                                                         |
+| ------------- | ------ | -------- | ------------------------------------------------------------ | ------------------------------------------------------------ |
+| name          | string | 必填     | **dubbo**                                                    | 协议名称                                                     |
+| port          | int    | 可选     | dubbo协议缺省端口为20880, rmi协议缺省端口为1099， http和hessian协议缺省端口为80； 如果配置为-1或者没有配置port,则 会分配一个没有被占用的端口。 | 服务端口                                                     |
+| threadpool    | string | 可选     | fixed                                                        | 线程池类型，可选：fixed/cached                               |
+| threads       | int    | 可选     | 100                                                          | 服务h定大小)                                                 |
+| iothreads     | int    | 可选     | CPU个数+1                                                    | io线程池大小（固定）                                         |
+| accepts       | int    | 可选     | 0                                                            | 服务提供方最大可接受连接数                                   |
+| serialization | string | 可选     | dubbo协议缺省为hessian2, rmi缺省协议为java, http协议缺省为json | 可填序列化：dubbo\|hessian2\| java\|compactedjava\|fastjson  |
+| dispatcher    | string | 可选     | dubbo协议缺省为all                                           | 协议的消息派发方式，用于指定线程模型， 比如：dubbo协议的all, direct, message, execution, connection等 参考：[https://blog.csdn.net/fd2025/article/](https://blog.csdn.net/fd2025/article/details/79985542) [details/79985542](https://blog.csdn.net/fd2025/article/details/79985542) |
+| queues        | int    | 可选     | 0                                                            | 线程池队列大小，当线程池满时， 排队等待执行的队列大小，建议不要设置， 当线程程池时应立即失败，重试其它服务 提供机器，而不是排队，除非有特殊需求。 |
+| charset       | string | 可选     | UTF-8                                                        | 序列化编码                                                   |
+| server        | server | string   | dubbo协议缺省为netty， http协议缺省为servlet hessian协议缺省为jetty | 协议的服务器端实现类型， 比如：dubbo协议的mina,netty等， http协议的jetty,servlet等 |
+
+```
+1    <dubbo:protocol name="hessian" server="jetty"
+2                     client="httpclient"
+3                     port="20880"
+4                     threadpool="fixed"
+5                     threads="50"
+6                      iothreads="5"
+7                     accepts="1000"/>
+```

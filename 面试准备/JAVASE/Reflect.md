@@ -66,16 +66,17 @@ private static void enhanderDemo() {
 
 - 与instanceof的区别
 
-  - instanceof 是判断实例是否是继承关系
+  - instanceof 是判断**实例**是否是继承关系 ">="
 
     ```java
     if (businesDetail instanceof DiscoutBizDetail)
     ```
 
-  - isAssignableFrom则是判断类是否是继承关系
+  - isAssignableFrom则是判断**类**是否是继承关系 ">="
 
     ```java
-    DiscoutBizDetail.class.isAssignableFrom(businesDetail.getClass())
+    BusinesDetail.class.isAssignableFrom(DiscoutBizDetail.getClass())  //  true
+    List.class.isAssignableFrom(ArrayList.class)  // true
     ```
 
 isAssignableFrom() 

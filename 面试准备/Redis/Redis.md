@@ -1325,3 +1325,50 @@ public class JedisClusterTest {
 
   比如我们可以在原有的失效时间基础上增加一个**随机值**，比如1-5分钟随机，这样每一个缓存的过期时间的重复率就会降低，就很难引发集体失效的事件。
 
+### 18. Redis应用
+
+### 18.1 Key过期监听
+
+可以应用在一些定时通知，比如外卖超过30分钟没有付款自动失效，外卖30分钟没有送达提示用户等等。
+
+如果是常规的思路，会遍历表中的数对比时间，然后挨个通知。但是外卖的数据量是非常大的，存表以及读表效率比较底下。
+
+```java
+@Component
+@Slf4j
+public class RedisKeyExpiredUtils {
+
+    @Bean
+    RedisMessageListenerContainer redisMessageListenerContainer(RedisConnectionFactory connectionFactory) {
+        RedisMessageListenerContainer container = new RedisMessageListenerContainer();
+        // 监听所有库的key过期事件
+        container.setConnectionFactory(connectionFactory);
+        return container;
+    }
+
+    @Bean
+    public RedisKeyExpiredImpl redisKeyExpired(RedisMessageListenerContainer redisMessageListenerContainer) {
+        return new RedisKeyExpiredImpl(redisMessageListenerContainer);
+    }
+
+    class RedisKeyExpiredImpl/* implements RedisKeyExpirationListener  */ extends KeyExpirationEventMessageListener   {
+
+        /**
+         *
+         * @param listenerContainer must not be {@literal null}.
+         */
+        public RedisKeyExpiredImpl(RedisMessageListenerContainer listenerContainer) {
+            super(listenerContainer);
+        }
+
+
+        @Override
+        public void onMessage(Message message, byte[] pattern) {
+//            super.onMessage(message, pattern);
+            // 监听事件业务逻辑
+            log.info("redis key过期监听{},{}" , message.toString(), new String(pattern));
+        }
+    }
+}
+```
+
