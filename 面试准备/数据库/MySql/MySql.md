@@ -2148,3 +2148,109 @@ select * from table_name  order by id limit 10000,10
 ## 20. using(id) 语句
 
 join查询时，单on条件可以用using(相同的字段)来代替on条件内容
+
+
+
+## 21. 事务隔离级别
+
+### 21.1 未隔离：脏读 / 不可重复读 / 幻读
+
+- **脏读（Dirty Read）：**
+
+  **A更新，B读取到更新，A更新失败回滚，B读到的是回滚前的脏数据**
+
+- **不可重复读（Nonrepeatable Read）：**
+
+  **B读取数据，A更新并提交，B再读取数据，发现两次数据不一致**
+
+  不可重复读有一种特殊情况，两个事务更新同一条数据资源，**后完成的事务会造成先完成的事务更新丢失**。这种情况就是大名鼎鼎的**第二类丢失更新**。主流的数据库已经默认屏蔽了第一类丢失更新问题（即：后做的事务撤销，发生回滚造成已完成事务的更新丢失），但我们编程的时候仍需要特别注意第二类丢失更新。 
+
+- **幻读（Phantom Read）：**
+
+  **B读取数据，A更新并提交，B再读取数据，发现两次数据<u>集合</u>不一致(和不可重复读有点类似，但是幻读是指集合长度变化，不可重复读指数据的变化)**
+
+### 21.2 数据库隔离级别
+
+**为了解决上面提及的并发问题**，主流关系型数据库**都会提供四种事务隔离级别。** 
+
+>  **一个事务与其他事务的隔离程度成为隔离级别。（即：隔离级别讨论的是多个事务同时开启的情况）**
+
+SQL标准中定义不同隔离级别，**隔离级别越高，数据一致性越好，但并发性越弱**。
+
+- **读未提交（READ UnCommitted）**
+
+  事务1可读取事务2**未提交**的修改。 
+
+- **读已提交（READ Committed）**（**Oracle**的默认隔离级别，**开始时常用**）
+
+  事务1**只能**读事务2**已提交**的修改
+
+- **可重复读（RePeatable READ）** （**MySQL**的默认隔离级别）
+
+  **事务1执行期间，禁止其他事务修改这个字段。**
+
+- **串行化（Serializable）**
+
+  **（类似表锁）**在事务1执行期间，禁止其他事务修改这个表。这样可避免任何并发问题，然鹅性能十分底下。
+
+> **隔离级别能力大赏**
+>
+> |                  | 脏读 | 不可重复读 | 幻读 |
+> | :--------------: | :--: | :--------: | :--: |
+> | READ uncommitted |  有  |     有     |  有  |
+> |  READ committed  |  无  |     有     |  有  |
+> | RePeatable READ  |  无  |     无     |  有  |
+> |   Serializable   |  无  |     无     |  无  |
+
+> **MySQL和Oracle对隔离级别的支持**
+>
+> |                  | Oracle  |  MySQL  |
+> | :--------------: | :-----: | :-----: |
+> | READ uncommitted |    ×    |    √    |
+> |  READ committed  | √(默认) |    √    |
+> | RePeatable READ  |    ×    | √(默认) |
+> |   Serializable   |    √    |    √    |
+
+## 22. 表设计三大范式
+
+① 列不可再分：比如把学号性名等整在一个字段内
+
+② 行唯一： 一般有主键就行
+
+③ 非主键字段互不关联：
+
+比如学生表：id / name / no / **teacherNo / teacherName / teacherPhoneNum**（老师名字电话依赖老师No，应该拆分新表）
+
+## 23. offset 和 limit
+
+\1. select* from article LIMIT 1,3
+
+2.select * from article LIMIT 3 OFFSET 1
+
+上面两种写法都表示取2,3,4三条条数据
+
+## 24. 千万级别表优化
+
+https://www.zhihu.com/question/19719997
+
+**1.用小表驱动大表，把left join的条件先按按单表条件查询出来，然后按查出来的小数据集去left join大表，**
+**达到小表驱动大表的效果**
+
+**2.分表，按时间分历史表** 
+
+EXPLAIN select * FROM `test_user` t1 
+left join test_user t2 on t1.id=t2.id
+where t1.username BETWEEN '100' and '200'   -- 9.9724s
+
+-- 1	SIMPLE	t1		ALL	index1				9665713	23.58	Using where
+-- 1	SIMPLE	t2		eq_ref	PRIMARY	PRIMARY	8	test.t1.id	1	100	
+
+flush query cache
+
+EXPLAIN select t2.* from 
+(select id from test_user where username BETWEEN '100' and '200') t1
+LEFT join test_user t2
+on t1.id=t2.id   -- 4.140s
+
+-- 1	SIMPLE	test_user		range	index1	index1	36		2279046	100	Using where; Using index
+-- 1	SIMPLE	t2		eq_ref	PRIMARY	PRIMARY	8	test.test_user.id	1	100	

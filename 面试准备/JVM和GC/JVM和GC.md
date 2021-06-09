@@ -319,11 +319,19 @@
 
   -XX:NewRatio=4，老年代：新生代= 4：1
 
+- -XX:PretenureSizeThreshold 当创建的对象超过指定大小时，直接把对象分配在老年代
+
 - -XX:MaxTenuringThreshold
 
   设置垃圾最大年龄
 
   ![1613224562496](E:\SoftwareNote\面试准备\JVM和GC\img\设置垃圾最大年龄MaxTenuringThreshold.png)
+
+- -XX:+HeapDumpOnOutOfMemoryError让JVM在发生内存溢出的时候自动生成内存快照, 
+
+  排查问题用 
+
+- -XX:+DisableExplicitGC禁止系统System.gc()，防止手动误触发FGC造成问题. 
 
 ## 7. 强引用、软引用、弱引用、虚引用
 
@@ -634,6 +642,8 @@ GC算法是内存回收的**方法论**，垃圾收集器就是算法**落地实
 
 - **G1垃圾回收器**: G1垃圾回收器将堆内存分割成不同的区域然后并发的对其进行垃圾回收
 
+- **ZGC （Z Garbage Collector）**是一款由Oracle公司研发的，以低延迟为首要目标的一款垃圾收集器。它是基于动态Region内存布局，（暂时）不设年龄分代，使用了读屏障、染色指针和内存多重映射等技术来实现可并发的标记-整理算法的收集器。在 JDK 11 新加入，还在实验阶段，主要特点是：回收TB级内存（最大4T），停顿时间不超过10ms。优点：低停顿，高吞吐 量， ZGC 收集过程中额外耗费的内存小。缺点：浮动垃圾
+
 #### 9.2.2 查看默认垃圾收集器
 
 - -XX:+PrintCommandLineFlags 
@@ -743,6 +753,12 @@ Java HotSpot(TM) 64-Bit Server VM (build 25.112-b15, mixed mode)
         ②采用的标记清除算法会导致大量碎片： 标记清除算法无法整理空间碎片，老年代空间会随着时间增加而被逐步耗尽，最后将不得不通过担保机制对堆内存进行压缩。CMS也提供了参数-XX：CMSFullGCsBeForeCOmpaction（默认0，即每次都进行内存整理）来指定多少次CMS收集之后，进行一次压缩的FullGC
 
 #### 9.2.4 垃圾收集器的选择
+
+SerialGC(串行)：单CPU/单机/小内存
+
+ParallelGC(并行)：高吞吐
+
+CMS(并发)：响应时间短的
 
 ![1613486258883](img\垃圾收集器的选择.png)
 

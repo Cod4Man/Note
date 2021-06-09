@@ -1829,14 +1829,14 @@ jdk1.6之前的synchronized到底有多慢？
 我们假设执行下面的代码用的是jdk1.5，来看看会发生什么。
 假设doSomeThing执行1000次，才有可能发生一次并发执行。但是每次都需要让操作系统从用户态转换到核心态，太耗时了。
 
-   
+
     public class RunTest {
         
         public synchronized void doSomeThing() {
             
         }
     }
-    
+
 然后Doug Lea看不下去了（你用的并发包就是他写的），写了ReentrantLock类，效率比synchronized快多了，为了理解让大家理解ReentrantLock到底快在哪？我仿造ReentrantLock写一个实现
 
 public class MyLock {
@@ -1888,7 +1888,7 @@ public class MyLock {
             return unsafe.compareAndSwapInt(this, stateOffset, expect, update);
         }
     }
-    
+
 可以看到在api层面就已经解决并发问题，加锁没有竞争的时候一个cas就搞定了，节省了大量时间
 
 Doug Lea一个类的效率都比synchronized的效率高，估计synchronized的开发人员看了都不好意思了，于是对synchronized进行了一系列改造，即我们常说的锁升级过程。
@@ -1949,3 +1949,39 @@ Java常量池详解，秒懂各种对象相等操作
 
 ConcurrentHashMap在jdk1.7的时候，实现用的是分段锁，用ReentrantLock来保证并发安全。
 而在jdk1.8的时候，抛弃了原有的分段锁，而采用了 CAS + synchronized 来保证并发安全性，也可以说明synchronized的的效率现在确实很高了。
+
+## 16. 多线程事务
+
+线程之间事务隔离，需要一个公共对象，可用volatile修饰，各个子进行中抛出异常等就修改这个公共对象的标记flag
+这样就可以在线程内部监听这个flag，true则提交当前线程事务，false则回滚当前线程事务
+还有一个关键问题就是多个线程，维护这个变量维度不够(需要一起提交回滚，因此需要线程阻塞到最后一个完成)，可以用CountDownLatch阻塞线程直至其他线程完成再一起提交回滚。因此需要提前知道任务数。
+
+```java
+public class MoreThread {
+
+    static CountDownLatch countDownLatch = new CountDownLatch(5);
+    volatile static boolean flag = true;
+    public static void main(String[] args) {
+        for (int i = 0; i < 5; i++) {
+            final int ii = i;
+            new Thread(() -> {
+                System.out.println(Thread.currentThread().getName() + ",执行任务中.....");
+                try {
+                    Thread.sleep(ii * 1000);
+                    if(ii == 3) {
+                        flag = false;
+                    }
+                    countDownLatch.countDown();
+                    countDownLatch.await();
+                    if (flag) {
+                        System.out.println(Thread.currentThread().getName() + ",提交事务.....");
+                    } else {
+                        System.out.println(Thread.currentThread().getName() + ",回滚事务.....");
+                    }
+                } catch (InterruptedException e) { }
+            }, String.valueOf("线程" + ii)).start();
+        }
+    }
+}
+```
+

@@ -44,6 +44,8 @@ netstat -tnlp | grep:98 //查看98端口号状态
 1. 查找占用的程序。
 
 端口号：netstat -apn | grep 4040
+
+万金油：　netstat -tnlp | grep  端口号/进程号/进程名称
 ```
 
 ### 4.1 杀死指定端口线程
