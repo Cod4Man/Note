@@ -317,7 +317,7 @@ public @interface AutoConfigurationPackage {}
 
 主要文件有：ApplicationContextInitializer的实现类；ApplicationListener的实现类；EnableAutoConfiguration等
 
-> **@AutoConfigurationPackage -> @Import(AutoConfigurationImportSelector.class)**
+> **@Import(AutoConfigurationImportSelector.class)**
 
 ```java
 class AutoConfigurationImportSelector  {
@@ -333,7 +333,7 @@ class AutoConfigurationImportSelector  {
 }
 ```
 
-> **@Import(AutoConfigurationPackages.Registrar.class)**
+> **@AutoConfigurationPackage -> @Import(AutoConfigurationPackages.Registrar.class)**
 
 ```java
 static class Registrar implements ImportBeanDefinitionRegistrar, DeterminableImports {
@@ -1276,13 +1276,13 @@ abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFactory{
   - 第二级：earlySingletonObjects，存放早期暴露出来的bean对象，Bean的生命周期未结束(属性还未填充完成)
 
     ```
-    Map<String, ObjectFactory<?>> singletonFactories = new HashMap<String, ObjectFactory<?>>(16);
+    Map<String, Object> earlySingletonObjects = new HashMap<String, Object>(16);
     ```
 
   - 第三级：singletonFactories，存放可以生成bean的工厂
 
     ```
-    Map<String, Object> earlySingletonObjects = new HashMap<String, Object>(16);
+    Map<String, ObjectFactory<?>> singletonFactories = new HashMap<String, ObjectFactory<?>>(16);
     ```
 
   三级缓存： new A(new B)

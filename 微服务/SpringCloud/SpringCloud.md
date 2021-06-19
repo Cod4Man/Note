@@ -2254,27 +2254,151 @@ Nacos配置json详解
 
 https://zhuanlan.zhihu.com/p/183753774
 
-### 6.1 2PC
+### 6.1 2PC (2阶段提交)
 
-### 6.2 3PC
+![1623592073994](img\分布式事务方案-2PC.png)
 
-### 6.3 TCC
+> **阶段一：协调者发送事务请求，等待预提交结果**
+
+a) 协调者向所有参与者发送事务内容，询问是否可以提交事务，并等待答复。 
+
+b) 各参与者执行事务操作，将 undo 和 redo 信息记入事务日志中（但不提交事务）。 
+
+c) 如参与者执行成功，给协调者反馈 yes，否则反馈 no。 
+
+>  **阶段二：协调者根据全部结果，决定发送commit/rollback通知** 
+
+如果协调者收到了参与者的失败消息或者超时，直接给每个参与者发送回滚(rollback)消息；否则， 
+
+发送提交(commit)消息。两种情况处理如下： 
+
+- 情况1：当所有参与者均反馈 yes，提交事务 
+
+  a) 协调者向所有参与者发出正式提交事务的请求（即 commit 请求）。 
+
+  b) 参与者执行 commit 请求，并释放整个事务期间占用的资源。 
+
+  c) 各参与者向协调者反馈 ack(应答)完成的消息。 
+
+  d) 协调者收到所有参与者反馈的 ack 消息后，即完成事务提交。 
+
+- 情况2：当有一个参与者反馈 no，回滚事务 
+
+  a) 协调者向所有参与者发出回滚请求（即 rollback 请求）。 
+
+  b) 参与者使用阶段 1 中的 undo 信息执行回滚操作，并释放整个事务期间占用的资源。 
+
+  c) 各参与者向协调者反馈 ack 完成的消息。 
+
+  d) 协调者收到所有参与者反馈的 ack 消息后，即完成事务。
+
+> **2PC存在的问题** 
+
+1**) 性能问题**：所有**参与者在事务提交阶段处于同步阻塞状态**，占用系统资源，容易导致性能瓶颈。 
+
+2) **可靠性问题**：如果协调者存在单点故障问题，或出现故障，提供者将一直处于**锁定状态**。 
+
+3) 数据**一致性**问题：在阶段 2 中，如果出现协调者和参与者都挂了的情况，有可能导致数据不一 
+
+致。 
+
+优点：**尽量**保证了数据的强一致，适合对数据强一致要求很高的关键领域。（其实也不能100%保证 
+
+强一致）。 
+
+缺点：实现复杂，**牺牲了可用性，对性能影响较大**，不适合高并发高性能场景。
+
+### 6.2 3PC (3阶段提交，2阶段的改进版)
+
+![1623592145300](img\分布式事务方案-3PC.png)
+
+三阶段提交是在二阶段提交上的改进版本，**3PC最关键要解决的就是协调者和参与者同时挂掉的问题**，所以3PC把2PC的准备阶段(阶段一)再次一分为二，这样三阶段提交。
+
+>  **阶段一：参与者cancommit信号**
+
+a) 协调者向所有参与者发出包含事务内容的 canCommit 请求，询问是否可以提交事务，并等待所有参与者答复。 
+
+b) 参与者收到 canCommit 请求后，如果认为可以执行事务操作，则反馈 yes 并进入预备状态，否则反馈 no。 
+
+>  **阶段二：参与者resubmit信号 **
+
+协调者根据参与者响应情况，有以下两种可能。 
+
+- 情况1：所有参与者均反馈 yes，协调者预执行事务 
+
+  a) 协调者向所有参与者发出 preCommit 请求，进入准备阶段。 
+
+  b) 参与者收到 preCommit 请求后，执行事务操作，将 undo 和 redo 信息记入事务日志中（但不提交事务）。 
+
+  c) 各参与者向协调者反馈 ack 响应或 no 响应，并等待最终指令。 
+
+- 情况2：只要有一个参与者反馈 no，或者等待超时后协调者尚无法收到所有提供者的反馈，即中断事务 
+
+  a) 协调者向所有参与者发出 abort 请求。 
+
+  b) 无论收到协调者发出的 abort 请求，或者在等待协调者请求过程中出现超时，参与者均会中断事务。 
+
+> **阶段三：通知参与者commit **
+
+**该阶段进行真正的事务提交**，也可以分为以下两种情况。 
+
+- 情况 1：所有参与者均反馈 ack 响应，执行真正的事务提交 
+
+  a) 如果协调者处于工作状态，则向所有参与者发出 do Commit 请求。 
+
+  b) 参与者收到 do Commit 请求后，会正式执行事务提交，并释放整个事务期间占用的资源。 
+
+  c) 各参与者向协调者反馈 ack 完成的消息。 
+
+  d) 协调者收到所有参与者反馈的 ack 消息后，即完成事务提交。 
+
+- 情况2：只要有一个参与者反馈 no，或者等待超时后协调组尚无法收到所有提供者的反馈，即回滚事务。 - 
+
+  a) 如果协调者处于工作状态，向所有参与者发出 rollback 请求。 
+
+  b) 参与者使用阶段 1 中的 undo 信息执行回滚操作，并释放整个事务期间占用的资源。 
+
+  c) 各参与者向协调组反馈 ack 完成的消息。 
+
+  d) 协调组收到所有参与者反馈的 ack 消息后，即完成事务回滚。 
+
+优点：相比二阶段提交，三阶段提交降低了阻塞范围，在等待超时后协调者或参与者会中断事务。避免了协调者单点问题。阶段 3 中协调者出现问题时，参与者会继续提交事务。 
+
+缺点：**数据不一致问题**依然存在，当在参与者收到 preCommit 请求后等待 do commite 指令时，此时如果协调者请求中断事务，而协调者无法与参与者正常通信，会导致参与者继续提交事务，造成数据不一致。 
+
+### 6.3 TCC（补偿事务）
+
+![1623631428137](E:\SoftwareNote\微服务\SpringCloud\img\分布式事务方案-TCC.png)
 
 `Try - Confirm - Cancel` 
 
-是一种补偿性事务思想，适用的范围更广，在业务层面实现，因此对业务的侵入性较大，每一个操作都需要实现对应的三个方法。
+是一种补偿性事务思想，适用的范围更广，在业务层面实现，**因此对业务的侵入性较大，每一个操作都需要实现对应的三个方法。**
 
 TCC分为三个阶段：
 
 1. **Try** 阶段是做业务检查(一致性)及资源预留(隔离)，此阶段仅是一个初步操作，它和后续的Confirm 一起才能真正构成一个完整的业务逻辑。
-2. **Confirm** 阶段是做确认提交，Try阶段所有分支事务执行成功后开始执行 Confirm。通常情况下，采用TCC则认为 Confirm阶段是不会出错的。即：只要Try成功，Confirm一定成功。若Confirm阶段真的出错了，需引入重试机制或人工处理。
-3. **Cancel** 阶段是在业务执行错误需要回滚的状态下执行分支事务的业务取消，预留资源释放。通常情况下，采用TCC则认为Cancel阶段也是一定成功的。若Cancel阶段真的出错了，需引入重试机制或人工处理。
+2. **Confirm** 阶段是做确认提交，Try阶段所有分支事务执行成功后开始执行 Confirm。通常情况下，采用TCC则认为 Confirm阶段是不会出错的。即：只要Try成功，Confirm一定成功。**若Confirm阶段真的出错了，需引入重试机制或人工处理。**
+3. **Cancel** 阶段是在业务执行错误需要回滚的状态下执行分支事务的业务取消，预留资源释放。通常情况下，采用TCC则认为Cancel阶段也是一定成功的。**若Cancel阶段真的出错了，需引入重试机制或人工处理。**
 4. TM事务管理器
    TM事务管理器可以实现为独立的服务，也可以让**全局事务发起方**充当TM的角色，TM独立出来是为了成为公用组件，是为了考虑系统结构和软件复用。
 
-　　TM在发起全局事务时生成全局事务记录，全局事务ID贯穿整个分布式事务调用链条，用来记录事务上下文，追踪和记录状态，由于Confirm 和cancel失败需进行重试，因此需要实现为幂等，幂等性是指同一个操作无论请求多少次，其结果都相同。 
+　　TM在发起全局事务时生成全局事务记录，**全局事务ID贯穿整个分布式事务调用链条**，用来记录事务上下文，追踪和记录状态，由于Confirm 和cancel失败需进行重试，因此需要实现为幂等，幂等性是指同一个操作无论请求多少次，其结果都相同。 
 
-### 6.4 **本地消息表**
+>  **优点：** 
+
+**性能提升**：具体业务来实现控制资源**锁的粒度变小**，不会锁定整个资源。 
+
+**数据最终一致性：**基于 Confifirm 和 Cancel 的**幂等性**，保证事务最终完成确认或者取消，保证**数据的一致性**。 
+
+**可靠性**：解决了 XA 协议的协调者单点故障问题，由**主业务方发起并控制整个业务活动**，业务活动管理器也变成多点，引入集群。 
+
+>  **缺点：**
+
+TCC 的 Try、Confifirm 和 Cancel 操作功能要按具体业务来实现，**业务耦合度较高，提高了开发成本**。 
+
+### 6.4 **本地消息表MQ**
+
+基于RocketMQ实现 https://zhuanlan.zhihu.com/p/115924952
 
 本地消息表其实就是利用了 **各系统本地的事务**来实现分布式事务。
 
@@ -2282,7 +2406,801 @@ TCC分为三个阶段：
 
 可以看到本地消息表其实实现的是**最终一致性**，容忍了数据暂时不一致的情况。 
 
-### 6.5 **消息事务** 
+### 6.5 **Seata** 
 
-基于RocketMQ实现 https://zhuanlan.zhihu.com/p/115924952
+### 6.6 Sagas事务模型 
+
+### 6.6 LCN介绍
+
+官方宣称：**LCN并不生产事务，LCN只是本地事务的协调工**。
+ TX-LCN定位于一款事务协调性框架，框架其本身并不操作事务，而是基于对事务的协调从而达到事务一致性的效果。
+
+
+
+## 7. Spring Security + JWT/OAuth2.0
+
+Spring Security可以用来做一些用户角色权限(可访问的路径)控制
+
+JWT/OAuth用来做身份(登录)验证（Token）
+
+### 7.1 Spring Security 权限管理 
+
+- pom
+
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-security</artifactId>
+</dependency>
+```
+
+- Entity：需实现UserDetails
+
+```java
+package com.elltor.securityjwt2.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
+
+import javax.persistence.*;
+import java.util.Collection;
+import java.util.List;
+
+// jpa 相关都导入 javax.persistence.包下的
+
+/**
+ * 用户对象  users
+ */
+@Entity
+@Table(name = "users")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Users implements UserDetails {
+    /**
+     * 用户ID
+     */
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long userId;
+
+    /**
+     * 用户账号
+     */
+    @Column(name = "user_name")
+    private String userName;
+
+    /**
+     * 密码
+     */
+    @Column(name = "password")
+    private String password;
+
+    /**
+     * 帐号状态（0正常  1停用）
+     */
+    @Column(name = "status")
+    private String status;
+
+
+    /**
+     * 用户角色（多角色用逗号间隔）
+     */
+    @Column(name = "roles")
+    private String roles;
+
+    //实体类中使想要添加表中不存在字段，就要使用@Transient这个注解了。
+    @Transient
+    private List<GrantedAuthority> authorities;
+
+    public void setAuthorities(List<GrantedAuthority> authorities) {
+        this.authorities = authorities;
+    }
+
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        return this.authorities;
+    }
+
+    @Override
+    public String getUsername() {
+        return this.userName;
+    }
+
+    /**
+     * 账户是否未过期,过期无法验证
+     */
+    @Override
+    public boolean isAccountNonExpired() {
+        return true;
+    }
+
+    /**
+     * 指定用户是否解锁,锁定的用户无法进行身份验证
+     *
+     * @return
+     */
+    @Override
+    public boolean isAccountNonLocked() {
+        return true;
+    }
+
+    /**
+     * 指示是否已过期的用户的凭据(密码),过期的凭据防止认证
+     *
+     * @return
+     */
+    @Override
+    public boolean isCredentialsNonExpired() {
+        return true;
+    }
+
+    /**
+     * 是否可用  ,禁用的用户不能身份验证
+     *
+     * @return
+     */
+    @Override
+    public boolean isEnabled() {
+        return true;
+    }
+
+}
+
+```
+
+- SecurityConfig
+
+```java
+package com.elltor.securityjwt2.config.security;
+
+import com.elltor.securityjwt2.config.security.handler.MyAuthencationFailureHandler;
+import com.elltor.securityjwt2.config.security.handler.MyAuthenticationSuccessHandler;
+import com.elltor.securityjwt2.config.security.jwt.JwtAuthTokenFilter;
+import com.elltor.securityjwt2.service.impl.UserDetailServiceImpl;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+
+import javax.annotation.Resource;
+
+@EnableWebSecurity
+public class SecurityConfig extends WebSecurityConfigurerAdapter {
+
+    @Autowired
+    private MyAuthenticationSuccessHandler successHandler;
+
+    @Autowired
+    private MyAuthencationFailureHandler failureHandler;
+
+    @Autowired
+    private UserDetailServiceImpl myUserDetailsService;
+
+    @Autowired
+    private JwtAuthTokenFilter jwtAuthTokenFilter;
+
+    @Override
+    // 权限校验，API访问的控制；以及可添加身份校验
+    protected void configure(HttpSecurity httpSecurity) throws Exception {
+        httpSecurity
+            // 认证失败处理类
+            //.exceptionHandling().authenticationEntryPoint(unauthorizedHandler).and()
+            // 基于token，所以不需要session,这里设置STATELESS(无状态)是在请求是不生成session
+            .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS).and()
+            //配置权限
+            .authorizeRequests()
+            //对于登录login  验证码captchaImage  允许匿名访问
+            .antMatchers("/login").anonymous()
+            .antMatchers(
+                HttpMethod.GET,
+                "/*.html",
+                "/**/*.html",
+                "/**/*.css",
+                "/**/*.js"
+            ).permitAll()
+            .antMatchers("/order")  //需要对外暴露的资源路径
+            .hasAnyAuthority("ROLE_USER", "ROLE_ADMIN")    //user角色和 admin角色都可以访问
+            .antMatchers("/system/user", "/system/role", "/system/menu")
+            .hasAnyRole("ADMIN")    //admin角色可以访问
+            //  除上面外的所有请求全部需要鉴权认证
+            .anyRequest().authenticated().and()//authenticated()要求在执 行该请求时，必须已经登录了应用
+            //  CRSF禁用，因为不使用session
+            .csrf().disable();//禁用跨站csrf攻击防御，否则无法登陆成功
+        //登出功能
+        httpSecurity.logout().logoutUrl("/logout");
+        //  添加JWT  filter, 在每次http请求前进行拦截
+        httpSecurity.addFilterBefore(jwtAuthTokenFilter, UsernamePasswordAuthenticationFilter.class);
+    }
+
+
+    @Override
+    // 加载一些用户权限
+    public void configure(AuthenticationManagerBuilder auth) throws Exception {
+        //调用DetailsService完成用户身份验证              设置密码加密方式
+ //  userDetailsService为重写UserDetailsService的类    	 
+        auth.userDetailsService(myUserDetailsService).passwordEncoder(getBCryptPasswordEncoder());
+    }
+
+
+    // 在通过数据库验证登录的方式中不需要配置此种密码加密方式, 因为已经在JWT配置中指定
+    @Bean
+    public BCryptPasswordEncoder getBCryptPasswordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+
+    @Bean
+    @Override
+    public AuthenticationManager authenticationManagerBean() throws Exception {
+        return super.authenticationManagerBean();
+    }
+
+
+}
+
+
+package com.elltor.securityjwt2.service.impl;
+
+import com.elltor.securityjwt2.entity.Users;
+import com.elltor.securityjwt2.service.UserService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.authority.AuthorityUtils;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.stereotype.Service;
+
+
+@Service
+public class UserDetailServiceImpl implements UserDetailsService {
+
+    @Autowired
+    private UserService userService;
+
+    @Override
+    public UserDetails loadUserByUsername(String username) throws
+            UsernameNotFoundException {
+        Users users = userService.selectUserByUserName(username);
+        if (users == null) {
+            throw new UsernameNotFoundException("登录用户：" + username + "不存在");
+        }
+        //将数据库的roles解析为UserDetails的权限集
+        //AuthorityUtils.commaSeparatedStringToAuthorityList将逗号分隔的字符集转成权限对象列表
+        users.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList(users.getRoles()));
+        return users;
+    }
+}
+
+
+
+
+
+```
+
+
+
+
+
+### 7.2 JWT：Json Web Token 身份认证
+
+> Why JWT
+
+现在，前后端分离和 RESTful API 越来越火热，当后台渐渐开始只负责为客户端提供 API 接口之后，身份校验和接口安全成了难题。在传统的开发模式下，使用 cookie-session 可以保证接口安全，在没有登录的情况下访问关键数据会跳转到登录界面或者请求失败。而使用 REStful API 之后，cookie-session 存在以下 3 个问题：
+
+- 客户端除了浏览器，可能还包括手机端 APP，对于手机端而言，管理 cookie 是一件麻烦的事情。
+- RESTful 风格的 API 不建议使用 cookie。
+- cookie 本身有一个缺陷，不能跨域。
+
+正是存在上面的几个缺陷，现在 API 开始使用 JWT 代替 cookie-session 来做身份验证。
+
+> What is JWT
+
+JWT 全称 **JSON Web Token**。本质上 JWT 是一串 token 字符串。客户端登录之后，服务端返回一串 token 给客户端，之后每次客户端请求 API 接口都需要携带该 token 进行身份校验。JWT 由三个部分组成：头部(header)、载荷(payload)、签名(signature)。这三个部分使用 `.` 连接在一起就是一个完整的 JWT。所以，一个完整的 JWT 应该类似下面这种形式： `xxxxxx.yyyyy.zzzzz`
+
+- **header**: header 是一个 json 数据，用于描述 JWT 的基本信息。一般要由两个部分组成：
+
+  - alg：代表的是**加密所使用的算法**
+  - typ：表示该 token 是什么类型的。这里 typ 自然是 JWT
+
+  一个完整的 header 信息。最后使用 Base64 对 header 进行编码，得到 JWT 的第一部分 
+
+  ```txt
+  {
+      'alg':'HS256',
+      'typ':'JWT'
+  }
+  ```
+
+- **payload**：
+
+   payload 是 JWT 存储信息的部分。payload 也是一个 json 数据，每一个 json 的 key-value 称为一个声明。
+
+  payload 有两种类型的声明：标准声明和自定义声明。
+
+  标准声明一共有 6 个，其名称和对应含义如下：
+
+  -  `iss` : JWT 的签发者。
+  -  `iat` : JWT 的签发时间，是一个 unix 时间戳。
+  -  `exp` : JWT 的过期时间，是一个 unxi 时间戳。
+  -  `aud` : 接受 JWT 的一方。
+  -  `sub` : JWT 所面向的用户。
+  -  `jti` : 唯一标识一个 JWT。
+
+  自定义声明为用户自己定义的 key-value，可以用来存储一些简单的基本信息。考虑到性能，不应该在 payload 中定义太多自定义声明。
+
+  定义一个 payload ：
+
+  ```txt
+  {
+      "iss": "jaychen",
+      "iat": 1441593502,
+      "exp": 1441594722,
+      "aud": "jaychen.cc",
+      "sub": "chenjiayaooo@gmail.com",
+      "jti:" "xxxxxxxx",
+  
+      "user_id": "1",
+      "username": "jaychen"
+  }
+  ```
+
+  上面这个 payload 中，`id` 和 `username` 为自定义声明。
+
+  有了 payload 只有，将该 payload 进行 Base64 加密，得到一串字符串之后，用 `.` 把 header 和 payload 连接起来。
+
+- **signature: 签名**
+
+ 将 header 和 payload 两个部分连接起来之后，得到的字符串类似下面 `xxxx.yyyy`
+
+ 接着，使用 `header.alg` 定义的加密算法对 `hader.payload` 的字符串进行加密，并且加密的时候应该有一个密钥。加密之后，得到一串加密字符串，最后把这串加密字符串也是用 `.` 拼接在 `header.payload` 后面，形成完整的 JWT。
+
+**这里签名的目的是为了保证 payload 数据的完整性**。如果 JWT 在传输过程中被第三方劫持，中间人对  `header.payload` 进行修改，并且使用自己的密钥重新签名。服务端收到中间人修改过的 JWT，使用自己的密钥对 `header.payload` 进行再次加密，由于中间人和服务端使用的是不同的密钥签名，所以服务端再次加密的结果肯定和中间人加密的结果不一致，由此可以断定该 JWT 被恶意篡改。
+
+>  基于 JWT 的身份验证的流程
+
+现在已经明白了 JWT 的生成过程，现在来梳理下 JWT 的使用流程。
+
+- 首次登陆系统，向服务端发送 username&&password 进行登录。
+- 服务端验证 username&&password,验证合法为客户端生成一串 JWT，这里在 payload 中可以自定义声明 user_id,username 等字段用来保存信息。
+- 客户端收到服务端的 JWT 字符串，自行保存。**后续需要请求 API 都要携带该 JWT 到服务端进行身份校验**。
+- 服务端收到客户端的 API 请求，先获取 JWT 信息，通过签名判断 JWT 的合法性，如果合法，返回数据。
+
+> 配合Spring Security使用
+
+- pom
+
+```xml
+<!--jwt-->
+<dependency>
+    <groupId>io.jsonwebtoken</groupId>
+    <artifactId>jjwt</artifactId>
+    <version>0.9.1</version>
+</dependency>
+<dependency>
+    <groupId>io.jsonwebtoken</groupId>
+    <artifactId>jjwt-api</artifactId>
+    <version>${jjwt.version}</version>
+</dependency>
+<dependency>
+    <groupId>io.jsonwebtoken</groupId>
+    <artifactId>jjwt-impl</artifactId>
+    <version>${jjwt.version}</version>
+</dependency>
+<dependency>
+    <groupId>io.jsonwebtoken</groupId>
+    <artifactId>jjwt-jackson</artifactId>
+    <version>${jjwt.version}</version>
+</dependency>
+```
+
+- java
+
+```java
+@EnableWebSecurity
+// Security配置类
+public class SecurityConfig extends WebSecurityConfigurerAdapter {
+    @Override
+    protected void configure(HttpSecurity httpSecurity) throws Exception {
+        // 这里添加jwt过滤器，用来拦截所有请求，然后进行token校验
+    	httpSecurity.addFilterBefore(jwtAuthTokenFilter, 	
+                                     UsernamePasswordAuthenticationFilter.class);
+    }
+}
+
+@Component
+// JWTFilter过滤器拦截请求，OncePerRequestFilter，每次拦截并只有一次
+public class JwtAuthTokenFilter extends OncePerRequestFilter {
+    @Autowired
+    private JwtTokenUtils jwtTokenUtils;
+
+    @Autowired
+    private UserDetailsService userDetailServiceImpl;
+
+    @Override
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+        //http  请求头中的token,前后端沟通，可读性差一点
+        String token = request.getHeader("AuthorizationXSADASDASD");
+        if (token!=null && token.length()>0) {
+            // 通过token解析payout获取数据username
+            String username = jwtTokenUtils.getUsernameFromToken(token);
+            if (username != null && SecurityContextHolder.getContext().getAuthentication()==null) {
+                UserDetails userDetails = userDetailServiceImpl.loadUserByUsername(username);
+                if (jwtTokenUtils.validateToken(token, userDetails)) {
+                    //给使用该JWT令牌的用户进行授权
+                    UsernamePasswordAuthenticationToken authenticationToken =
+                            new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+                    //设置用户身份授权
+                    SecurityContextHolder.getContext().setAuthentication(authenticationToken);
+                }
+            }
+        }
+        filterChain.doFilter(request, response);
+    }
+}
+
+@Data
+@Component
+public class JwtTokenUtils {
+
+    @Value("${token.secret}")
+    private String secret;
+
+    @Value("${token.expireTime}")
+    private Long expiration;
+
+    @Value("${token.header}")
+    private String header;
+
+
+    private static Key KEY = null;
+
+    /**
+     * 生成token令牌
+     *
+     * @param userDetails 用户
+     * @return 令token牌
+     */
+    public String generateToken(UserDetails userDetails) {
+        System.out.println("[JwtTokenUtils] generateToken "+userDetails.toString());
+        Map<String, Object> claims = new HashMap<>(2);
+        claims.put("sub", userDetails.getUsername());
+        claims.put("created", new Date());
+
+        return generateToken(claims);
+    }
+
+
+    /**
+     * 从令牌中获取用户名
+     *
+     * @param token 令牌
+     * @return 用户名
+     */
+    public String getUsernameFromToken(String token) {
+        String username = null;
+        try {
+            Claims claims = getClaimsFromToken(token);
+            username = claims.get("sub",String.class);
+            System.out.println("从令牌中获取用户名:" + username);
+        } catch (Exception e) {
+            username = null;
+        }
+        return username;
+    }
+
+    /**
+     * 判断令牌是否过期
+     *
+     * @param token 令牌
+     * @return 是否过期
+     */
+    public Boolean isTokenExpired(String token) {
+        try {
+            Claims claims = getClaimsFromToken(token);
+            Date expiration = claims.getExpiration();
+            return expiration.before(new Date());
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * 刷新令牌
+     *
+     * @param token 原令牌
+     * @return 新令牌
+     */
+    public String refreshToken(String token) {
+        String refreshedToken;
+        try {
+            Claims claims = getClaimsFromToken(token);
+            claims.put("created", new Date());
+
+
+            refreshedToken = generateToken(claims);
+        } catch (Exception e) {
+            refreshedToken = null;
+        }
+        return refreshedToken;
+    }
+
+    /**
+     * 验证令牌
+     *
+     * @param token       令牌
+     * @param userDetails 用户
+     * @return 是否有效
+     */
+    public Boolean validateToken(String token, UserDetails userDetails) {
+
+        String username = getUsernameFromToken(token);
+        return (username.equals(userDetails.getUsername()) &&
+                !isTokenExpired(token));
+    }
+
+
+    /**
+     * 从claims生成令牌,如果看不懂就看谁调用它
+     *
+     * @param claims 数据声明
+     * @return 令牌
+     */
+    private String generateToken(Map<String, Object> claims) {
+        Date expirationDate = new Date(System.currentTimeMillis() + expiration);
+        return Jwts.builder().setClaims(claims)
+                .setExpiration(expirationDate)
+                .signWith(SignatureAlgorithm.HS256, getKeyInstance())
+                .compact();
+    }
+
+    /**
+     * 从令牌中获取数据声明,如果看不懂就看谁调用它
+     *
+     * @param token 令牌
+     * @return 数据声明
+     */
+    private Claims getClaimsFromToken(String token) {
+        Claims claims = null;
+
+        try {
+            claims = Jwts.parser().setSigningKey(getKeyInstance()).parseClaimsJws(token).getBody();
+//            claims = Jwts.parser().setSigningKey(secret).parseClaimsJws(token).getBody();
+        } catch (Exception e) {
+            claims = null;
+        }
+        return claims;
+    }
+
+
+    private Key getKeyInstance() {
+        if (KEY == null) {
+            synchronized (JwtTokenUtils.class) {
+                if (KEY == null) {// 双重锁
+                    byte[] apiKeySecretBytes = DatatypeConverter.parseBase64Binary(secret);
+                    KEY = new SecretKeySpec(apiKeySecretBytes, SignatureAlgorithm.HS256.getJcaName());
+                }
+            }
+        }
+        return KEY;
+    }
+}
+
+```
+
+
+
+### 7.3 OAuth2.0 身份认真
+
+## 8. Shiro 权限管理
+
+- pom
+
+```xml
+<dependency>
+    <groupId>org.apache.shiro</groupId>
+    <artifactId>shiro-spring-boot-starter</artifactId>
+    <version>${shiro.version}</version>
+</dependency>
+```
+
+- java
+
+```java
+package com.codeman.springbootshiro.config;
+
+import lombok.extern.java.Log;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.shiro.cache.CacheManager;
+import org.apache.shiro.cache.MemoryConstrainedCacheManager;
+import org.apache.shiro.spring.web.ShiroFilterFactoryBean;
+import org.apache.shiro.web.filter.authc.AnonymousFilter;
+import org.apache.shiro.web.mgt.DefaultWebSecurityManager;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import  org.apache.shiro.mgt.SecurityManager;
+import org.springframework.context.annotation.DependsOn;
+import org.springframework.core.annotation.Order;
+
+import javax.servlet.Filter;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+/**
+ * @author: zhanghongjie
+ * @description:
+ * @date: 2021/6/18 22:07
+ * @version: 1.0
+ */
+@Configuration
+@Slf4j
+public class ShiroConfig {
+
+
+    @Bean
+    public ShiroFilterFactoryBean shiroFilter(SecurityManager securityManager) {
+        ShiroFilterFactoryBean shiroFilterFactoryBean = new ShiroFilterFactoryBean();
+        shiroFilterFactoryBean.setFilters(null);
+        shiroFilterFactoryBean.setLoginUrl("/login");
+        shiroFilterFactoryBean.setSuccessUrl("/success");
+        shiroFilterFactoryBean.setUnauthorizedUrl("/authorize");
+        shiroFilterFactoryBean.setSecurityManager(securityManager);
+        LinkedHashMap<String, String> map = new LinkedHashMap<>();
+        /*
+        * anon : 无需认证
+        * authc: 必须认证
+        * user： 必须拥有”记住我“功能
+        * perms：拥有对某个资源的权限
+        * role： 拥有某个角色才有权限
+        *
+        * */
+        map.put("/**", "anon");
+        shiroFilterFactoryBean.setFilterChainDefinitionMap(map);
+        // 添加自己的过滤器并且取名为jwt
+        Map<String, Filter> filterMap = new HashMap<String, Filter>(1);
+        //如果cloudServer为空 则说明是单体 需要加载跨域配置
+        filterMap.put("/**", new AnonymousFilter());
+        shiroFilterFactoryBean.setFilters(filterMap);
+
+        return shiroFilterFactoryBean;
+    }
+
+
+    @Bean("securityManager")
+    public DefaultWebSecurityManager securityManager(ShiroRealm shiroRealm) {
+        DefaultWebSecurityManager securityManager = new DefaultWebSecurityManager();
+//        securityManager.login();
+//        securityManager.logout();
+        securityManager.setCacheManager(cacheManager());
+        securityManager.setRealm(shiroRealm);
+        return securityManager;
+    }
+
+    @Bean
+    public CacheManager cacheManager() {
+        return new MemoryConstrainedCacheManager();
+    }
+
+}
+
+
+@RestController
+public class LoginController {
+
+    @GetMapping("/success")
+    public String success() {
+        return "success";
+    }
+
+    @GetMapping("/failure")
+    public String failure() {
+        return "failure";
+    }
+
+    @GetMapping("/login")
+    public String login(@RequestParam String username, @RequestParam String password, Model model) {
+
+        Subject subject = SecurityUtils.getSubject();
+        UsernamePasswordToken auth = new UsernamePasswordToken(username, password);
+        try {
+            subject.login(auth);
+        } catch (AuthenticationException e) {
+            // 失败的处理
+            return "登录失败！";
+        }
+
+        return "登录成功！";
+    }
+}
+
+
+
+package com.codeman.springbootshiro.config;
+
+import lombok.extern.slf4j.Slf4j;
+import org.apache.shiro.authc.AuthenticationException;
+import org.apache.shiro.authc.AuthenticationInfo;
+import org.apache.shiro.authc.AuthenticationToken;
+import org.apache.shiro.authc.SimpleAuthenticationInfo;
+import org.apache.shiro.authc.UsernamePasswordToken;
+import org.apache.shiro.authz.AuthorizationInfo;
+import org.apache.shiro.authz.SimpleAuthorizationInfo;
+import org.apache.shiro.realm.AuthorizingRealm;
+import org.apache.shiro.subject.PrincipalCollection;
+import org.springframework.stereotype.Component;
+
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+/**
+ * @author: zhanghongjie
+ * @description:
+ * @date: 2021/6/18 22:15
+ * @version: 1.0
+ */
+@Component
+@Slf4j
+public class ShiroRealm extends AuthorizingRealm {
+
+    private final static Map<String, String> USER = Stream.of("user1", "user2")
+            .collect(Collectors.toMap(String::toString, String::toString));
+
+    @Override
+    // Authorization 授权
+    protected AuthorizationInfo doGetAuthorizationInfo(PrincipalCollection principals) {
+        log.info("===============Shiro权限认证开始============ [ roles、permissions]==========");
+        String username = null;
+        if (principals != null) {
+            LoginUser sysUser = (LoginUser) principals.getPrimaryPrincipal();
+            username = sysUser.getUsername();
+        }
+        SimpleAuthorizationInfo info = new SimpleAuthorizationInfo();
+
+        // 设置用户拥有的角色集合，比如“admin,test”
+        Set<String> roleSet = commonAPI.queryUserRoles(username);
+        System.out.println(roleSet.toString());
+        info.setRoles(roleSet);
+
+        // 设置用户拥有的权限集合，比如“sys:role:add,sys:user:add”
+        Set<String> permissionSet = commonAPI.queryUserAuths(username);
+        info.addStringPermissions(permissionSet);
+        System.out.println(permissionSet);
+        log.info("===============Shiro权限认证成功==============");
+        return info;
+    }
+
+    @Override
+    // Authentication 验证
+    protected AuthenticationInfo doGetAuthenticationInfo(AuthenticationToken auth) throws AuthenticationException {
+        UsernamePasswordToken auth1 = (UsernamePasswordToken) auth;
+        if (log.isInfoEnabled()) {
+            log.info("doGetAuthenticationInfo");
+        }
+        String psw = null;
+        if ((psw = USER.get(auth1.getUsername())) == null) {
+            // 没有账号就return null
+            return null;
+        }
+        return new SimpleAuthenticationInfo("", psw.toCharArray(), "");
+    }
+}
+
+```
+
+
+
+
 

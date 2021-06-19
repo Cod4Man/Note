@@ -2254,3 +2254,26 @@ on t1.id=t2.id   -- 4.140s
 
 -- 1	SIMPLE	test_user		range	index1	index1	36		2279046	100	Using where; Using index
 -- 1	SIMPLE	t2		eq_ref	PRIMARY	PRIMARY	8	test.test_user.id	1	100	
+
+## 25.  MySQL高级语法
+
+### 25.1 优雅的createOrUpdate （ON DUPLICATE KEY UPDATE）
+
+1：ON DUPLICATE KEY UPDATE需要有在INSERT语句中有存在**主键或者唯一索引的列** ，并且对应的数据已经在表中才会执行更新操作。而且如果要更新的字段是主键或者唯一索引，不能和表中已有的数据重复，否则插入更新都失败。
+
+2：不管是更新还是增加语句都不允许将主键或者唯一索引的对应字段的数据变成表中已经存在的数据
+
+### 25.2 ignore 自动忽略重复插入
+
+数据不存在则插入，数据已存在则忽略，可以使用 MySQL ignore 来实现。当 primary key 或者 unique key 重复时会自动忽略本次插入操作。 
+
+`insert ignore into `webVisit`(`ip`) values(#{ip})`
+
+### 25.3 replace into 自动替换重复数据
+
+数据不存在则插入，数据已存在则替换，可以使用 MySQL replace into 来实现。当 primary key 或者 unique key 重复时会自动替换已存在的数据。**实际上是先删除原有数据，然后插入新数据。**
+
+```
+replace into `webVisit`(`date`,`ip`, uri, `count`)
+values(#{date},#{ip},#{uri}, 1)
+```

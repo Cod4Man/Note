@@ -329,6 +329,37 @@ Mapper组件里保存了**Web应用的配置信息(如web.xml)**，其实就是�
 
 ![1622866009834](E:\SoftwareNote\Web\img\url找wrapper(Servlet)流程.png)
 
+
+
+> **tomcat是如何处理Http请求流程的？** 
+
+假设来我们在浏览器上输入 
+
+http://localhost:8080/my-web-mave/index.jsp 
+
+在tomcat中是如何处理这个请求流程的： 
+
+1. 我们的请求被发送到本机端口8080，被在那里侦听的Coyote HTTP/1.1 **Connecto**r获得。 
+
+2. Connector把该请求交给它所在的Service的**Engine**来处理，并等待来自Engine的回应 。 
+
+3. Engine获得请求localhost/my-web-maven/index.jsp，**匹配它所拥有的所有虚拟主机Host** ，我们的虚拟主机在**server.xml中默认配置的就是localhost**。 
+
+4. **Engine匹配到name=localhost的Host（即使匹配不到也把请求交给该Host处理，因为该Host被定义为该Engine的默认主机**）。 
+
+5. localhost Host获得请求/my-web-maven/index.jsp，匹配它所拥有的所有**Context**。 
+6. Host匹配到路径为**/my-web-maven的Context**（如果匹配不到就把该请求交给路径名为”"的 Context去处理）。 
+
+7. path=”/my-web-maven”的Context获得请求/index.jsp，在它的**mapping table**中寻找对应的 servlet 。 
+
+8. **Context匹配到URL PATTERN为*.jsp的servlet，对应于JspServlet类**。 
+9. 构造HttpServletRequest对象和HttpServletResponse对象，作为参数调用JspServlet的doGet或doPost方法 
+
+10. Context把执行完了之后的HttpServletResponse对象返回给Host 。 
+11. Host把HttpServletResponse对象返回给Engine 。 
+12. Engine把HttpServletResponse对象返回给Connector 。 
+13. Connector把HttpServletResponse对象返回给客户browser
+
 ### 7.1 Tomcat请求流程
 
 ![1622866059457](E:\SoftwareNote\Web\img\Tomcat请求流程.png)

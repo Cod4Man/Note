@@ -333,6 +333,30 @@
 
 - -XX:+DisableExplicitGC禁止系统System.gc()，防止手动误触发FGC造成问题. 
 
+- **内存溢出时候打印堆内存快照** -XX:+HeapDumpOnOutOfMemoryError
+
+  -XX:+HeapDumpOnOutOfMemoryError
+
+  该配置会把快照保存在用户目录或者tomcat目录下，也可以通过 -XX:HeapDumpPath=/tmp/heapdump.dump来显示指定路径
+
+- **指定CMS启动线程个数**
+
+   -XX:ConcGCThreads
+
+  标志-XX:ConcGCThreads= num（例如：-XX:ConcGCThreads=4）
+
+- **指定老年代内存达到多少的百分比进行垃圾收集**
+
+  -XX:CMSInitiatingOccupancyFraction=70 和 -XX:+UseCMSInitiatingOccupancyOnly
+
+- **执行多少次fullgc后执行一次full gc的标记压缩算法**
+
+  默认参数场景是：-XX:+UseCMSCompactAtFullCollection -XX:CMSFullGCsBeforeCompaction=0。这意味着每次full gc（标记清除）后，都会压缩
+
+- **开启在CMS重新标记阶段之前的清除minor gc**
+
+  -XX:+CMSScavengeBeforeRemark
+
 ## 7. 强引用、软引用、弱引用、虚引用
 
 ### 7.1 整体架构
@@ -853,7 +877,7 @@ C:\Users\ASUS>jps
 10428 Launcher
 ```
 
-### 11.2 jmap -heap pid 查看堆内存分配情况 
+### 11.2 jmap -heap pid 查看堆内存分配/使用情况 
 
 ```shell
 C:\Users\ASUS>jmap -heap 10428
@@ -937,4 +961,172 @@ Command line:  -XX:+PrintGCDetails -XX:MetaspaceSize=128m -javaagent:C:\Program 
   
   Found 1 deadlock.
 ```
+
+### 11.5 jmp -histo[:live]  打印每个class的实例数目,内存占用,类全名信息. VM的内部类名字开头会加上前缀”*”. 如果live子参数加上后,只统计活的对象数量.  
+
+```shell
+[root@AliyunS6 ~]# jmap -histo:live 7039
+
+#num     #instances（实例）   #bytes（字节大小）  class name（类名）
+----------------------------------------------
+   1:         55002        6221408  [C
+   2:          3291        1301744  [B
+   3:         50154        1203696  java.lang.String
+   4:         36508        1168256  java.util.concurrent.ConcurrentHashMap$Node
+   5:          9519        1057632  java.lang.Class
+   6:         11725        1031800  java.lang.reflect.Method
+   7:         14362         913992  [Ljava.lang.Object;
+   8:         14960         478720  java.util.HashMap$Node
+   9:          4052         387448  [I
+  10:           144         386304  [Ljava.util.concurrent.ConcurrentHashMap$Node;
+  11:          9534         381360  java.util.LinkedHashMap$Entry
+  12:          3666         362760  [Ljava.util.HashMap$Node;
+  13:          3840         324992  [Ljava.util.WeakHashMap$Entry;
+  14:         20253         324048  java.lang.Object
+  15:          5538         265824  org.aspectj.weaver.reflect.ShadowMatchImpl
+```
+
+### 11.6 jmap -finalizerinfo pid 打印正等候回收的对象的信息 
+
+```txt
+[root@AliyunS6 ~]# jmap -finalizerinfo 7039
+Attaching to process ID 7039, please wait...
+Debugger attached successfully.
+Server compiler detected.
+JVM version is 25.152-b16
+Number of objects pending for finalization: 0
+
+```
+
+
+
+
+
+## 12. GC日志
+
+### 12.1 minor gc
+
+1.178: \[GC (Allocation Failure) \[PSYoungGen:  32768K->2688K(37888K)] 32768K->2696K(123904K), 0.0048091 secs][Times: user=0.05 sys=0.02, real=0.00 secs]
+
+```txt
+1.178: # 虚拟机启动以来的秒数
+
+[GC (Allocation Failure) 
+　　[PSYoungGen: 32768K->2688K(37888K)] # gc类型:PSYoungGen新生代   gc前占用大小 -> 新生代gc后占用大小（新生代总容量） 
+　　32768K->2696K(123904K),  # 堆空间gc前占用大小 -> 堆空间gc后占用大小（堆空间总容量）
+　　0.0048091 secs     #gc总耗时
+] 
+[
+Times: 
+　　user=0.05 #用户态耗费时间
+　　sys=0.02, #内核态耗费时间
+　　real=0.00 secs #整个过程实际耗费时间
+]
+# user+sys是CPU时间，每个CPU core单独计算，所以这个时间可能会是real的好几倍。
+```
+
+### 12.2 full gc / major gc
+
+ 7.740: \[Full GC (Metadata GC Threshold) \[PSYoungGen:  6612K->0K(333824K)][ParOldGen: 10378K->15906K(95744K)]  16990K->15906K(429568K), \[Metaspace: 34026K->34026K(1079296K)],  0.1300535 secs][Times: user=0.38 sys=0.00, real=0.13 secs] 
+
+```txt
+7.740: #虚拟机启动以来的秒数
+[
+Full GC (Metadata GC Threshold) #gc类型
+[PSYoungGen: 6612K->0K(333824K)]    # 新生代     gc前占用大小 -> 新生代gc后占用大小（新生代总容量）
+[ParOldGen: 10378K->15906K(95744K)] # 老年代     gc前占用大小 -> 老年代gc后占用大小（老年代总容量）
+16990K->15906K(429568K),            # 堆空间(总) gc前占用大小 -> 堆空间gc后占用大小（堆空间总容量）
+[Metaspace: 34026K->34026K(1079296K)], # 元空间  gc前占用大小 -> 元空间gc后占用大小（元空间总容量）
+0.1300535 secs #gc总耗时
+]
+
+[
+Times:
+　　user=0.05 #用户态耗费时间
+　　sys=0.02, #内核态耗费时间
+　　real=0.00 secs #整个过程实际耗费时间
+]
+# user+sys是CPU时间，每个CPU core单独计算，所以这个时间可能会是real的好几倍。
+```
+
+## 13. 生产排查
+
+### 13.1 生产CPU飙高的排查 top+ps+jstack 
+
+**top：查看CPU占用多的进程**
+
+**ps：查看CPU占用多的线程 ps -mp 7039 -o THREAD,tid,time**
+
+```txt
+[root@AliyunS6 ~]# ps -mp 7039 -o THREAD,tid,time
+USER     %CPU PRI SCNT WCHAN  USER SYSTEM   TID(线程号)     TIME
+root      0.4   -    - -         -      -     - 00:00:10
+root      0.0  19    - -         -      -  7039 00:00:00
+root      0.1  19    - -         -      -  7040 00:00:03
+root      0.0  19    - -         -      -  7041 00:00:00
+root      0.0  19    - -         -      -  7042 00:00:00
+root      0.0  19    - -         -      -  7043 00:00:00
+root      0.0  19    - -         -      -  7044 00:00:00
+root      0.0  19    - -         -      -  7045 00:00:00
+root      0.0  19    - -         -      -  7046 00:00:00
+
+```
+
+jstack：根据线程查看CPU占用高的堆栈信息,并可到处到日志文件
+
+**jstack pid >a.txt**
+
+```txt
+
+```
+
+### 13.2 查看jvm内存使用情况 jstat -gctuil pid
+
+Surivior0 Surivior1 Eden Old 
+
+```shell
+[root@AliyunS6 logs]# jstat -gcutil 7039
+  S0     S1     E      O      M     CCS    YGC     YGCT    FGC    FGCT     GCT
+ 70.14   0.00  31.42  23.43  93.61  90.02     10    0.111     2    0.152    0.262
+```
+
+### 13.3 oracle jdk 工具  jvisualvm.exe 分析快照
+
+### 13.4 jvm中一次完整的gc流程 ygc => fgc ,对象如何晋升到老年代
+
+```txt
+正常流程===(大对象或者到达退休年龄)
+经过15次ygc（复制算法）晋升到老年代
+大对象直接进入到老年代
+
+非正常=== 
+
+动态年龄 （s区 50%以上对象年龄 > s区平均年龄则进阶老年代，如果老年代空间不足则发生full gc）
+空间担保 （s0或s1放不下这些对象，会进行于此空间担保（老年代剩余空间大于历代s区进阶的平均值则担保成功））如果担保
+失败则发生full gc
+
+元空间/方法区不足也会发生full gc，但不会被垃圾收集器回收
+```
+
+### 13.5 内存泄漏判断
+
+**对象不能被gc回收就会导致内存泄漏**
+
+jstack 发生**gull gc**后，新生代和老年代的占用情况,如果**占用的空间没有降低**则可以判断放生内存泄漏
+如果**fgc放生频率远远高于ygc则发生了内存泄漏**
+
+### 13.6 内存溢出判断
+
+后台没写分页，大数据量，**内存溢出报错后，对象会被回收，整个服务任然可用(溢出后能被回收就可用)**
+内存泄漏导致的内存溢出，泄漏的对象不会被回收，直到我们的整个堆内存被占满，导致整个服务不可用
+
+**打印dump文件，分析快照，查找大对象**
+
+
+
+
+
+
+
+
 

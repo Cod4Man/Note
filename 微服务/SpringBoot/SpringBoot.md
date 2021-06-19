@@ -63,6 +63,8 @@ public class HelloWorldService {
 
 ### 2.2 编写configuration注入特质(默认)配置的工具类 
 
+ **ConfigurationProperties需要set方法**
+
 ```java
 // @Configuration标注是配置类， proxyBeanMethods = false @Bean不会IOC找提高性能
 @Configuration(proxyBeanMethods = false)
@@ -87,6 +89,7 @@ public class HelloWolrdAutoConfiguration {
 // @ConfigurationProperties(prefix = "mycustomer.hello")会读取properties的参数，
 // 但是必须配合 @EnableConfigurationProperties(HelloWorldProperties.class) 使用
 @ConfigurationProperties(prefix = "mycustomer.hello")
+// ConfigurationProperties需要set方法
 public class HelloWorldProperties {
     private String name;
 

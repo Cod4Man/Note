@@ -117,6 +117,8 @@ service iptables restart
 
 - top(系统性能命令)
 
+  https://www.cnblogs.com/weijiangbao/p/7653475.html
+
   其中，load average平均负载展示的3个值分别为1min内平均，5min内平均，15min内平均。通过这3个值的大小，可以判断最近运行情况。
 
   ![1614092136585](E:\SoftwareNote\Linux\images\top命令.png)
@@ -262,10 +264,32 @@ printf "%x\n" 24587  =》 600b
 
   `dd`
 
+- 删除多行
+
+  `dnd n表示从光标开始的总行数 `
+
 ### 9.6 插入
 
 - 插入： i
 - 下一行插入: o (就像Shift+Enter)
+
+### 9.7 全选/全复制/全删除
+
+**全选（高亮显示**）：按esc后，然后ggvG或者ggVG
+
+**全部复制：**按esc后，然后ggyG
+
+**全部删除：**按esc后，然后dG
+
+解析：
+gg ：是让光标移到首行，在vim才有效，vi中无效。
+v ：是进入Visual（可视）模式。
+G ：光标移到最后一行。
+
+选中内容以后就可以其他的操作了，比如：
+d ：删除选中内容。
+y ：复制选中内容到0号寄存器。
+“+y ：复制选中内容到＋寄存器，也就是系统的剪贴板，供其他程序用。
 
 ## 10. ntsysv 开启服务开机启动界面
 
@@ -280,3 +304,108 @@ printf "%x\n" 24587  =》 600b
 
 
 ![1621993001443](E:\SoftwareNote\Linux\images\服务启动相关3.png)
+
+## 12. 跨服务器文件拷贝
+
+```shell
+scp -r sonarqube-7.3/ root@192.168.0.211:/opt/soft/
+```
+
+## 13. 解压
+
+tar命令
+
+**tar [-cxtzjvfpPN] 文件与目录 .... 参数： **
+
+-c ：建立一个压缩文件的参数指令(create 的意思)；解压到指定文件夹
+
+`tar -zxvf jre-8u291-linux-x64.tar.gz -C /usr/local/jre`
+
+** -x ：解开一个压缩文件的参数指令！ 
+
+-t ：查看 tarfile 里面的文件！ 特别注意，在参数的下达中， c/x/t 仅能存在一个！不可同时存在！ 因为不可能同时压缩与解压缩。 
+
+-z ：是否同时具有 gzip 的属性？亦即是否需要用 gzip 压缩？ 
+
+-j ：是否同时具有 bzip2 的属性？亦即是否需要用 bzip2 压缩？ 
+
+-v ：压缩的过程中显示文件！这个常用，但不建议用在背景执行过程！ 
+
+-f ：使用档名，请留意，在 f 之后要立即接档名喔！不要再加参数！ 　　　例如使用『 tar -zcvfP tfile sfile』就是错误的写法，要写成 　　　『 tar -zcvPf tfile sfile』才对喔！
+
+ -p ：使用原文件的原来属性（属性不会依据使用者而变）
+
+ -P ：可以使用绝对路径来压缩！ 
+
+-N ：比后面接的日期(yyyy/mm/dd)还要新的才会被打包进新建的文件中！ 
+
+--exclude FILE：在压缩的过程中，不要将 FILE 打包！**
+
+
+
+## 14. java后台运行
+
+`nohup java -jar babyshark-0.0.1-SNAPSHOT.jar  > log.file  2>&1 &`
+
+上面的2 和 1 的意思如下:
+
+0    标准输入（一般是键盘）
+ 1    标准输出（一般是显示屏，是用户终端控制台）
+ 2    标准错误（错误信息输出）
+
+## 15. 服务重启以及状态查看
+
+systemctl restart tomcat
+
+systemctl start tomcat
+
+systemctl status tomcat
+
+## 16.  Linux下JRE环境变量配置              
+
+很多时候，我们需要在Linux上部署tomcat，从而搭建web服务器，然JDK/JRE环境是前提，这里就记录一下，在后面的时候直接使用。
+
+下载jre-7u80-linux-x64.tar.gz，并解压，我所解压的路径为：/usr/local/jre1.7.0_80
+
+在Linux的环境变量文件/etc/profile文件中添加如下语句：
+
+```
+#set java environment
+export JAVA_HOME=/usr/local/jre/jre1.8.0_291
+
+export CLASSPATH=.:$JAVA_HOME/jre/lib/rt.jar:$JAVA_HOME/lib/dt.jar:$JAVA_HOME/lib/tools.jar
+
+export PATH=$JAVA_HOME/bin:$PATH
+```
+
+要使环境变量生效，执行如下即可。
+
+source /etc/profile
+
+## 17. 集中文件查找命令 which whereis locate find
+
+![1623847559383](E:\SoftwareNote\Linux\images\文件查找命令对比.png)
+
+## 28. ps命令
+
+### 28.1 通过ps指令查找最占cpu的子<u>线程(线程不是进程)</u>  
+
+ps -mp pid -o THREAD,tid,time
+
+```shell
+[root@AliyunS6 ~]# ps -mp 7039 -o THREAD,tid,time
+USER     %CPU PRI SCNT WCHAN  USER SYSTEM   TID(线程号)     TIME
+root      0.4   -    - -         -      -     - 00:00:10
+root      0.0  19    - -         -      -  7039 00:00:00
+root      0.1  19    - -         -      -  7040 00:00:03
+root      0.0  19    - -         -      -  7041 00:00:00
+root      0.0  19    - -         -      -  7042 00:00:00
+root      0.0  19    - -         -      -  7043 00:00:00
+root      0.0  19    - -         -      -  7044 00:00:00
+root      0.0  19    - -         -      -  7045 00:00:00
+root      0.0  19    - -         -      -  7046 00:00:00
+
+```
+
+
+
