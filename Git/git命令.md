@@ -1,5 +1,19 @@
 # git命令
 
+## 0. 创建工程并关联到远程
+
+```shell
+## 进入本地项目
+git init
+git add .
+git commit -m "first commit"
+[git branch -M main]
+git remote add origin git@github.com:Cod4Man/closeframework.git
+git push -u origin main
+```
+
+
+
 ## 1.  克隆代码
 
 `git clone   xxx.git[仓库url.git]`

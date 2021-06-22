@@ -302,7 +302,14 @@ public class FeignService2 {
 
   - 节点类型：两个类型都**可选择带序列号的生成规则**。在分布式系统中，顺序号可以被用于 为所有的事件进行全局排序，这样客户端可以**通过顺序号推断事件的顺序 ** 
     - 持久（Persistent）：客户端和服务器端断开连接后，创建的节点不删除 
+
     - 短暂（Ephemeral）：客户端和服务器端断开连接后，创建的节点自己删除 
+
+    -  **CONTAINER**
+
+      目前ZooKeeper不支持临时节点下挂子节点。虽然社区一直有呼声提议要增加这个功能，但其实临时节点并不适合这么做。因为它绑定了会话，而父节点更适合让persistent node来担任。不过最终社区在3.5.5做了改变，引入了一个CONTAINER类型的节点。这个类型与persitent node作用相同，只是增加了一个这样的功能：**当它包含的最后一个子节点被删除后，该container父节点会被删除**。
+
+    
 
 - **监听器原理**（面试）
 
@@ -366,7 +373,213 @@ public class FeignService2 {
 
   ![1621311616938](E:\SoftwareNote\微服务\SpringCloud\img\Zookeeper写数据流程.png)
 
-#### 4.1.3 Consul: 8500(需要客户端)
+#### 4.1.5 Zookeeper模拟建行交易交易 
+
+0.项目启动时，OpenFrameWork去加载DB中申请的交易信息，然后把当前host注册到ZK交易节点底下
+
+1.OpenFrameWork提供API(交易号，请求报文映射类)供业务端调用
+
+2.在OpenFrameWork底层，通过交易号去读取ZK节点，读到所有服务器信息，然后自定义负载均衡算法返回一个实际host
+
+3.OpenFrameWork框架将请求报文映射类转换成请求报文，然后根据ZK返回的host去请求服务端
+
+- pom
+
+```xml
+<dependency>
+    <groupId>org.apache.zookeeper</groupId>
+    <artifactId>zookeeper</artifactId>
+    // 3.5.5开始支持节点类型：Container：当子节点全部失效，该节点也失效
+    <version>3.5.5</version>
+</dependency>
+```
+
+- 生产端
+
+```java
+package com.codeman.zk;
+
+import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.WatchedEvent;
+import org.apache.zookeeper.Watcher;
+import org.apache.zookeeper.ZooDefs;
+import org.apache.zookeeper.ZooKeeper;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Scanner;
+import java.util.stream.Stream;
+
+// Zookeeper的生产端，负责注册信息
+public class ZKServer {
+
+    // ZK服务器地址
+    // 集群可用'，'分隔"192.168.1.170:2181,192.168.1.171:2181"
+    private static String connectString = "192.168.1.170:2182";
+    // 会话超时时间
+    private static int sessionTimeout = 200000;
+    private ZooKeeper zk = null;
+    // 父节点
+    private String parentNode = "/serversCP04";
+
+    // 创建到 zk 的客户端连接
+    public void getConnect() throws IOException {
+        zk = new ZooKeeper(connectString, sessionTimeout, new
+                Watcher() {
+                    @Override
+                    public void process(WatchedEvent event) {
+                        System.out.println("watch..." + event);
+                    }
+                });
+    }
+
+    // 注册服务器
+    public void registServer() throws
+            Exception {
+        String createPar = zk.create(parentNode, "localhost".getBytes(), 
+                                     ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.CONTAINER);
+        System.out.println("localhost is online " + createPar);
+        // 项目启动就去数据库加载所有申请过的交易
+        String[] jiaoyis = {"A0671D020", "A0671D021", "A0671D022", "A0671D028"};
+        String[] hosts = {"192.168.1.1", "192.168.1.2", "192.168.1.3"};
+        for (String jiaoyi : jiaoyis) {
+            zk.create(parentNode + "/" + jiaoyi, "jiaoyi".getBytes(), 
+                      ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.CONTAINER);
+            for (String host : hosts) {
+                try {
+                    // CreateMode.EPHEMERAL_SEQUENTIAL 临时/持久+带序号/不带序号
+                    String create = zk.create(parentNode + "/" + jiaoyi + "/" + jiaoyi,
+                            host.getBytes(), ZooDefs.Ids.OPEN_ACL_UNSAFE,
+                            CreateMode.EPHEMERAL_SEQUENTIAL);
+                    System.out.println(host + " is online " + create);
+                } catch (Exception e) {
+                    System.out.println("异常");
+                    System.out.println(e);
+                }
+            }
+        }
+    }
+
+    public static void main(String[] args) throws Exception {
+        // 1 获取 zk 连接
+        ZKServer server = new ZKServer();
+        server.getConnect();
+        // 2 利用 zk 连接注册服务器信息
+        server.registServer();
+        Thread.sleep(Long.MAX_VALUE);
+    }
+}
+
+// localhost is online /serversCP04
+// 192.168.1.1 is online /serversCP04/A0671D020/A0671D0200000000000
+// 192.168.1.2 is online /serversCP04/A0671D020/A0671D0200000000001
+// 192.168.1.3 is online /serversCP04/A0671D020/A0671D0200000000002
+// 192.168.1.1 is online /serversCP04/A0671D021/A0671D0210000000000
+// 192.168.1.2 is online /serversCP04/A0671D021/A0671D0210000000001
+// 192.168.1.3 is online /serversCP04/A0671D021/A0671D0210000000002
+// 192.168.1.1 is online /serversCP04/A0671D022/A0671D0220000000000
+// 192.168.1.2 is online /serversCP04/A0671D022/A0671D0220000000001
+// 192.168.1.3 is online /serversCP04/A0671D022/A0671D0220000000002
+// 192.168.1.1 is online /serversCP04/A0671D028/A0671D0280000000000
+// 192.168.1.2 is online /serversCP04/A0671D028/A0671D0280000000001
+// 192.168.1.3 is online /serversCP04/A0671D028/A0671D0280000000002
+```
+
+- 消费端
+
+```java
+package com.codeman.zk;
+
+import org.apache.zookeeper.WatchedEvent;
+import org.apache.zookeeper.Watcher;
+import org.apache.zookeeper.ZooKeeper;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+import java.util.Scanner;
+
+// 消费端
+public class DistributeClient {
+    private static String connectString = "192.168.1.170:2182"; // 集群可用'，'分隔"192.168.1.170:2181,192.168.1.171:2181"
+    private static int sessionTimeout = 200000;
+    private ZooKeeper zk = null;
+    private String parentNode = "/serversCP04";
+    String jiaoyi;
+
+    // 创建到 zk 的客户端连接
+    public void getConnect() throws IOException {
+        zk = new ZooKeeper(connectString, sessionTimeout, new
+                Watcher() {
+                    @Override
+                    public void process(WatchedEvent event) {
+// 再次启动监听
+                        try {
+//                            getServerList(jiaoyi);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+                });
+    }
+
+    // 获取服务器列表信息
+    public void getServerList(String jiaoyi) throws Exception {
+        // 1 获取服务器子节点信息，并且对父节点进行监听
+        List<String> children = zk.getChildren(parentNode + "/" + jiaoyi, true);
+        System.out.println("children" + children);
+        // 2 存储服务器信息列表
+        ArrayList<String> servers = new ArrayList<>();
+        // 3 遍历所有节点，获取节点中的主机名称信息
+        for (String child : children) {
+            byte[] data = zk.getData(parentNode + "/" + jiaoyi + "/" + child, false, null);
+            servers.add(new String(data));
+        }
+        // 4 打印服务器列表信息
+        System.out.println("所有可用服务器：" + servers);
+        // 这里可以自定义负载均衡算法
+        String realHost = servers.get(new Random().nextInt(servers.size()));
+        System.out.println("负载均衡算法，最终调用服务器的：" + realHost);
+        // 使用apache.httpcomponent调用远程
+        HttpClient httpClient = HttpClientBuilder
+                            .create()
+                            .setConnectionTimeToLive(1, TimeUnit.MINUTES) // 连接时间
+                            .build();
+        HttpPost httpPost = new HttpPost("http://"+realHost+":4396/redis/http");
+        // 组装请求参数Object->xml
+        List<NameValuePair> nvps = new ArrayList<NameValuePair>();
+        nvps.add(new BasicNameValuePair("text", "username"));
+        httpPost.setEntity(new UrlEncodedFormEntity(nvps, Consts.UTF_8));
+        HttpResponse response = httpClient.execute(httpPost);
+        if (response.getStatusLine().getStatusCode() == 200) {
+            HttpEntity entity = response.getEntity();
+            // 响应参数
+            String responseContent = EntityUtils.toString(entity, "UTF-8");
+            System.out.println("responseContent: " + responseContent);
+            EntityUtils.consume(entity);
+        }
+    }
+
+    public static void main(String[] args) throws Exception {
+        // 1 获取 zk 连接
+        DistributeClient client = new DistributeClient();
+        client.getConnect();
+        while (true) {
+            // 2 获取 servers 的子节点信息，从中获取服务器信息列表
+            System.out.println("想调用的交易：");
+            Scanner scanner = new Scanner(System.in);
+            client.jiaoyi = scanner.next();
+            // 该方法可以封装成API，那么交易调用就会获取到host
+            client.getServerList(client.jiaoyi);
+        }
+    }
+}
+
+```
+
+
+
+#### 4.1.4 Consul: 8500(需要客户端)
 
 - 配置和Zookeeper很像
 
@@ -2425,6 +2638,8 @@ JWT/OAuth用来做身份(登录)验证（Token）
 
 ### 7.1 Spring Security 权限管理 
 
+Spring Security本质是一个过滤器链，两大核心(也是Web安全的2核心)：认证和授权
+
 - pom
 
 ```xml
@@ -2688,9 +2903,37 @@ public class UserDetailServiceImpl implements UserDetailsService {
 
 ```
 
+- 注解权限控制
 
+1. **@Secured**  ：判断是否具有角色，另外需要注意的是这里匹配的字符串需要添加前缀“ROLE_“。 
 
+   使用注解先要开启注解功能！ @EnableGlobalMethodSecurity(securedEnabled=true) 
 
+2. **@PreAuthorize ：**
+
+   先开启注解功能： 
+
+   @EnableGlobalMethodSecurity(prePostEnabled = true) 
+
+   @PreAuthorize：注解适合进入方法前的权限验证， @PreAuthorize 可以将登录用 
+
+   户的 roles/permissions 参数传到方法中。
+
+3. **@PostAuthorize** 
+
+   先开启注解功能：  
+
+   @EnableGlobalMethodSecurity(prePostEnabled = true) 
+
+   @PostAuthorize 注解使用并不多，在方法执行后再进行权限验证，适合验证带有返回值的权限
+
+4. **@PostFilter** 
+
+   @PostFilter ：权限验证之后对数据进行过滤 留下用户名是 admin1 的数据表达式中的 filterObject 引用的是方法返回值 List 中的某一个元素
+
+5. **@PreFilter** 
+
+   @PreFilter: 进入控制器之前对数据进行过滤
 
 ### 7.2 JWT：Json Web Token 身份认证
 
@@ -2998,7 +3241,30 @@ public class JwtTokenUtils {
 
 ```
 
+> **JWT注销**
 
+有以下几个方法可以做到失效 JWT token：
+
+1. 将 token 存入 DB（如 Redis）中，失效则删除；但增加了一个每次校验时候都要先从 DB 中查询 token 是否存在的步骤，而且违背了 JWT 的无状态原则（这不就和 session 一样了么？）。
+2. 维护一个 token 黑名单，失效则加入黑名单中。
+3. 在 JWT 中增加一个版本号字段，失效则改变该版本号。
+4. 在服务端设置加密的 key 时，为每个用户生成唯一的 key，失效则改变该 key。
+
+最后决定使用Redis建立一个白名单，大体思路如下：
+
+- 1、生成Jwt的时候，将Jwt Token存入redis中
+- 2、扩展Jwt的验证功能，验证redis中是否存在数据，如果存在则token有效，否则无效
+- 3、实现removeAccessToken功能，在该方法内删除redis对应的key。
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
 
 ### 7.3 OAuth2.0 身份认真
 

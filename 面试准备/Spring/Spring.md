@@ -1457,5 +1457,12 @@ SQL标准中定义不同隔离级别，**隔离级别越高，数据一致性越
 
 
 
+## 7. 在servlet中，没有被IOC管理，Autowire/Value等失效
 
+```
+WebApplicationContextUtils.getWebApplicationContext(getServletContext()).getAutowireCapableBeanFactory().autowireBean(this);
+```
 
+## 8. 替换web.xml  implements [WebApplicationInitializer
+
+# [WebApplicationInitializer初始化web应用，不需要web.xml](https://www.cnblogs.com/z-test/p/9341370.html)

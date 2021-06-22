@@ -53,7 +53,7 @@ ASSIGN_ID MP 自动赋值，雪花算法。
 
 ASSIGN_UUID 主键的数据类型必须是 String，自动生成 UUID 进行赋值
 
-### 2.2 @TableField
+### 2.2 @TableField (公共字段填充MetaObjectHandler)
 
 - 映射非主键字段，
   - value 映射字段名，
