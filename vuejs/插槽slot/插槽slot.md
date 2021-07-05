@@ -40,7 +40,7 @@
 
 - 插槽`<slot>`里面可以写默认实现，没有被替换则展示默认内容
 
-- 具名插槽，`<slot name='slotname'>` 在插槽中定义一个name，然后插入时，用`<span slot='slotname'>` 来找到响应的插槽进行插入
+- 具名插槽，`<slot name='slotname'>` 在插槽中定义一个name，然后插入时，用`<span slot='slotname'>` 来找到相应的插槽进行插入
 
   
 

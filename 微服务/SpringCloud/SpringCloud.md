@@ -16,7 +16,7 @@
 
 ### 3.1 @RequestBody
 
-- 请求参数为实体类，需要增加参数注解
+- 请求参数为实体类，需要增加参数注解,前端传参应为json串
 
 ```java
 @PostMapping("/payment/create")
@@ -48,7 +48,10 @@ public class ApplicationContextConfig {
     //赋予RestTemplate负载均衡的能力
     @LoadBalanced
     public RestTemplate getRestTemplate() {
-        return new RestTemplate();
+        RestTemplate rt = new RestTemplate();
+        // 可增加拦截器，做一些请求增强操作，比如增加header的token
+        rt.setInterceptors(Collections.singletonList(tokenInterceptor));
+        return rt;
     }
 }
 
@@ -599,6 +602,12 @@ spring:
 ### 4.2 服务注册与发现组件的异同点
 
 - CAP理论：一个分布式系统不可能同时很好的满足一致性(C)/高可用(A)/**分区容错性(P)**
+
+  **P是分布式不同服务，挂了互不影响，因为是独立部署**
+
+  **A是可用性，就是集群，挂了一台还可以用**
+
+  **C是致性，集群就会有一致性问题，一致性难以保持**
 
   ![1607245896866](E:\SoftwareNote\微服务\SpringCloud\img\CAP理论.png)
 
@@ -1609,7 +1618,7 @@ public class ReceiveMessageListenerController {
 
     当消费者系统异常(重启等)，生产者会将消息持久化(在这个分组中)。当服务分组改变时，服务正常后也无法接收到异常期间持久化的消息；而当服务分组没有改变，服务恢复正常后，可以重新接收到异常期间持久化的消息。
 
-### 4.9 SpringCloud Sleuth分布式请求链路追踪
+### 4.9 SpringCloud Sleuth + zipkin分布式请求链路追踪
 
 - 产生原因：在微服务框架中，一个由客户端发起的请求在后端系统中会经过多个不同的服务节点调用来协同产生最后的请求结果，每一个前段请求都会形成一条复杂的分布式服务调用链路，链路中的任何一环出现高延迟或错误都会引起整个请求最后的失败。
 
@@ -1721,6 +1730,9 @@ span:表示调用链路来源，通俗的理解span就是一次请求信息
 
   ```shell
   docker run --env MODE=standalone -itd -p 8868:8848 --name nacosallenv nacos/nacos-server
+  
+  # 非docker
+  sh startup.sh -m standalone
   ```
 
 - 方式二：运行容器时带上参数
@@ -1737,7 +1749,7 @@ span:表示调用链路来源，通俗的理解span就是一次请求信息
 
    
 
-- Nacos数据库搭配Mysql使用:
+- Nacos数据库搭配Mysql使用:(内置derby)
 
   https://github.com/alibaba/nacos/blob/master/config/src/main/resources/META-INF/nacos-db.sql
 
@@ -2949,7 +2961,7 @@ public class UserDetailServiceImpl implements UserDetailsService {
 
 > What is JWT
 
-JWT 全称 **JSON Web Token**。本质上 JWT 是一串 token 字符串。客户端登录之后，服务端返回一串 token 给客户端，之后每次客户端请求 API 接口都需要携带该 token 进行身份校验。JWT 由三个部分组成：头部(header)、载荷(payload)、签名(signature)。这三个部分使用 `.` 连接在一起就是一个完整的 JWT。所以，一个完整的 JWT 应该类似下面这种形式： `xxxxxx.yyyyy.zzzzz`
+JWT 全称 **JSON Web Token**。本质上 JWT 是一串 token 字符串。客户端登录之后，服务端返回一串 token 给客户端，之后每次客户端请求 API 接口都需要携带该 token 进行身份校验。JWT 由三个部分组成：**头部(header)、载荷(payload)、签名(signature)**。这三个部分使用 `.` 连接在一起就是一个完整的 JWT。所以，一个完整的 JWT 应该类似下面这种形式： `xxxxxx.yyyyy.zzzzz`
 
 - **header**: header 是一个 json 数据，用于描述 JWT 的基本信息。一般要由两个部分组成：
 
@@ -3266,7 +3278,7 @@ public class JwtTokenUtils {
 
  
 
-### 7.3 OAuth2.0 身份认真
+### 7.3 OAuth2.0 身份认证
 
 ## 8. Shiro 权限管理
 

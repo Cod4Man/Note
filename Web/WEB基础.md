@@ -283,3 +283,5 @@ Filter链过滤请求和响应：统一编码，过滤response，身份认证(JW
 Servlet处理请求
 
 Listener监听事件，比如HttpSessionListener可以监听sessionCreate和sessionDestory
+
+拦截器Inteceptor [比如说SpringCloud的Resttemplate和Feign调用远程时，拦截请求set header token]

@@ -693,7 +693,8 @@ public class BeanConfig {
 @Data
 public class Person {
     private int age;
-    @Value("${person.name}")
+    // 可以设置默认值
+    @Value("${person.name:zhangsan}")
     private String name;
 
     public Person(int age, String name) {

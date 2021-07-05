@@ -1055,3 +1055,11 @@ abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFactory{
 }
 ```
 
+## 4. Springboot-starts
+
+### 4.1 **`jasypt-spring-boot`加密组件:配置文件密码s加密**
+
+使用JDK 1.8.0_161或更高版本时，不需要再安装Java Cryptography Extension（JCE）Policy File。JDK 1.8.0_161默认启用无限强度加密。 
+
+
+

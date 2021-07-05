@@ -1497,3 +1497,21 @@ public String getTokenByGsid(String gsid) {}
 
 这么做，可以将1秒内所造成的缓存脏数据，再次删除。
  这个1秒具体该休眠多久根据自己的项目的读写数据业务逻辑的耗时而定。
+
+## 21. 外网访问
+
+修改配置文件redis.conf
+
+1. 关闭访问白名单
+
+   ```shell
+   # 注释 bind 127.0.0.1
+   ```
+
+2. 关闭保护模式
+
+   ```shell
+   protected-mode no
+   ```
+
+以配置文件运行，`src/redis-server redis.conf`
