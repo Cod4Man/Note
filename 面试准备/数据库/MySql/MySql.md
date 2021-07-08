@@ -2316,3 +2316,11 @@ mysql> select * from test;
 ```
 
 注意前提是给该字段添加了 zerofill 属性，不然 int(5) 不起作用。
+
+## 27. MySQL数据表的字段信息详情 information_schema.COLUMNS
+### 27.1 查询数据表的全字段
+- **group_concat语法**
+`**语法：group_concat( [distinct] 要连接的字段 [order by 排序字段 asc/desc ] [separator '分隔符'] )**`
+- **带别名的数据表全字段**
+select CONCAT('dt.',group_concat(COLUMN_NAME separator ',dt.')) from information_schema.COLUMNS where table_name = 'tb_event_dt';
+
