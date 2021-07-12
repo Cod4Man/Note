@@ -71,3 +71,16 @@ debugCompile（debugImplementation）
 releaseCompile（releaseImplementation）
 
     Release compile仅仅针对 Release 模式的编译和最终的 Release apk 打包。3
+
+### 2.1 compile和 implementation的区别
+
+compile子类可以继承，implementation子类无法继承
+
+### 2.2 排除冲突依赖
+
+```txt
+compile("${lib.sbStarterWeb}") {
+	exclude group: 'org.springframework', module: 'spring-webmvc'
+}
+```
+

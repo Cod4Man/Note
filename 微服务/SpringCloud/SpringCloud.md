@@ -755,6 +755,10 @@ logging:
  
 ```
 
+##### 4.3.2.4 注意事项
+
+1. **@PathVariable形式的参数,则需要使用value=""标明对应的参数,否则会抛出IllegalStateException异常**
+
 #### 4.3.2 OpenFeign+Ribbon+Eureka的配合
 
 - 只有**Eureka**：
@@ -1136,7 +1140,7 @@ feign:
   
   ```
 
-  ##### 4.5.3.4 pom
+##### 4.5.3.4 pom
 
   ```xml
   <dependency>
@@ -1164,6 +1168,8 @@ feign:
   ```
 
   ##### 4.5.3.5 yml
+
+  这些routes会每次去读取yml配置文件，因此可以动态修改路由
 
   ```yaml
   server:
@@ -3478,7 +3484,7 @@ public class ShiroRealm extends AuthorizingRealm {
 
 ```
 
-
+### 9. OAuth2
 
 
 
