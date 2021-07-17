@@ -3276,15 +3276,750 @@ public class JwtTokenUtils {
 
  
 
- 
-
- 
-
- 
-
- 
-
 ### 7.3 OAuth2.0 身份认证
+
+> API
+
+- `/oauth/authorize`：授权端点，ABA返回code
+- `/oauth/token`：令牌端点，请求token
+- `/oauth/confirm_access`：用户确认授权提交端点
+- `/oauth/error`：授权服务错误信息端点
+- `/oauth/check_token`：用于资源服务访问的令牌解析端点
+- `/oauth/token_key`：提供公有密匙的端点，如果你使用 JWT 令牌的话
+
+#### 7.3.1 pom
+
+```xml
+<!-- OAuth2 认证服务器-->
+<dependency>
+    <groupId>org.springframework.security.oauth.boot</groupId>
+    <artifactId>spring-security-oauth2-autoconfigure</artifactId>
+</dependency>
+
+<!-- 来自-->
+<!-- <groupId>org.springframework.cloud</groupId>
+  <artifactId>spring-cloud-openfeign-dependencies</artifactId>-->
+
+<dependency>
+    <groupId>org.springframework.security</groupId>
+    <artifactId>spring-security-oauth2-jose</artifactId>
+</dependency>
+<!-- 来自：
+org.springframework.cloud:spring-cloud-dependencies-->
+```
+
+
+
+#### 7.3.2 yml
+
+```yaml
+server:
+  port: 8000
+
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/blog0703?serverTimezone=UTC&characterEncoding=utf-8&useSSL=false
+    driver-class-name: com.mysql.jdbc.Driver
+    username: root
+    password: 
+    type: org.springframework.jdbc.datasource.DriverManagerDataSource
+    dbcp2:
+      min-idle: 5                                           # 数据库连接池的最小维持连接数
+      initial-size: 5                                       # 初始化连接数
+      max-total: 5                                          # 最大连接数
+      max-wait-millis: 200                                  # 等待连接获取的最大超时时间
+      #mysql数据库验证
+      test-while-idle: false
+      validation-query: SELECT 1
+      validation-query-timeout: 10
+  redis:
+    database: 0
+    host: localhost
+    port: 6379
+  cloud:
+    nacos:
+      config:
+        server-addr: localhost:8848 #Nacos作为配置中心地址
+        file-extension: yml #指定yaml格式的配置
+        group: BLOG0703_GROUP  # group
+        namespace: 9405665c-0bfa-4760-9411-4c15310c0e4a # namespace
+     discovery:
+       server-addr: localhost:8848 #Nacos作为配置中心地址
+       file-extension: yml #指定yaml格式的配置
+       group: BLOG0703_GROUP  # group
+       namespace: 9405665c-0bfa-4760-9411-4c15310c0e4a # namespace 
+# 日志相关
+logging:
+  #file: logs/blog0703.log # 默认10M切分
+  #path: E:\logs\blog0703
+  level:
+    io:
+      seata: info
+    com:
+      codeman:
+        blog0703: debug
+#          mapper:
+#            MallUsersMapper: debug
+
+# jwt 配置
+jwt:
+  config:
+    enabled: true
+    key-location: jwt.jks
+    key-alias: jwt
+    key-pass: 123456
+    iss: youlai.tech
+    sub: all
+    access-exp-days: 30
+
+feign:
+  httpclient:
+    enabled: false
+  okhttp:
+    enabled: true
+
+#weapp:
+#  appid: wx99a151dc43d2637b
+#  secret: a09605af8ad29ca5d18ff31c19828f37
+
+# 全局参数设置
+ribbon:
+  ReadTimeout: 120000
+  ConnectTimeout: 10000
+  SocketTimeout: 10000
+  MaxAutoRetries: 0
+  MaxAutoRetriesNextServer: 1
+```
+
+#### 7.3.3. SQL
+
+```sql
+CREATE TABLE `oauth_client_details`  (
+                                         `client_id` varchar(256) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
+                                         `resource_ids` varchar(256) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                         `client_secret` varchar(256) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                         `scope` varchar(256) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                         `authorized_grant_types` varchar(256) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                         `web_server_redirect_uri` varchar(256) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                         `authorities` varchar(256) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                         `access_token_validity` int(11) NULL DEFAULT NULL,
+                                         `refresh_token_validity` int(11) NULL DEFAULT NULL,
+                                         `additional_information` varchar(4096) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                         `autoapprove` varchar(256) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                         PRIMARY KEY (`client_id`) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8 COLLATE = utf8_general_ci ROW_FORMAT = Dynamic;
+
+INSERT INTO `oauth_client_details` VALUES ('client', NULL, '123456', 'all', 'password,refresh_token', '', NULL, NULL, NULL, NULL, NULL);
+
+
+CREATE TABLE `sys_oauth_client` (
+                                    `client_id` varchar(256) NOT NULL,
+                                    `resource_ids` varchar(256) DEFAULT NULL,
+                                    `client_secret` varchar(256) DEFAULT NULL,
+                                    `scope` varchar(256) DEFAULT NULL,
+                                    `authorized_grant_types` varchar(256) DEFAULT NULL,
+                                    `web_server_redirect_uri` varchar(256) DEFAULT NULL,
+                                    `authorities` varchar(256) DEFAULT NULL,
+                                    `access_token_validity` int(11) DEFAULT NULL,
+                                    `refresh_token_validity` int(11) DEFAULT NULL,
+                                    `additional_information` varchar(4096) DEFAULT NULL,
+                                    `autoapprove` varchar(256) DEFAULT NULL,
+                                    PRIMARY KEY (`client_id`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC;
+
+INSERT INTO `sys_oauth_client` VALUES ('client', NULL, '123456', 'all', 'authorization_code,password,refresh_token,implicit', NULL, NULL, 3600, 7200, NULL, 'true');
+INSERT INTO `sys_oauth_client` VALUES ('youlai-admin', '', '123456', 'all', 'password,client_credentials,refresh_token,authorization_code', '', '', 3600, 7200, NULL, 'true');
+INSERT INTO `sys_oauth_client` VALUES ('youlai-weapp', '', '123456', 'all', 'authorization_code,password,refresh_token,implicit', NULL, NULL, 3600, 7200, NULL, 'true');
+
+```
+
+#### 7.3.4 JAVA
+
+> 1. ClientDetailsService
+
+```java
+import com.codeman.blog0703.api.OAuthClientFeignClient;
+import com.codeman.blog0703.entity.SysOauthClient;
+import com.codeman.blog0703.enums.PasswordEncoderTypeEnum;
+import com.codeman.blog0703.vo.result.Result;
+import lombok.SneakyThrows;
+import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.security.oauth2.provider.ClientDetails;
+import org.springframework.security.oauth2.provider.ClientDetailsService;
+import org.springframework.security.oauth2.provider.NoSuchClientException;
+import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.springframework.stereotype.Service;
+
+import javax.annotation.Resource;
+
+@Service
+public class ClientDetailsServiceImpl implements ClientDetailsService {
+
+    @Resource
+    private OAuthClientFeignClient oAuthClientFeignClient;
+
+    @Override
+    @SneakyThrows
+    public ClientDetails loadClientByClientId(String clientId) {
+        try {
+            Result<SysOauthClient> result = oAuthClientFeignClient.getOAuthClientById(clientId);
+            if (Result.success().getCode().equals(result.getCode())) {
+                SysOauthClient client = result.getData();
+                BaseClientDetails clientDetails = new BaseClientDetails(
+                        client.getClientId(),
+                        client.getResourceIds(),
+                        client.getScope(),
+                        client.getAuthorizedGrantTypes(),
+                        client.getAuthorities(),
+                        client.getWebServerRedirectUri());
+                clientDetails.setClientSecret(PasswordEncoderTypeEnum.NOOP.getPrefix() + client.getClientSecret());
+                return clientDetails;
+            } else {
+                throw new NoSuchClientException("No client with requested id: " + clientId);
+            }
+        } catch (EmptyResultDataAccessException var4) {
+            throw new NoSuchClientException("No client with requested id: " + clientId);
+        }
+    }
+}
+```
+
+> 2.  UserDetailsService
+
+```java
+import com.codeman.blog0703.api.UserFeignClient;
+import com.codeman.blog0703.domain.OAuthUserDetails;
+import com.codeman.blog0703.entity.User;
+import com.codeman.blog0703.enums.OAuthClientEnum;
+import com.codeman.blog0703.util.JwtUtils;
+import com.codeman.blog0703.vo.result.Result;
+import com.codeman.blog0703.vo.result.ResultCode;
+import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.authentication.AccountExpiredException;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.authentication.LockedException;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.stereotype.Service;
+
+@Service
+@AllArgsConstructor
+@Slf4j
+public class UserDetailsServiceImpl implements UserDetailsService {
+
+    private UserFeignClient userFeignClient;
+    // private MemberFeignClient memberFeignClient;
+
+    @Override
+    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        String clientId = JwtUtils.getAuthClientId();
+        OAuthClientEnum client = OAuthClientEnum.getByClientId(clientId);
+
+        Result result;
+        OAuthUserDetails oauthUserDetails = null;
+        switch (client) {
+            default:
+                result = userFeignClient.user(username);
+                if (ResultCode.SUCCESS.getCode().equals(result.getCode())) {
+                    User sysUser = (User)result.getData();
+                    oauthUserDetails = new OAuthUserDetails(sysUser);
+                }
+                break;
+        }
+        if (oauthUserDetails == null || oauthUserDetails.getId() == null) {
+            throw new UsernameNotFoundException(ResultCode.USER_NOT_EXIST.getMsg());
+        } else if (!oauthUserDetails.isEnabled()) {
+            throw new DisabledException("该账户已被禁用!");
+        } else if (!oauthUserDetails.isAccountNonLocked()) {
+            throw new LockedException("该账号已被锁定!");
+        } else if (!oauthUserDetails.isAccountNonExpired()) {
+            throw new AccountExpiredException("该账号已过期!");
+        }
+        return oauthUserDetails;
+    }
+
+}
+```
+
+> 3. oauth的认证授权配置，token相关 AuthorizationServerConfigurerAdapter
+
+```java
+package com.codeman.blog0703.security.config;
+
+import cn.hutool.core.collection.CollectionUtil;
+import cn.hutool.http.HttpStatus;
+import cn.hutool.json.JSONUtil;
+import com.codeman.blog0703.domain.OAuthUserDetails;
+import com.codeman.blog0703.security.service.ClientDetailsServiceImpl;
+import com.codeman.blog0703.security.service.UserDetailsServiceImpl;
+import com.codeman.blog0703.vo.result.Result;
+import com.codeman.blog0703.vo.result.ResultCode;
+import lombok.AllArgsConstructor;
+import lombok.SneakyThrows;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.crypto.factory.PasswordEncoderFactories;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.common.DefaultOAuth2AccessToken;
+import org.springframework.security.oauth2.config.annotation.configurers.ClientDetailsServiceConfigurer;
+import org.springframework.security.oauth2.config.annotation.web.configuration.AuthorizationServerConfigurerAdapter;
+import org.springframework.security.oauth2.config.annotation.web.configuration.EnableAuthorizationServer;
+import org.springframework.security.oauth2.config.annotation.web.configurers.AuthorizationServerEndpointsConfigurer;
+import org.springframework.security.oauth2.provider.token.TokenEnhancer;
+import org.springframework.security.oauth2.provider.token.TokenEnhancerChain;
+import org.springframework.security.oauth2.provider.token.store.JwtAccessTokenConverter;
+import org.springframework.security.oauth2.provider.token.store.KeyStoreKeyFactory;
+import org.springframework.security.web.AuthenticationEntryPoint;
+
+import java.security.KeyPair;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * 认证授权配置
+ */
+@Configuration
+@EnableAuthorizationServer
+@AllArgsConstructor
+public class AuthorizationServerConfig extends AuthorizationServerConfigurerAdapter {
+
+    private AuthenticationManager authenticationManager;
+    private UserDetailsServiceImpl userDetailsService;
+    private ClientDetailsServiceImpl clientDetailsService;
+
+    /**
+     * OAuth2客户端【数据库加载】
+     */
+    @Override
+    @SneakyThrows
+    public void configure(ClientDetailsServiceConfigurer clients) {
+        clients.withClientDetails(clientDetailsService);
+    }
+
+    /**
+     * 配置授权（authorization）以及令牌（token）的访问端点和令牌服务(token services)
+     */
+    @Override
+    public void configure(AuthorizationServerEndpointsConfigurer endpoints) {
+        TokenEnhancerChain tokenEnhancerChain = new TokenEnhancerChain();
+        List<TokenEnhancer> tokenEnhancers = new ArrayList<>();
+        tokenEnhancers.add(tokenEnhancer());
+        tokenEnhancers.add(jwtAccessTokenConverter());
+        tokenEnhancerChain.setTokenEnhancers(tokenEnhancers);
+        endpoints
+                .authenticationManager(authenticationManager)
+                .accessTokenConverter(jwtAccessTokenConverter())
+                .tokenEnhancer(tokenEnhancerChain)
+                .userDetailsService(userDetailsService)
+                // refresh token有两种使用方式：重复使用(true)、非重复使用(false)，默认为true
+                //      1 重复使用：access token过期刷新时， refresh token过期时间未改变，仍以初次生成的时间为准
+                //      2 非重复使用：access token过期刷新时， refresh token过期时间延续，在refresh token有效期内刷新便永不失效达到无需再次登录的目的
+                .reuseRefreshTokens(true);
+    }
+
+
+    /**
+     * 使用非对称加密算法对token签名
+     */
+    @Bean
+    public JwtAccessTokenConverter jwtAccessTokenConverter() {
+        JwtAccessTokenConverter converter = new JwtAccessTokenConverter();
+        converter.setKeyPair(keyPair());
+        return converter;
+    }
+
+    /**
+     * 从classpath下的密钥库中获取密钥对(公钥+私钥)
+     */
+    @Bean
+    public KeyPair keyPair() {
+        KeyStoreKeyFactory factory = new KeyStoreKeyFactory(new ClassPathResource("jwt.jks"), "123456".toCharArray());
+        KeyPair keyPair = factory.getKeyPair("jwt", "123456".toCharArray());
+        return keyPair;
+    }
+
+    /**
+     * JWT内容增强
+     */
+    @Bean
+    public TokenEnhancer tokenEnhancer() {
+        return (accessToken, authentication) -> {
+            Map<String, Object> additionalInfo = CollectionUtil.newHashMap();
+            OAuthUserDetails OAuthUserDetails = (OAuthUserDetails) authentication.getUserAuthentication().getPrincipal();
+            additionalInfo.put("userId", OAuthUserDetails.getId());
+            additionalInfo.put("username", OAuthUserDetails.getUsername());
+            ((DefaultOAuth2AccessToken) accessToken).setAdditionalInformation(additionalInfo);
+            return accessToken;
+        };
+    }
+
+    @Bean
+    public DaoAuthenticationProvider authenticationProvider() {
+        DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
+        provider.setHideUserNotFoundExceptions(false); // 用户不存在异常抛出
+        provider.setUserDetailsService(userDetailsService);
+        provider.setPasswordEncoder(passwordEncoder());
+        return provider;
+    }
+
+    /**
+     * 密码编码器
+     * <p>
+     * 委托方式，根据密码的前缀选择对应的encoder，例如：{bcypt}前缀->标识BCYPT算法加密；{noop}->标识不使用任何加密即明文的方式
+     * 密码判读 DaoAuthenticationProvider#additionalAuthenticationChecks
+     *
+     * @return
+     */
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return PasswordEncoderFactories.createDelegatingPasswordEncoder();
+    }
+
+    /**
+     * 自定义认证异常响应数据
+     */
+    @Bean
+    public AuthenticationEntryPoint authenticationEntryPoint() {
+        return (request, response, e) -> {
+            response.setStatus(HttpStatus.HTTP_OK);
+            response.setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
+            response.setHeader("Access-Control-Allow-Origin", "*");
+            response.setHeader("Cache-Control", "no-cache");
+            Result result = Result.failed(ResultCode.CLIENT_AUTHENTICATION_FAILED);
+            response.getWriter().print(JSONUtil.toJsonStr(result));
+            response.getWriter().flush();
+        };
+    }
+}
+
+```
+
+> 4.  Spring Security 访问路由限制，如果只有oauth应该不用吧
+
+```java
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+
+@Configuration
+@EnableWebSecurity
+@Slf4j
+public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
+
+    @Override
+    protected void configure(HttpSecurity http) throws Exception {
+        http
+                .authorizeRequests().antMatchers("/oauth/**").permitAll()
+                 // @link https://gitee.com/xiaoym/knife4j/issues/I1Q5X6 (接口文档knife4j需要放行的规则)
+                .antMatchers("/webjars/**","/doc.html","/swagger-resources/**","/v2/api-docs").permitAll()
+                .anyRequest().authenticated()
+                .and()
+                .csrf().disable();
+    }
+
+    @Bean
+    public AuthenticationManager authenticationManagerBean() throws Exception {
+        return super.authenticationManagerBean();
+    }
+}
+```
+
+> 4. UserDetails
+
+```java
+import cn.hutool.core.collection.CollectionUtil;
+import com.codeman.blog0703.entity.User;
+import com.codeman.blog0703.enums.PasswordEncoderTypeEnum;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
+
+import java.util.ArrayList;
+import java.util.Collection;
+
+import static com.codeman.blog0703.constants.GlobalConstants.STATUS_YES;
+
+
+/**
+ * 登录用户信息
+ */
+@Data
+@NoArgsConstructor
+public class OAuthUserDetails implements UserDetails {
+
+    private Long id;
+
+    private String username;
+
+    private String password;
+
+    private Boolean enabled;
+
+    private String clientId;
+
+    private Collection<SimpleGrantedAuthority> authorities;
+
+    public OAuthUserDetails(User user) {
+        this.setId(Long.valueOf(user.getUserId()));
+        this.setUsername(user.getName());
+        this.setPassword(PasswordEncoderTypeEnum.BCRYPT.getPrefix() + user.getPassword());
+        this.setEnabled(user.getUseabled());
+        if (CollectionUtil.isNotEmpty(user.getRoles())) {
+            authorities = new ArrayList<>();
+            user.getRoles().forEach(role -> authorities.add(new SimpleGrantedAuthority(role.getRoleCd())));
+        }
+    }
+
+    /*public OAuthUserDetails(AuthMemberDTO member) {
+        this.setId(member.getId());
+        this.setUsername(member.getUsername());
+        this.setPassword(PasswordEncoderTypeEnum.BCRYPT.getPrefix() + member.getPassword());
+        this.setEnabled(STATUS_YES.equals(member.getStatus()));
+    }*/
+
+
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        return this.authorities;
+    }
+
+    @Override
+    public String getPassword() {
+        return this.password;
+    }
+
+    @Override
+    public String getUsername() {
+        return this.username;
+    }
+
+    @Override
+    public boolean isAccountNonExpired() {
+        return true;
+    }
+
+    @Override
+    public boolean isAccountNonLocked() {
+        return true;
+    }
+
+    @Override
+    public boolean isCredentialsNonExpired() {
+        return true;
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return this.enabled;
+    }
+}
+```
+
+> 5. AuthController
+
+```java
+import cn.hutool.json.JSONObject;
+import com.codeman.blog0703.constants.AuthConstants;
+import com.codeman.blog0703.enums.OAuthClientEnum;
+import com.codeman.blog0703.util.JwtUtils;
+import com.codeman.blog0703.vo.result.Result;
+import com.nimbusds.jose.jwk.JWKSet;
+import com.nimbusds.jose.jwk.RSAKey;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiImplicitParam;
+import io.swagger.annotations.ApiImplicitParams;
+import io.swagger.annotations.ApiOperation;
+import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.security.oauth2.provider.endpoint.TokenEndpoint;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import springfox.documentation.annotations.ApiIgnore;
+
+import java.security.KeyPair;
+import java.security.Principal;
+import java.security.interfaces.RSAPublicKey;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
+@Api(tags = "认证中心")
+@RestController
+@RequestMapping("/oauth")
+@AllArgsConstructor
+@Slf4j
+public class OAuthController {
+
+    private TokenEndpoint tokenEndpoint;
+    // private IAuthService wechatAuthService;
+    private RedisTemplate redisTemplate;
+    private KeyPair keyPair;
+
+    @ApiOperation(value = "OAuth2认证", notes = "login")
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "grant_type", defaultValue = "password", value = "授权模式", required = true),
+            @ApiImplicitParam(name = "client_id", value = "Oauth2客户端ID（新版本需放置请求头）", required = true),
+            @ApiImplicitParam(name = "client_secret", value = "Oauth2客户端秘钥（新版本需放置请求头）", required = true),
+            @ApiImplicitParam(name = "refresh_token", value = "刷新token"),
+            @ApiImplicitParam(name = "username", defaultValue = "admin", value = "登录用户名"),
+            @ApiImplicitParam(name = "password", defaultValue = "123456", value = "登录密码")
+    })
+    @PostMapping("/token")
+    public Object postAccessToken(
+            @ApiIgnore Principal principal,
+            @ApiIgnore @RequestParam Map<String, String> parameters
+    ) throws HttpRequestMethodNotSupportedException {
+
+        /**
+         * 获取登录认证的客户端ID
+         *
+         * 兼容两种方式获取Oauth2客户端信息（client_id、client_secret）
+         * 方式一：client_id、client_secret放在请求路径中(注：当前版本已废弃)
+         * 方式二：放在请求头（Request Headers）中的Authorization字段，且经过加密，例如 Basic Y2xpZW50OnNlY3JldA== 明文等于 client:secret
+         */
+        String clientId = JwtUtils.getAuthClientId();
+        OAuthClientEnum client = OAuthClientEnum.getByClientId(clientId);
+        switch (client) {
+            case TEST: // knife4j接口测试文档使用 client_id/client_secret : client/123456
+                return tokenEndpoint.postAccessToken(principal, parameters).getBody();
+            default:
+                return Result.success(tokenEndpoint.postAccessToken(principal, parameters).getBody());
+        }
+    }
+
+    /*@ApiOperation(value = "微信授权登录")
+    @ApiImplicitParam(name = "code",  value = "小程序授权code",paramType = "path")
+    @PostMapping("/token/{code}")
+    public Result wechatLogin(@PathVariable String code, @RequestBody UserInfo userInfo) {
+        OAuthToken token = wechatAuthService.login(code, userInfo);
+        return Result.success(token);
+    }*/
+
+    @ApiOperation(value = "注销", notes = "logout")
+    @DeleteMapping("/logout")
+    public Result logout() {
+        JSONObject payload = JwtUtils.getJwtPayload();
+        String jti = payload.getStr(AuthConstants.JWT_JTI); // JWT唯一标识
+        Long expireTime = payload.getLong(AuthConstants.JWT_EXP); // JWT过期时间戳(单位：秒)
+        if (expireTime != null) {
+            long currentTime = System.currentTimeMillis() / 1000;// 当前时间（单位：秒）
+            if (expireTime > currentTime) { // token未过期，添加至缓存作为黑名单限制访问，缓存时间为token过期剩余时间
+                redisTemplate.opsForValue().set(AuthConstants.TOKEN_BLACKLIST_PREFIX + jti, null, (expireTime - currentTime), TimeUnit.SECONDS);
+            }
+        } else { // token 永不过期则永久加入黑名单
+            redisTemplate.opsForValue().set(AuthConstants.TOKEN_BLACKLIST_PREFIX + jti, null);
+        }
+        return Result.success("注销成功");
+    }
+
+    @ApiOperation(value = "获取公钥", notes = "login")
+    @GetMapping("/public-key")
+    public Map<String, Object> getPublicKey() {
+        RSAPublicKey publicKey = (RSAPublicKey) keyPair.getPublic();
+        RSAKey key = new RSAKey.Builder(publicKey).build();
+        return new JWKSet(key).toJSONObject();
+    }
+}
+```
+
+#### 7.3.5 步骤
+
+>  -1.  测试
+
+```http
+http://localhost:9999/oauth/token?username=admin&password=123456&grant_type=password
+ Header: Authorization=Basic eW91bGFpLWFkbWluOjEyMzQ1Ng==
+ or Authorization: type=Basic Auth ； username=youlai-admin   password=123456
+ 
+ 
+new String(new BASE64Decoder().decodeBuffer("eW91bGFpLWFkbWluOjEyMzQ1Ng=="), "UTF-8") 
+ => youlai-admin:123456
+ 
+ // 返回token数据
+ // 然后使用token调用
+ http://localhost:9999/api/user/1
+ Header: Authorization = bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX25hbWUiOiJhZG1pbiIsInNjb3BlIjpbImFsbCJdLCJleHAiOjE2MjY1NzMwNTMsInVzZXJJZCI6MSwiYXV0aG9yaXRpZXMiOlsiUk9PVCIsIkFETUlOIl0sImp0aSI6IjBmMWI2OTY1LTc1YTItNDIxNC04M2U5LTQxMzdjZTQzZTc2YyIsImNsaWVudF9pZCI6InlvdWxhaS1hZG1pbiIsInVzZXJuYW1lIjoiYWRtaW4ifQ.C2jtBn09ATGPxv_6yFOb6iydmjIcI4FCjK_A-HNkgxANyQATwy2A7sxS_bAYMJYi5CYtQFFeVuTuQ2XDMq2aIaRUXxYLW655ys05YoxBY4xAwaCluDsharGTvtvgcwziKREYMnUI2rgVs2UuLpoPrdmt9FPj7UGLSLyvU1J5iQKGGzf4R_zCkYvQBwYcFjCN3pixlmZvSQbKLMWlE6tnXiIGMcg-5ky70GPkGm729QdqMybGFyS3jSuaG0pwq2yV98GsyQg9ZuFU-LVQJRqGkB9YkJ8NAFgcZb87XYI9YpkZj8WKqgY0h7smljfaMGIjk9L5FKKn7M2u-d17YF_bNw
+```
+
+
+
+> 0. Security放行
+
+```java
+http.authorizeRequests().antMatchers("/oauth/**").permitAll()
+```
+
+> 1. 组装客户端详情 ClientDetails  ClientDetailsService.loadClientByClientId(String clientId);
+
+> 2. 执行controller获取token
+
+```java
+@ApiImplicitParams({
+            @ApiImplicitParam(name = "grant_type", defaultValue = "password", value = "授权模式", required = true),
+            @ApiImplicitParam(name = "client_id", value = "Oauth2客户端ID（新版本需放置请求头）", required = true),
+            @ApiImplicitParam(name = "client_secret", value = "Oauth2客户端秘钥（新版本需放置请求头）", required = true),
+            @ApiImplicitParam(name = "refresh_token", value = "刷新token"),
+            @ApiImplicitParam(name = "username", defaultValue = "admin", value = "登录用户名"),
+            @ApiImplicitParam(name = "password", defaultValue = "123456", value = "登录密码")
+    })
+    @PostMapping("/token")
+    public Object postAccessToken(
+            @ApiIgnore Principal principal,
+            @ApiIgnore @RequestParam Map<String, String> parameters
+    ) {
+        // 本质上，执行的是oauth2提供的POST方法
+        tokenEndpoint.postAccessToken(principal, parameters).getBody();
+        // @RequestMapping(value = "/oauth/token", method=RequestMethod.POST)
+		// public ResponseEntity<OAuth2AccessToken> postAccessToken(Principal principal, @RequestParam
+		// Map<String, String> parameters)
+        // 获取token，里面包含了loadUserByUsername(username)组装用户信息
+        // OAuth2AccessToken token = getTokenGranter().grant(tokenRequest.getGrantType(), tokenRequest)
+    }
+```
+
+- token response
+
+```json
+{
+    "code": "00000",
+    "data": {
+        "access_token": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX25hbWUiOiJhZG1pbiIsInNjb3BlIjpbImFsbCJdLCJleHAiOjE2MjY1Mzg4OTAsInVzZXJJZCI6MSwiYXV0aG9yaXRpZXMiOlsiUk9PVCIsIkFETUlOIl0sImp0aSI6IjA5MDAzZmEyLWE1MTQtNDFlNy1iMDNkLTU3NGYyMDE4ODM3ZSIsImNsaWVudF9pZCI6InlvdWxhaS1hZG1pbiIsInVzZXJuYW1lIjoiYWRtaW4ifQ.Ac76jp-k3nKiDihxMHLRBXBTqhceJxkA5buXp3avCOMgdgy9GBBC_cELyn62SHv_Jw4ZZEil6p6gWhcy2dp2vcgrfoav7h1SCmxejzsK9FogPNdI2t73bOFMNuV_lML4fLPpJ5UJWklyDOFqDXoRYV1J9yZ28Llv-VzNUExO_TYJOhQ5RWBiMWlenca9L3vmXVyb074vAR5e_TK5Aw6bvLwb6Ag5LUrrX5MhMILZK-zs3bhgzX8NEYelO1cW7G6Zd1V-yW8nhgsW5zscUwZQeq3BHq8nNV-_jVEKPixMjZY-j1SLT5MtCTleIuZQoInkZ77Q1qhqn9WD4C9mXQ0gyg",
+        "token_type": "bearer",
+        "refresh_token": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX25hbWUiOiJhZG1pbiIsInNjb3BlIjpbImFsbCJdLCJhdGkiOiIwOTAwM2ZhMi1hNTE0LTQxZTctYjAzZC01NzRmMjAxODgzN2UiLCJleHAiOjE2MjkwODc2ODksInVzZXJJZCI6MSwiYXV0aG9yaXRpZXMiOlsiUk9PVCIsIkFETUlOIl0sImp0aSI6Ijg2MDllMTQwLWQ0OTItNDBhMC1iN2M5LTdhNjg3NDFkYzE0NyIsImNsaWVudF9pZCI6InlvdWxhaS1hZG1pbiIsInVzZXJuYW1lIjoiYWRtaW4ifQ.A2bHQtEA3JXgVVEVqY_TEuc0el471KIbHs4gbOgLpkC_tg_WxqPX1IhUJomLXb9_JMXvIiwGlL32wZYjvT2v7C0bOvemzo-rwYNFRQHz2PLUx0nFm8trA3btQiDQqAoGJ3WbqDiSkmfVB9cRSYQu74LSnY0rn0P47BGf7_7A3zvz34lP7PvdIlMENOEvVH67gwsYcmshD9mq4PKrtHHUMWrPDAhP_Oq6-9wY7eAeuUVtqeI0OIYrysyUi-roKiYphX56piwQ6KBhK3ZkKuusjh5EHuykb8tWSIRm9odIzyPL0awqB8moT5mywkNIN5XwJyOe5W46ceE7T4CN_kjPyg",
+        "expires_in": 43183,
+        "scope": "all",
+        "userId": 1,
+        "username": "admin",
+        "jti": "09003fa2-a514-41e7-b03d-574f2018837e"
+    },
+    "msg": "一切ok"
+}
+```
+
+### 7.4 双token刷新、续期，access_token和refresh_token实效如何设置
+
+https://blog.csdn.net/a704397849/article/details/90216739
 
 ## 8. Shiro 权限管理
 
@@ -3484,7 +4219,7 @@ public class ShiroRealm extends AuthorizingRealm {
 
 ```
 
-### 9. OAuth2
+
 
 
 

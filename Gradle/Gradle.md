@@ -82,5 +82,25 @@ compile子类可以继承，implementation子类无法继承
 compile("${lib.sbStarterWeb}") {
 	exclude group: 'org.springframework', module: 'spring-webmvc'
 }
+
+
+compile (project(":common")) {
+	exclude group: 'org.springframework', module: 'spring-web'
+}
+```
+
+## 3. 依赖嵌套组件
+
+```tex
+setting.gradle
+========================
+include 'common-module'
+include 'common-module:common'
+include 'common-module:common-model'
+
+依赖 build.gradle
+===================
+compile project(":common-module:common")
+
 ```
 

@@ -66,7 +66,7 @@ var User = mongoose.model('User', userSchema)
   ```js
   var user = new User({
   	username: '张桑',
-  	password: 'zhj123',
+  	password: '123',
   	email: 'asd@163.com'
   })
   
