@@ -488,3 +488,65 @@ public class PaginationInterceptor extends AbstractSqlParserHandler implements I
     }
 }
 ```
+
+## 9. 逻辑删除
+
+### 9.1 模型字段
+
+```java
+@TableField(fill = FieldFill.INSERT)
+@TableLogic
+private Boolean useabled;
+```
+
+### 9.2 自动填充字段MetaObjectHandler
+
+```java
+// MP公共字段自动填充策略
+@Component
+public class MyMetaObjectHandler implements MetaObjectHandler {
+    @Override
+    public void insertFill(MetaObject metaObject) {
+        this.setFieldValByName("createTime", LocalDateTime.now(), metaObject);
+        this.setFieldValByName("updateTime", LocalDateTime.now(), metaObject);
+        //添加乐观锁默认值是1
+        // this.setFieldValByName("version",1,metaObject);
+        //添加逻辑删除的默认值0
+        this.setFieldValByName("useabled", false, metaObject);
+    }
+
+    @Override
+    public void updateFill(MetaObject metaObject) {
+        this.setFieldValByName("updateTime", LocalDateTime.now(), metaObject);
+    }
+}
+```
+
+### 9.3 配置文件 yml
+
+```yaml
+mybatis-plus.global-config: 
+  db-config.logic-delete-value: true
+  db-config.logic-not-delete-value: false
+```
+
+### 9.4 逻辑删除插件config, （高版本无需配置插件）
+
+```java
+	/**
+     * 逻辑删除的插件
+     */
+@Bean
+public ISqlInjector sqlInjector(){
+    return new LogicSqlInjector();
+}
+```
+
+- 查询结果自动拼接逻辑删除条件
+
+```tex
+ ==>  Preparing: SELECT user_id,name,nickname,password,useabled,phone_num,gender,avatar_path,create_time,update_time FROM user WHERE user_id=? AND useabled=false
+2021-07-18 10:22:58.433 DEBUG 3952 --- [    Test worker] c.c.b.mapper.UserMapper.selectById       : ==> Parameters: 1(Integer)
+2021-07-18 10:22:58.534 DEBUG 3952 --- [    Test worker] c.c.b.mapper.UserMapper.selectById       : <==      Total: 1
+```
+

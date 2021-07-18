@@ -2038,6 +2038,49 @@ Nginx+Nacos(3+)+Mysql实现集群
 
     ![1610375208279](E:\SoftwareNote\微服务\SpringCloud\img\Nacos单机版Mysql配置.png)
 
+#### 5.1.5 Nacos共享配置
+
+```yml
+# 支持多个共享 Data Id 的配置，优先级小于extension-configs,自定义 Data Id 配置 属性是个集合，内部由 Config POJO 组成。Config 有 3 个属性，分别是 dataId, group 以及 refresh
+spring:
+  application:
+    # 服务名
+    name: proj01
+  cloud:
+    nacos:
+      config:
+      	extConfig: # springcloud alibaba 2.1.0.RELEASE
+          - data-id: common-config.yml
+            group: BLOG0703_GROUP
+            refresh: true
+          - data-id: common-config2.yml
+            group: BLOG0703_GROUP
+            refresh: true
+            
+            
+# 其他版本写法： 2.2.5.RELEASE
+extensionConfigs[0]:
+  data-id: common-config.yml
+  group: BLOG0703_GROUP
+  refresh: true
+extensionConfigs[1]:
+  data-id: common-config1.yml
+  group: BLOG0703_GROUP
+  refresh: true
+  
+# or
+sharedConfigs[0]:
+  data-id: common-config.yml
+  group: BLOG0703_GROUP
+  refresh: true
+sharedConfigs[1]:
+  data-id: common-config1.yml
+  group: BLOG0703_GROUP
+  refresh: true
+```
+
+
+
 ### 5.2 SpringCloud Alibaba Sentinel实现熔断与限流：8080
 
 使用docker，启动默认端口为8858，需要暴露。也可以进入容器内部启动/bladex/sentinel/app.jar,默认端口为8080，也需要暴露出来
