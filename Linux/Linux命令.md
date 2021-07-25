@@ -431,5 +431,35 @@ root      0.0  19    - -         -      -  7046 00:00:00
 
 ```
 
+## 29. 系统相关命令
+
+### 29.1 查看服务systemd日志：
+
+```shell
+journalctl -xefu kubelet
+
+Jul 25 22:17:35 node1 kubelet[25249]: E0725 22:17:35.698639   25249 kubelet.go:2291] "Error getting node" err="node \"node1\" not found"
+```
+
+### 29.2 查看服务状态
+
+```shell
+systemctl status kubelet -l
+
+kubelet.service - kubelet: The Kubernetes Node Agent
+   Loaded: loaded (/usr/lib/systemd/system/kubelet.service; enabled; vendor preset: disabled)
+  Drop-In: /usr/lib/systemd/system/kubelet.service.d
+           └─10-kubeadm.conf
+   Active: active (running) since Sun 2021-07-25 22:15:20 CST; 4min 7s ago
+     Docs: https://kubernetes.io/docs/
+ Main PID: 25249 (kubelet)
+    Tasks: 18
+   CGroup: /system.slice/kubelet.service
+           └─25249 /usr/bin/kubelet --bootstrap-kubeconfig=/etc/kubernetes/bootstrap-kubelet.conf --kubeconfig=/etc/kubernetes/kubelet.conf --config=/var/lib/kubelet/config.yaml --network-plugin=cni --pod-infra-container-image=k8s.gcr.io/pause:3.4.1 --fail-swap-on=false
+
+Jul 25 22:19:26 node1 kubelet[25249]: E0725 22:19:26.677927   25249 kubelet.go:2291] "Error getting node" err="node \"node1\" not found"
+
+```
+
 
 
