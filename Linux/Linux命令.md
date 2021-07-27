@@ -107,6 +107,8 @@ chkconfig iptables off
 systemctl enable firewalld
 
 service iptables restart 
+5: 生产不可关闭防火墙，开放端口即可
+firewall-cmd --zone=public --add-port=8080/tcp --permanent
 ```
 
 ## 7. 生产运行性能诊断
