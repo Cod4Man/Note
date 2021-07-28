@@ -22,6 +22,8 @@
 
 ### 2.2. config文件（## 注意upstream和server同级）
 
+https://blog.csdn.net/tjcyjd/article/details/50695922
+
 /etc/nginx/conf.d/default.conf
 
 ```xml
