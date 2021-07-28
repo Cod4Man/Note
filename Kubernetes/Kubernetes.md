@@ -96,7 +96,7 @@ kubeadm reset
 #### 1.4.1 查看status
 
 ```shell
--systemctl status kubelet -l
+systemctl status kubelet -l
 ```
 
 #### 1.4.2 查看节点
@@ -470,7 +470,7 @@ https://blog.csdn.net/weixin_38320674/article/details/107328982
 
 #### 1.99.2 The connection to the server localhost:8080 was refused
 
-从节点加入主节点时，提示这个。
+**从节点加入主节点时，提示这个。**
 
 原因: 在没有配置config文件时，kube-apiserver默认使用的是localhost
 
@@ -481,6 +481,50 @@ https://blog.csdn.net/weixin_38320674/article/details/107328982
   sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
   sudo chown $(id -u):$(id -g) $HOME/.kube/config
 ```
+
+#### 1.99.3 The connection to the server 192.168.1.181:6443 was refused - did you specify the right host or port?
+
+**主节点重启服务器后提示。**
+
+> 查看kubelet状态
+
+```shell
+[root@node1 ~]# systemctl status kubelet -l
+● kubelet.service - kubelet: The Kubernetes Node Agent
+   Loaded: loaded (/usr/lib/systemd/system/kubelet.service; disabled; vendor preset: disabled)
+  Drop-In: /usr/lib/systemd/system/kubelet.service.d
+           └─10-kubeadm.conf
+   Active: inactive (dead)
+     Docs: https://kubernetes.io/docs/
+
+```
+
+> dead，重启kubelet，提示node not found
+
+```shell
+systemctl restart kubelet
+
+[root@node1 ~]# systemctl status kubelet -l
+● kubelet.service - kubelet: The Kubernetes Node Agent
+   Loaded: loaded (/usr/lib/systemd/system/kubelet.service; disabled; vendor preset: disabled)
+  Drop-In: /usr/lib/systemd/system/kubelet.service.d
+           └─10-kubeadm.conf
+   Active: active (running) since 三 2021-07-28 20:26:52 CST; 13s ago
+     Docs: https://kubernetes.io/docs/
+ Main PID: 3122 (kubelet)
+    Tasks: 23
+   Memory: 208.0M
+   CGroup: /system.slice/kubelet.service
+           ├─3122 /usr/bin/kubelet --bootstrap-kubeconfig=/etc/kubernetes/bootstrap-kubelet.conf --kubeconfig=/etc/kubernetes/kubelet.conf --config=/var/lib/kubelet/config.yaml --network-plugin=cni --pod-infra-container-image=registry.aliyuncs.com/google_containers/pause:3.4.1
+           └─3488 /opt/cni/bin/calico
+
+7月 28 20:27:05 node1 kubelet[3122]: E0728 20:27:05.020803    3122 kubelet.go:2291] "Error getting node" err="node \"node1\" not found"
+
+```
+
+> 再次重启，服务跑起来了，docker images也自动启动了
+
+
 
 ## 2. Kubernate 介绍
 
