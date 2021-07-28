@@ -1993,6 +1993,13 @@ Master_SSL_Verify_Server_Cert: No
 1 row in set (0.00 sec)
 ```
 
+### 16.4 一些细节
+#### 16.4.1 服务器配置
+从服务器高于主服务器，免得出现同步受阻
+#### 16.4.2 从同步的语句更新
+语句更新会执行语句，因此一些函数,比如now()，on update等等，会导致从库数据不一致，
+因此开发过程中，尽量将业务逻辑放在代码中而不是使用sql的语法。
+
 ## 17. Mysql与Oracle区别
 
 1. **Oracle是大型数据库而Mysql是中小型数据库**，Oracle市场占有率达40%，Mysql只有20%左右，同时Mysql是开源的而Oracle价格非常高。 
@@ -2323,4 +2330,5 @@ mysql> select * from test;
 `**语法：group_concat( [distinct] 要连接的字段 [order by 排序字段 asc/desc ] [separator '分隔符'] )**`
 - **带别名的数据表全字段**
 select CONCAT('dt.',group_concat(COLUMN_NAME separator ',dt.')) from information_schema.COLUMNS where table_name = 'tb_event_dt';
+
 
