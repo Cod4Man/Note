@@ -2333,4 +2333,31 @@ select CONCAT('dt.',group_concat(COLUMN_NAME separator ',dt.')) from information
 ## 28. MySQL 一些规则
 ### 28.1 varchar
 varchar 在5.0后，中英文数字都只占一个字符，所以varchar(5) 可以存5个汉字
+### 28.2 数据表行格式ROW_FORMAT
+ENGINE=MyISAM DEFAULT CHARSET=utf8
 
+ROW_FORMAT=COMPACT
+
+;
+
+ROW_FORMAT有这些存储格式选择：
+
+fixed：**默认格式**，
+
+当表不包含变长字段(varchar / varbinary / blob / text)时使用，
+
+每行都是固定的，所以很容易获取行在页上的具体位置，存取效率比较高，
+
+但是占用磁盘空间较大
+
+dynamic：
+
+每行都有一个行头部，包含bitmap，记录列为空的情况。（字符类型长度为0，或数字类型为0，而不是NULL值）
+
+所有字符串列都是动态存储的，除非长度小于4;
+
+fixed->dynamic : 会导致CHAR->VARCHAR，反之亦然， 
+
+MYISAM引擎可以修改ROW_FORMAT，InnoDB不可以，默认Compact
+
+REDUNDANT为固长，有冗余，COMPACT更灵活
