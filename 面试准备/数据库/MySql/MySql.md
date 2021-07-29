@@ -2330,5 +2330,7 @@ mysql> select * from test;
 `**语法：group_concat( [distinct] 要连接的字段 [order by 排序字段 asc/desc ] [separator '分隔符'] )**`
 - **带别名的数据表全字段**
 select CONCAT('dt.',group_concat(COLUMN_NAME separator ',dt.')) from information_schema.COLUMNS where table_name = 'tb_event_dt';
-
+## 28. MySQL 一些规则
+### 28.1 varchar
+varchar 在5.0后，中英文数字都只占一个字符，所以varchar(5) 可以存5个汉字
 
