@@ -133,6 +133,28 @@ scheduler            Healthy   ok
 etcd-0               Healthy   {"health":"true"}
 ```
 
+#### 1.4.5 查看运行状态
+
+```shell
+kubectl get pods  prometheus-85bdc4bf49-97djt -n ops -o yaml
+
+kubectl describe pod mysql-master-dbm26 -n nacos
+
+status:
+  conditions:
+  - lastProbeTime: null
+    lastTransitionTime: "2021-08-04T14:25:53Z"
+    message: '0/3 nodes are available: 3 pod has unbound immediate PersistentVolumeClaims.'
+    reason: Unschedulable
+    status: "False"
+    type: PodScheduled
+  phase: Pending
+  qosClass: Burstable
+
+```
+
+
+
 ### 1.5  recommended.yaml
 
 ```yaml

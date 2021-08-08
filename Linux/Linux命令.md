@@ -14,6 +14,7 @@ pwd
 
 ```shell
 mkdir dirName
+mkdir -p /1/2/3
 ```
 
 ### 2.2 重命名
@@ -27,6 +28,37 @@ mv A B
 
 mv /a /b/c
 ```
+
+### 2.3 复制文件夹
+
+```shell
+# -r 表示递归复制文件夹内的所有
+cp -r /1/2 /5/6
+
+# 强制复制，覆盖相同文件
+\cp -r /1/2 /5/6
+```
+
+### 2.4 ll -h (ls -lh) 格式化列表信息，如大小
+
+```shell
+[root@node1 /]# ll -h
+总用量 24K
+lrwxrwxrwx.   1 root root    7 7月  27 06:38 bin -> usr/bin
+dr-xr-xr-x.   5 root root 4.0K 7月  27 22:22 boot
+drwxr-xr-x.  20 root root 3.3K 8月   8 09:19 dev
+
+
+[root@node1 /]# ll
+总用量 24
+lrwxrwxrwx.   1 root root    7 7月  27 06:38 bin -> usr/bin
+dr-xr-xr-x.   5 root root 4096 7月  27 22:22 boot
+drwxr-xr-x.  20 root root 3360 8月   8 09:19 dev
+drwxr-xr-x. 144 root root 8192 8月   8 09:19 etc
+
+```
+
+
 
 ## 3. 磁盘容量
 
@@ -70,16 +102,50 @@ java 可以直接用 jps -l 效果类似
 
 
 
-## 5. 文件搜索-find
+## 5. 搜索
+
+### 5.1 -find
 
 - 全盘搜索，也可以指定目录搜bai索。find 搜索目录 -name 目标名字，find / -name file（区分大小写）
+
 - find / -iname file（不区分大小写）
+
 - 我们先使用*通配符来匹配下包含file的相关文件区分大小写的：find / -name *file*。
+
 - find 搜索目录 -size 文件大小。下面我们查找下大于100MB的文件,应该实际是102400KB*2,所有搜索命令为：find / -size +204800。-号是小于，直接写数字就是等于。
+
+  单位有k/M/G
+
+  find / -size  200M
+
 - find 搜索目录 -user 用户名。这里是查找属于用户名为user1的文件，linux如何添加删除用户名,可以参考Linux 用户管理命令：find / -user user1。
+
 - find 搜索目录 -type d。查找某个目录下的所有目录：find /tmp -type d。
+
 - find 搜索目录 -cmin -时间(单位分钟)。查找etc下面1小时内被修改的文件,根目录下面太多了,指定一个目录：find /etc -cmin -60。
+
 - 当然find命令是可以多个选项一起添加查询的：-a 是前后条件都要满足，-o 是满足一个条件就好，这样我们可以清除的看到被过滤掉的文件。
+
+### 5.2 locate 快速查找(通过db而不是遍历)
+
+**locate不会遍历文件树，而是读取内置文件树的db**
+
+> 先执行updatedb更新文件树db
+>
+> 然后 locate xxx
+
+### 5.3 witch 查找指令所在目录
+
+```shell
+[root@node1 yml]# which kubectl
+/usr/bin/kubectl
+```
+
+### 5.4 grep 过滤查找
+
+netstat -apn | grep 3306  ： 在netstat -apn的结果集中，过滤包含3306的
+
+cat test.txt | grep -n -i "keyword" : 在cat test.txt的结果集中，过滤包含keyword的,并显示行号,并忽略大小写
 
 ## 6. 防火墙
 
@@ -337,15 +403,13 @@ nG/ngg  跳转到第n行
 scp -r sonarqube-7.3/ root@192.168.0.211:/opt/soft/
 ```
 
-## 13. 解压
+## 13. 压缩和解压
 
 tar命令
 
-**tar [-cxtzjvfpPN] 文件与目录 .... 参数： **
+> **tar [-cxtzjvfpPN] 文件与目录 .... 参数： **
 
--c ：建立一个压缩文件的参数指令(create 的意思)；解压到指定文件夹
-
-`tar -zxvf jre-8u291-linux-x64.tar.gz -C /usr/local/jre`
+-c ：建立一个压缩文件的参数指令(create 的意思)， 压缩文件
 
 ** -x ：解开一个压缩文件的参数指令！ 
 
@@ -357,7 +421,7 @@ tar命令
 
 -v ：压缩的过程中显示文件！这个常用，但不建议用在背景执行过程！ 
 
--f ：使用档名，请留意，在 f 之后要立即接档名喔！不要再加参数！ 　　　例如使用『 tar -zcvfP tfile sfile』就是错误的写法，要写成 　　　『 tar -zcvPf tfile sfile』才对喔！
+-f ：使用档名，请留意，在 f 之后要立即接档名喔！不要再加参数！ 　　　例如使用『 tar -zcvfP tfile sfile』就是错误的写法，要写成 　　　『 tar -zcvPf tfile sfile』才对喔！（指定解压后的文件名）
 
  -p ：使用原文件的原来属性（属性不会依据使用者而变）
 
@@ -367,7 +431,9 @@ tar命令
 
 --exclude FILE：在压缩的过程中，不要将 FILE 打包！**
 
+**-C: 指定解压到某路径下**
 
+`tar -zxvf jre-8u291-linux-x64.tar.gz -C /usr/local/jre`
 
 ## 14. java后台运行
 
@@ -463,5 +529,43 @@ Jul 25 22:19:26 node1 kubelet[25249]: E0725 22:19:26.677927   25249 kubelet.go:2
 
 ```
 
+## 30. 文本操作
 
+### 30.1 less
+
+分页查看文件，适合大内容的文件
+
+### 30.2 more
+
+先展示一部分，然后再一条一条展示
+
+### 30.3 > 和 >> 覆盖和追加写入
+
+> ls -l > 文件
+
+列表的内容(就是控制台展示的list内容)写入到a.txt
+
+> ls -al >> 文件
+
+列表内容追加到文件中
+
+> cat 文件1 > 文件2
+
+文件1覆盖到文件2中
+
+> echo "内容" >> 文件
+
+追加“内容”到文件中
+
+### 30.4 ln指令：软连接(快捷方式)
+
+ln -s /root/ myroot
+
+## 31. history 查看历史指令
+
+history： 查看全部
+
+history n: 查看最近n条
+
+!n : 执行第n条历史指令
 
