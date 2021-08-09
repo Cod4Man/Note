@@ -569,3 +569,47 @@ history n: 查看最近n条
 
 !n : 执行第n条历史指令
 
+## 32. rwx权限
+
+### 32.1 权限介绍
+
+lrwxrwxrwx. 1 root root          8 May 11  2019  ypdomainname -> hostname
+drwxr-xr-x.   3 root root   16 Jun 16 10:53 home
+-rwxr-xr-x  1 root root       1983 Nov  9  2019  zcat
+
+> **第0位为文件类型： d / - / l / c / b**
+
+- l是链接(快捷方式)
+- d是目录
+- \- 是普通文件
+- c是字符设备，如鼠标键盘
+- b是块设备，如硬盘
+
+> **第1-3位，确定所有者拥有的权限**
+
+> **第4-6位，确定拥有者所属组的权限**
+
+> **第7-9位，确定其他用户拥有的权限**
+
+> rwx
+
+- r表示read，只读。可用数字4代替
+- w表示write，可以写入。可用数字2代替
+- x表示execute，可执行。可用数字1代替
+- **文件的w权限不一定能删除该文件，得看所属目录是否有w权限。文件夹x表示可以进入到该目录，r表示可以ls**
+
+### 32.3 修改权限
+
+- **chmod指令，配合+ / - / =来修改, u(用户) g(组) o(其他用户) a(全部)的权限**
+  - chmod u=rwx,g=r,o=w text.txt
+  - chmod o+w text.txt
+  - chmod ax text.txt
+
+- 通过数字，chmod 751 文件
+
+  相当于 chmod -rwxr-x--x
+
+- 递归修改，chmod -R 751 /home/ap/tep.txt
+
+
+
