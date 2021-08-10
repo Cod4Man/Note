@@ -73,6 +73,7 @@ systemctl status nginx //查看nginx状态
 netstat -tnlp //查看所有运行端口号
 netstat -tnlp | grep:98 //查看98端口号状态
 
+
 1. 查找占用的程序。
 
 端口号：netstat -apn | grep 4040
@@ -98,6 +99,14 @@ netstat -tnlp | grep:98 //查看98端口号状态
 ps -aux | grep java
 
 java 可以直接用 jps -l 效果类似
+```
+
+### 4.3 查看运行中的服务 ps -ef
+
+```shell
+
+[root@AliyunS6 ~]# ps -ef | grep 8848
+root     22225 22156  0 23:20 pts/0    00:00:00 grep --color=auto 8848
 ```
 
 
@@ -612,4 +621,68 @@ drwxr-xr-x.   3 root root   16 Jun 16 10:53 home
 - 递归修改，chmod -R 751 /home/ap/tep.txt
 
 
+
+## 33. 任务调度
+
+### 33.1 crond (比如定期数据库备份)
+
+> 相关指令
+
+-  crontab -e 编写调度指令
+
+  ```shell
+  */1 * * 5-8 * ls /root /home/rootpath.txt 
+  ```
+
+  分 时 天 月 星期
+
+  ”*“是不作条件，“-”是范围，“，”是and
+
+- crontab -r 终止任务调度
+
+- crontab -l 列出当前任务调度
+
+- service crond restart 重启
+
+### 33.2 at定时任务，一次性
+
+> at [命令] [时间参数]
+
+- -m 当指定任务完成后，将给用户发送邮件，即没有标准输出
+
+- -I atq的别名（稍微执行的任务列表）
+
+- -d atrm的别名（删除已指定的任务）
+
+- -v 显示任务将被执行的时间
+
+- -c 打印任务的内容到标准输出
+
+- -V 显示版本信息
+
+- -q <队列> 使用指定的队列
+
+- -f <文件> 从指定文件读入任务而不是从标准输入读入
+
+- -t <时间参数> 以时间参数的形式提交要运行的任务
+
+- 时间参数
+
+  - hh:mm 当前某时刻执行，当前超过了就第二天执行
+
+  - midnight/noon/teatime等模糊词语
+
+  - 12小时制，am和pm
+
+  - hh:mm mm/dd/yy  或  hh:mm dd.mm.yy
+
+  - 相对时间 now + count + time-units
+
+    now +1 minutes
+
+    5:00 + 5 days
+
+  - today / tomorrow
+
+> Ctrl+D两次结束at命令的输入
 
