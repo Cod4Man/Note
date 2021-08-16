@@ -465,7 +465,9 @@ mybatis-plus:
     }
 ```
 
-## 8. 最大分页限制
+## 8. 分页
+
+### 8.1 最大分页限制
 
 ```java
 public class PaginationInterceptor extends AbstractSqlParserHandler implements Interceptor {
@@ -488,6 +490,10 @@ public class PaginationInterceptor extends AbstractSqlParserHandler implements I
     }
 }
 ```
+
+### 8.2 分页
+
+Ipage参数应放在第一个，否则默认返回一条，查询结果有多条时就会报错
 
 ## 9. 逻辑删除
 

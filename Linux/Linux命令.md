@@ -15,6 +15,9 @@ pwd
 ```shell
 mkdir dirName
 mkdir -p /1/2/3
+
+# 创建文件夹并进入
+ mkdir shell_code && cd $_
 ```
 
 ### 2.2 重命名
@@ -66,12 +69,14 @@ drwxr-xr-x. 144 root root 8192 8月   8 09:19 etc
 - “du -sh  *” 可以查看当前路径
 - 每个文件夹的大小。此举可以快速定位大文件所存在的位置。 
 
-## 4. 端口查看
+## 4. 端口查看 netstat
 
 ```shell
 systemctl status nginx //查看nginx状态
 netstat -tnlp //查看所有运行端口号
 netstat -tnlp | grep:98 //查看98端口号状态
+netstat -an 按一定顺序排序输出
+netstat -p 显示哪个进程在调用
 
 
 1. 查找占用的程序。
@@ -89,9 +94,22 @@ netstat -tnlp | grep:98 //查看98端口号状态
 端口号：netstat -apn | grep 4040
 最后一项显示的是pid和对应的名称
 2. 杀掉对应的进程，彻底杀死进程。
-
 端口号：kill -9 26105
+3. 杀掉进程以及所有子进程 killall
 ```
+
+> **杀掉用户**
+
+```shell
+[root@AliyunS6 ~]# ps -ef | grep sshd
+root     31495  1081  0 22:04 ?        00:00:00 sshd: root [priv]
+root     31497 31495  0 22:04 ?        00:00:00 sshd: root@pts/0
+root     31498  1081  0 22:04 ?        00:00:00 sshd: root [priv] # root用户进程
+root     31521 31498  0 22:04 ?        00:00:00 sshd: root@notty
+root     31559 31500  0 22:15 pts/0    00:00:00 grep --color=auto sshd
+```
+
+> **通过进程名称杀死进程** killall java
 
 ### 4.2 查看进程的所有线程
 
@@ -101,15 +119,49 @@ ps -aux | grep java
 java 可以直接用 jps -l 效果类似
 ```
 
-### 4.3 查看运行中的服务 ps -ef
+### 4.3 查看运行中的服务  ps-ef   ps-aux pstree
+
+-  ps -ef 是以全格式显示当前所有的进程
+
+-e 显示所有进程
+
+-f 全格式
 
 ```shell
+[root@AliyunS6 ~]# ps -ef | more
+UID        PID  PPID  C STIME TTY          TIME CMD
+用户id	进程ID 父进程ID C是CPU用户计算执行优先级的因子。越大，表明是CPU密集型，优先级降低；越小，表明是IO密集型，优先级越高
+STIME  进程启动时间    TTY 完整的终端名称     CMD启动进程所用的命令和参数
+root         1     0  0 Jun16 ?        00:00:43 /usr/lib/systemd/systemd --switched-root --system --deserialize 18
+root         2     0  0 Jun16 ?        00:00:00 [kthreadd]
+root         3     2  0 Jun16 ?        00:00:00 [rcu_gp]
+
+
 
 [root@AliyunS6 ~]# ps -ef | grep 8848
 root     22225 22156  0 23:20 pts/0    00:00:00 grep --color=auto 8848
 ```
 
+- ps -aux
 
+```shell
+USER       PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND
+执行用户 进程号 CPU占比 物理内存占比 虚拟内存 固定内存 终端名 状态(s休眠r运行d短等z僵死t被跟踪/停止N低优先级) 开始时间 占用CPU时间  启动命令及参数
+root         1  0.0  0.2 176448 10708 ?        Ss   Jun16   0:42 /usr/lib/systemd/systemd --switched-root --system --deserialize 18
+root         2  0.0  0.0      0     0 ?        S    Jun16   0:00 [kthreadd]
+root         3  0.0  0.0      0     0 ?        I<   Jun16   0:00 [rcu_gp]
+root         4  0.0  0.0      0     0 ?        I<   Jun16   0:00 [rcu_par_gp]
+root         6  0.0  0.0      0     0 ?        I<   Jun16   0:00 [kworker/0:0H-kblockd]
+root         8  0.0  0.0      0     0 ?        I<   Jun16   0:00 [mm_percpu_wq]
+root         9  0.0  0.0      0     0 ?        S    Jun16   0:01 [ksoftirqd/0]
+root        10  0.0  0.0      0     0 ?        I    Jun16   8:58 [rcu_sched]
+```
+
+- pstree 以树形展示
+
+  -p  带进程ID
+
+  -u 带用户名
 
 ## 5. 搜索
 
@@ -183,7 +235,10 @@ systemctl enable firewalld
 
 service iptables restart 
 5: 生产不可关闭防火墙，开放端口即可
-firewall-cmd --zone=public --add-port=8080/tcp --permanent
+打开端口：firewall-cmd --zone=public --add-port=8080/tcp --permanent
+关闭端口：firewall-cmd --zone=public --remove-port=8080/tcp --permanent
+重载才生效：firewall-cmd --reload
+查询端口是否开放： firewall-cmd --query-port=端口/协议
 ```
 
 ## 7. 生产运行性能诊断
@@ -199,6 +254,39 @@ firewall-cmd --zone=public --add-port=8080/tcp --permanent
   其中，load average平均负载展示的3个值分别为1min内平均，5min内平均，15min内平均。通过这3个值的大小，可以判断最近运行情况。
 
   ![1614092136585](E:\SoftwareNote\Linux\images\top命令.png)
+
+- 常用命令 top
+  - -d 秒数 ： 指定top命令每隔几秒更新，默认是3秒
+  - **-i ：不显示任何闲置或者僵死线程(方便查看活跃线程)**
+  - -p PID：仅监控某个进程
+
+```shell
+[root@AliyunS6 ~]# top -i -d 5
+top - 10:42:28 up 59 days, 17 min(开机时间),  2 users(2个用户),  load average: 0.00(1m), 0.00(5m), 0.00(15m)
+Tasks: 114 total(任务数),   1 running, 113 sleeping,   0 stopped,   0 zombie(僵死检查：已死，内存未释放)
+%Cpu(s):  0.4 us,  0.4 sy,  0.0 ni, 99.0 id,  0.0 wa,  0.2 hi,  0.0 si,  0.0 st
+MiB Mem :   3637.6 total,    175.5 free,   2445.5 used,   1016.6 buff/cache
+MiB Swap:      0.0 total,      0.0 free,      0.0 used.    963.3 avail Mem
+
+  PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND
+ 7026 root      10 -10  166128  22816  15732 S   0.8   0.6  50:06.95 AliYunDun
+ 7039 root      20   0 3412648 304204  16924 S   0.2   8.2  46:18.32 java
+16627 root      20   0 3534656 793252  23688 S   0.2  21.3 165:30.66 java
+```
+
+> 监控过程中的指令
+
+​	(1) **P 以CPU使用率排序，默认**
+
+​	(2) **M 以内存使用率排序**
+
+​	(3) N 使用PID排序
+
+​	(4) u 输入用户名，监控某个用户
+
+​	(5) k 输入进程号，然后输入标记数(如9，强制杀死)，结束某进程，类似killall
+
+​	(4) q 退出top
 
 ### 7.2 CPU: vmstat
 
@@ -454,13 +542,17 @@ tar命令
  1    标准输出（一般是显示屏，是用户终端控制台）
  2    标准错误（错误信息输出）
 
-## 15. 服务重启以及状态查看
+## 15. 服务重启以及状态查看 systemctl
+
+systemctl 管理的是/usr/lib/systemd/system目录底下的服务
 
 systemctl restart tomcat
 
 systemctl start tomcat
 
 systemctl status tomcat
+
+systemctl list-unit-files
 
 ## 16.  Linux下JRE环境变量配置              
 
@@ -569,6 +661,17 @@ Jul 25 22:19:26 node1 kubelet[25249]: E0725 22:19:26.677927   25249 kubelet.go:2
 ### 30.4 ln指令：软连接(快捷方式)
 
 ln -s /root/ myroot
+
+### 30.5 head tail  文件按查看头尾
+
+- -f 循环读取
+- -q 不显示处理信息
+- -v 显示详细的处理信息
+- -c<数目> 显示的字节数
+- -n<行数> 显示文件的尾部 n 行内容
+- --pid=PID 与-f合用,表示在进程ID,PID死掉之后结束
+- -q, --quiet, --silent 从不输出给出文件名的首部 
+- -s, --sleep-interval=S 与-f合用,表示在每次反复的间隔休眠S秒 
 
 ## 31. history 查看历史指令
 
@@ -744,4 +847,212 @@ cat temp.log | grep 'NullPointerException'
 - 统计opt底下以-开头的结果(即文件)个数 ls -l /opt | grep "^-" | wc -l
 
 - 以上递归查找所有文件，ls -l**R** /opt | grep "^-" | wc -l
+
+## 36. 网络
+
+### 36.1 NAT网络
+
+![image-20210812222014103](images\NAT网络.png)
+
+### 36.2 域名解析
+
+> **案例：浏览器输入www.baidu.com**
+
+1. 浏览器先检查浏览器缓存中有没有该域名解析IP地址，有则调用返回解析；没有则检查DNS解析器缓存。
+
+2.  一般来说，电脑第一次访问网站，在一定时间内会缓存此IP(即DNS解析记录)
+
+   - ipconfig /displaydns DNS域名解析缓存
+
+   ```shell
+   	a.w.bilicdn1.com
+       ----------------------------------------
+       记录名称. . . . . . . : a.w.bilicdn1.com
+       记录类型. . . . . . . : 1
+       生存时间. . . . . . . : 29
+       数据长度. . . . . . . : 4
+       部分. . . . . . . . . : 答案
+       A (主机)记录  . . . . : 120.240.49.150
+   
+   
+       记录名称. . . . . . . : a.w.bilicdn1.com
+       记录类型. . . . . . . : 1
+       生存时间. . . . . . . : 29
+       数据长度. . . . . . . : 4
+       部分. . . . . . . . . : 答案
+       A (主机)记录  . . . . : 120.240.49.154
+   
+   
+       记录名称. . . . . . . : a.w.bilicdn1.com
+       记录类型. . . . . . . : 1
+       生存时间. . . . . . . : 29
+       数据长度. . . . . . . : 4
+       部分. . . . . . . . . : 答案
+       A (主机)记录  . . . . : 120.240.49.152
+   ```
+
+   - ipconfig /flushdns 手动清除dns缓存
+
+     
+
+3.  如果本地解析器缓存没有找到对应映射，检查系统中**hosts**文件中有没有对应的域名IP映射，有则解析返回
+4. 如果都没有找到，则到域名服务DNS进行解析域
+
+## 37. who
+
+### 37. 1查看当前所有登录用户 who
+
+```shell
+[root@AliyunS6 home]# top
+top - 11:33:04 up 59 days,  1:08,  2 users(2个用户),  load average: 0.00, 0.00, 0.00
+
+[root@AliyunS6 home]# who
+root     pts/0        2021-08-14 10:08 (183.251.90.251)
+root     pts/1        2021-08-14 11:03 (183.251.90.251)
+[root@AliyunS6 home]# whoami
+root
+```
+
+## 38. rpm和yum
+
+### 38.1 rpm包
+
+- 介绍
+
+  **rpm 用于互联网下载包的打包及安装工具**，它包含在某些Linux 分发版中。它生成具有.RPM 扩展名的文件。RPM
+  是**RedHat Package Manager**（RedHat 软件包管理工具）的缩写，类似windows 的setup.exe，这一文件格式名称虽然打上
+  了RedHat 的标志，但理念是通用的。
+  Linux 的分发版本都有采用（suse,redhat, centos 等等），可以算是公认的行业标准了
+
+- **rpm包的命名格式**
+
+  一个rpm 包名：firefox-60.2.2-1.el7.centos.x86_64
+  名称:firefox
+  版本号：60.2.2-1
+  适用操作系统: el7.centos.x86_64
+  表示centos7.x 的64 位系统
+  如果是i686、i386 表示32 位系统，noarch 表示通用
+
+- 指令
+
+  - 查看全部已安装：rpm -qa
+
+  - 查询是否安装： rpm -qa xx
+
+  - 查询软件包信息  rpm -qi
+
+    ```shell
+    [root@node1 ~]# rpm -qi firefox
+    Name        : firefox
+    Version     : 68.10.0
+    Release     : 1.el7.centos
+    Architecture: x86_64
+    Install Date: 2021年07月27日 星期二 06时42分26秒
+    Group       : Unspecified
+    Size        : 241030932
+    License     : MPLv1.1 or GPLv2+ or LGPLv2+
+    Signature   : RSA/SHA256, 2020年07月09日 星期四 00时21分14秒, Key ID 24c6a8a7f4a80eb5
+    Source RPM  : firefox-68.10.0-1.el7.centos.src.rpm
+    Build Date  : 2020年07月08日 星期三 02时51分10秒
+    Build Host  : x86-01.bsys.centos.org
+    Relocations : (not relocatable)
+    Packager    : CentOS BuildSystem <http://bugs.centos.org>
+    Vendor      : CentOS
+    URL         : https://www.mozilla.org/firefox/
+    Summary     : Mozilla Firefox Web browser
+    Description :
+    Mozilla Firefox is an open-source web browser, designed for standards
+    compliance, performance and portability.
+    ```
+
+  - 查询软件包中的文件  rpm -ql
+
+    ```shell
+    [root@node1 ~]# rpm -ql firefox
+    /etc/firefox
+    /etc/firefox/pref
+    /usr/bin/firefox
+    /usr/lib64/firefox
+    /usr/lib64/firefox/LICENSE
+    /usr/lib64/firefox/application.ini
+    ```
+
+  - **查询文件所属软件包**   rpm -qf
+
+    ```shell
+    [root@node1 ~]# rpm -qf /etc/firefox
+    firefox-68.10.0-1.el7.centos.x86_64
+    ```
+
+  - **安装包 rpm -ivh** 
+
+    rpm -ivh RPM 包全路径名称
+
+    i=install 安装
+    v=verbose 提示
+    h=hash 进度条
+
+  - 卸载 rpm -e 
+
+    rpm -e firefox
+
+    rpm -e --nodeps firefox   强制删除（其他包依赖该包也不管）
+
+### 38.2 yum
+
+- 介绍
+
+  Yum 是一个Shell 前端软件包管理器。**基于RPM 包管理**，能够从指定的服务器自动下载RPM 包并且安装，可以**自动处理依赖性关系(像maven)**，并且**一次安装所有依赖的软件包**
+
+- 指令
+
+  - 查询yum服务器上的软件
+
+    yum list
+
+    yum list|grep firefox
+
+  - 安装 yum install
+
+    yum install firefox
+
+    yum -y install firefox 应答所有yes
+
+  - 已安装 
+
+    yum list installed 
+
+  - 卸载
+
+    yum remove tomcat 
+
+  - 查看软件依赖 yum deplist tomcat
+
+    ```shell
+    [root@node1 ~]# yum deplist tomcat
+    已加载插件：fastestmirror, langpacks
+    Loading mirror speeds from cached hostfile
+     * base: mirrors.aliyun.com
+     * extras: mirrors.aliyun.com
+     * updates: mirrors.aliyun.com
+    软件包：tomcat.noarch 7.0.76-16.el7_9
+       依赖：/bin/bash
+       provider: bash.x86_64 4.2.46-34.el7
+       依赖：/bin/sh
+       provider: bash.x86_64 4.2.46-34.el7
+       依赖：apache-commons-collections
+       provider: apache-commons-collections.noarch 3.2.1-22.el7_2
+       依赖：apache-commons-daemon
+       provider: apache-commons-daemon.x86_64 1.0.13-7.el7
+    ```
+
+  - 查看软件信息 yum info tomcat 
+
+  - 升级软件 
+
+    yum update tomcat  升级单个
+
+    yum update 升级所有
+
+  - 检查更新 yum check-update
 
