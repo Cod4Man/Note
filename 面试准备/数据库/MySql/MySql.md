@@ -2362,7 +2362,7 @@ MYISAM引擎可以修改ROW_FORMAT，InnoDB不可以，默认Compact
 
 REDUNDANT为固长，有冗余，COMPACT更灵活
 ## 28. sql特殊字符转义
-> MySQL查询LIKE如何匹配下划线 通配符转义
+> **MySQL查询LIKE如何匹配下划线 通配符转义**
 MySQL查询时使用LIKE匹配下划线，您会发现连查询“%A_B%”时会出现“%A B%”和“%AB%”也查询出来了，这是因为下划线也被当作特殊字符，做了任意匹配转换了，所以，要想匹配下划线，那么就需要“转义”一下。转义的方法有如下（示例想查询A_B匹配字段）。
 
 - 使用Escape转义
@@ -2379,5 +2379,19 @@ SELECT * FROM mytable WHERE col LIKE '%A\_B%';
 - 使用终括号[]转义
 示例：SELECT * FROM mytable WHERE col LIKE '%A[_]B%';
 
- 
+
 - 其它方法，还有使用instr函数查询等方式，不过，那样把简单问题搞复杂了，不推荐。
+
+## 29. 事务
+
+- 查看当前运行的所以事务
+
+select * from information_schema.innodb_trx;
+
+结果中可以看到是否有表锁等待或者死锁，如果有死锁发生，可以通过下面的命令来杀掉当前运行的事务：
+
+KILL 165667 ;  KILL 后面的数字指的是 trx_mysql_thread_id 值。
+
+
+
+select connection_id() from dual
