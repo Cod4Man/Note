@@ -675,3 +675,9 @@ Deployment控制器定义了Pod部署信息，并控制Pod的部署并维持其�
 | kube-proxy         | Worker              | 实现Service服务抽象组件，屏蔽PodIP的变化和负载均衡   |
 | Pod                | Worker              | Kubernetes云平台中提供虚拟机，Kubernetes基本调度单位 |
 | Container          | Worker              | 应用跑在容器中，资源隔离单位                         |
+
+## 3. 在 K8S 中安装 Kuboard
+
+```sh
+kubectl apply -f https://addons.kuboard.cn/kuboard/kuboard-v3.yaml
+```
