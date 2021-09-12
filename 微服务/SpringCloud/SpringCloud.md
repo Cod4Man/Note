@@ -2524,6 +2524,98 @@ Nacos配置json详解
 
 
 
+#### 5.3.1 Seata源码
+
+1. 服务端
+
+```java
+// 1. 拦截器拦截方法，对有GlobalTransactional注解的方法做增强
+GlobalTransactionalInterceptor.invoke(final MethodInvocation methodInvocation) {
+    Class<?> targetClass =
+            methodInvocation.getThis() != null ? AopUtils.getTargetClass(methodInvocation.getThis()) : null;
+        Method specificMethod = ClassUtils.getMostSpecificMethod(methodInvocation.getMethod(), targetClass);
+        if (specificMethod != null && !specificMethod.getDeclaringClass().equals(Object.class)) {
+            final Method method = BridgeMethodResolver.findBridgedMethod(specificMethod);
+            final GlobalTransactional globalTransactionalAnnotation =
+                getAnnotation(method, targetClass, GlobalTransactional.class);
+            final GlobalLock globalLockAnnotation = getAnnotation(method, targetClass, GlobalLock.class);
+            boolean localDisable = disable || (degradeCheck && degradeNum >= degradeCheckAllowTimes);
+            if (!localDisable) {
+                if (globalTransactionalAnnotation != null) {
+                    return handleGlobalTransaction(methodInvocation, globalTransactionalAnnotation);
+                } else if (globalLockAnnotation != null) {
+                    return handleGlobalLock(methodInvocation, globalLockAnnotation);
+                }
+            }
+        }
+        return methodInvocation.proceed();
+}
+    
+// 2. 执行
+TransactionalTemplate.execute(TransactionalExecutor business) {
+   	 beginTransaction(txInfo, tx);
+
+        Object rs;
+        try {
+            // Do Your Business
+            rs = business.execute();
+        } catch (Throwable ex) {
+            // 3. The needed business exception to rollback.
+            completeTransactionAfterThrowing(txInfo, tx, ex);
+            throw ex;
+        }
+
+        // 4. everything is fine, commit.
+    	
+        commitTransaction(tx);
+
+        return rs;
+    } finally {
+        //5. clear
+        resumeGlobalLockConfig(previousConfig);
+        triggerAfterCompletion();
+        cleanUp();
+    }
+}
+
+// 3. 提交
+DefaultGlobalTransaction.commit() {
+    while (retry > 0) {
+        try {
+            status = transactionManager.commit(xid);
+            break;
+        } catch (Throwable ex) {
+            retry--;
+            if (retry == 0) {
+                throw new TransactionException("Failed to report global commit", ex);
+            }
+        }
+    }
+}
+
+// 4. 
+DefaultTransactionManager.commit(String xid) throws TransactionException {
+    GlobalCommitRequest globalCommit = new GlobalCommitRequest();
+    // 全局事务id xid
+    globalCommit.setXid(xid);
+    GlobalCommitResponse response = (GlobalCommitResponse) syncCall(globalCommit);
+    return response.getGlobalStatus();
+}
+
+// 5. 使用Netty（TmNettyRemotingClient）请求seata客户端，注册全局事务	
+DefaultTransactionManager.syncCall(AbstractTransactionRequest request) throws TransactionException {
+        try {
+            return (AbstractTransactionResponse) TmNettyRemotingClient.getInstance().sendSyncRequest(request);
+        } catch (TimeoutException toe) {
+            throw new TmTransactionException(TransactionExceptionCode.IO, "RPC timeout", toe);
+        }
+    }
+```
+
+
+
+2. 客户端
+
 ## 6. 分布式事务
 
 https://zhuanlan.zhihu.com/p/183753774

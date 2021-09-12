@@ -1353,6 +1353,95 @@ public abstract class AbstractAspectJAdvice implements Advice, AspectJPrecedence
 - Spring4 ： before -> 目标方法 -> after -> 先afterThrowing/afterReturning
 - Spring5 ： before -> 目标方法 -> afterThrowing/afterReturning -> after  明显5更符合逻辑
 
+### 10.4 同理还有事务/Schedule等等
+
+Schedule定时任务，用的是bean的后置处理器的afterInit
+
+**BeanPostProcessor.postProcessAfterInitialization**
+
+```java
+public class ScheduledAnnotationBeanPostProcessor implement BeanPostProcessor {
+    // 没有注解的bean列表，提高性能 ConcurrentHashMap
+    private final Set<Class<?>> nonAnnotatedClasses = Collections.newSetFromMap(new ConcurrentHashMap<>(64));
+    
+    public Object postProcessAfterInitialization(Object bean, String beanName) {
+		if (bean instanceof AopInfrastructureBean || bean instanceof TaskScheduler ||
+				bean instanceof ScheduledExecutorService) {
+			// Ignore AOP infrastructure such as scoped proxies.
+			return bean;
+		}
+
+		Class<?> targetClass = AopProxyUtils.ultimateTargetClass(bean);
+        // 判断类中的方法字段等有没有Scheduled或Schedules注解
+		if (!this.nonAnnotatedClasses.contains(targetClass) &&
+				AnnotationUtils.isCandidateClass(targetClass, Arrays.asList(Scheduled.class, Schedules.class))) {
+            // 获取注解，按方法聚集
+			Map<Method, Set<Scheduled>> annotatedMethods = MethodIntrospector.selectMethods(targetClass,
+					(MethodIntrospector.MetadataLookup<Set<Scheduled>>) method -> {
+						Set<Scheduled> scheduledMethods = AnnotatedElementUtils.getMergedRepeatableAnnotations(
+								method, Scheduled.class, Schedules.class);
+						return (!scheduledMethods.isEmpty() ? scheduledMethods : null);
+					});
+			if (annotatedMethods.isEmpty()) {
+				this.nonAnnotatedClasses.add(targetClass);
+				if (logger.isTraceEnabled()) {
+					logger.trace("No @Scheduled annotations found on bean class: " + targetClass);
+				}
+			}
+			else {
+				// Non-empty set of methods
+                // 不为空，则依次调用 processScheduled(scheduled, method, bean)方法执行定时任务
+				annotatedMethods.forEach((method, scheduledMethods) ->
+						scheduledMethods.forEach(scheduled -> processScheduled(scheduled, method, bean)));
+				if (logger.isTraceEnabled()) {
+					logger.trace(annotatedMethods.size() + " @Scheduled methods processed on bean '" + beanName +
+							"': " + annotatedMethods);
+				}
+			}
+		}
+		return bean;
+	}
+    
+    
+    protected void processScheduled(Scheduled scheduled, Method method, Object bean) {
+		try {
+			Runnable runnable = createRunnable(bean, method);
+			boolean processedSchedule = false;
+			String errorMessage =
+					"Exactly one of the 'cron', 'fixedDelay(String)', or 'fixedRate(String)' attributes is required";
+
+			Set<ScheduledTask> tasks = new LinkedHashSet<>(4);
+
+			// Determine initial delay
+			long initialDelay = scheduled.initialDelay();
+			String initialDelayString = scheduled.initialDelayString();
+			if (StringUtils.hasText(initialDelayString)) {
+				Assert.isTrue(initialDelay < 0, "Specify 'initialDelay' or 'initialDelayString', not both");
+				if (this.embeddedValueResolver != null) {
+                    // 这里会调用Spring的解析器解析表达式
+                    // eddedValueResolver.resolveStringValue("${myapp.initialDelayString}");
+					initialDelayString = this.embeddedValueResolver.resolveStringValue(initialDelayString);
+				}
+				if (StringUtils.hasLength(initialDelayString)) {
+					try {
+						initialDelay = parseDelayAsLong(initialDelayString);
+					}
+					catch (RuntimeException ex) {
+						throw new IllegalArgumentException(
+								"Invalid initialDelayString value \"" + initialDelayString + "\" - cannot parse into long");
+					}
+				}
+			}
+            // .... 省略具体逻辑
+		}
+    }
+    
+}
+
+```
+
+
+
 ## 11. 事务
 
 - pom

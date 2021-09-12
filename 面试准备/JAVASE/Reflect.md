@@ -87,3 +87,67 @@ isAssignableFrom()
 
 MP就用到了这个判断BaseMapper\<Model> 用来获取\<Model>
 
+## 5. 获取接口的所有存活子类
+
+```java
+public class ImplCountClient {
+
+    public static void main(String[] args) {
+        // BaseClass.class.getDeclaredClasses();
+        getAllSubclassOfBaseClass();
+    }
+
+    @SuppressWarnings("all")
+    private static List<Class<BaseClass>> getAllSubclassOfBaseClass() {
+        SubClass1 subClass1 = new SubClass1();
+        Field field = null;
+        Vector v = null;
+        List<Class<BaseClass>> allSubclass = new ArrayList<Class<BaseClass>>();
+        Class<BaseClass> baseClassClass = null;
+                ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+        Class<?> classOfClassLoader = classLoader.getClass();
+        try {
+            baseClassClass = BaseClass.class;
+        } catch (Exception e) {
+            throw new RuntimeException(
+                    "无法获取到BaseClass的Class对象!查看包名,路径是否正确");
+        }
+        while (classOfClassLoader != ClassLoader.class) {
+            classOfClassLoader = classOfClassLoader.getSuperclass();
+        }
+        try {
+            field = classOfClassLoader.getDeclaredField("classes");
+        } catch (NoSuchFieldException e) {
+            throw new RuntimeException(
+                    "无法获取到当前线程的类加载器的classes域!");
+        }
+        field.setAccessible(true);
+        try {
+            v = (Vector) field.get(classLoader);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(
+                    "无法从类加载器中获取到类属性!");
+        }
+        for (int i = 0; i < v.size(); ++i) {
+            Class<?> c = (Class<?>) v.get(i);
+            if (baseClassClass.isAssignableFrom(c) && !baseClassClass.equals(c) /*&& !abstractBaseClassClass
+                    .equals(c)*/) {
+                allSubclass.add((Class<BaseClass>) c);
+            }
+        }
+        return allSubclass;
+    }
+}
+
+interface BaseClass {
+}
+
+class SubClass1 implements BaseClass{
+}
+
+class SubClass2 implements BaseClass{
+}
+```
+
+
+
