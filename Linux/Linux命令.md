@@ -253,7 +253,7 @@ service iptables restart
 
   其中，load average平均负载展示的3个值分别为1min内平均，5min内平均，15min内平均。通过这3个值的大小，可以判断最近运行情况。
 
-  ![1614092136585](E:\SoftwareNote\Linux\images\top命令.png)
+  ![1614092136585](images\top命令.png)
 
 - 常用命令 top
   - -d 秒数 ： 指定top命令每隔几秒更新，默认是3秒
@@ -290,49 +290,49 @@ MiB Swap:      0.0 total,      0.0 free,      0.0 used.    963.3 avail Mem
 
 ### 7.2 CPU: vmstat
 
-![1614093051480](E:\SoftwareNote\Linux\images\vmstat命令解析.png)
+![1614093051480](images\vmstat命令解析.png)
 
 - 查看所有CPU核信息
 
   mpstat -P ALL 2
 
-  ![1614093196718](E:\SoftwareNote\Linux\images\mpstat命令-查看所有CPU核情况.png)
+  ![1614093196718](images\mpstat命令-查看所有CPU核情况.png)
 
 - **每个进程**使用cpu的用量分解信息
 
   pidstat -u 1 -p 进程编号
 
-  ![1614093247415](E:\SoftwareNote\Linux\images\pidstat命令-按进程查询CPU占用.png)
+  ![1614093247415](images\pidstat命令-按进程查询CPU占用.png)
 
 ### 7.3 内存:free [-m(MB)/-g(GB)] 
 
 - 应用程序可用内存
 
-  ![1614093625078](E:\SoftwareNote\Linux\images\free命令-应用程序可用内存.png)
+  ![1614093625078](images\free命令-应用程序可用内存.png)
 
 - 查看额外 pidstat -p 进程号 -r 采样间隔秒数
 
-  ![1614093772086](E:\SoftwareNote\Linux\images\pidstat命令-查看额外内存信息.png)
+  ![1614093772086](images\pidstat命令-查看额外内存信息.png)
 
 ### 7.5 硬盘 df [-m(MB)/-h] 
 
-![1614093886679](E:\SoftwareNote\Linux\images\df命令-查看硬盘信息.png)
+![1614093886679](images\df命令-查看硬盘信息.png)
 
 ### 7.6 磁盘IO： iostat -xdk 2(秒) 3(次)
 
 - 磁盘I/O性能评估
 
-  ![1614094221174](E:\SoftwareNote\Linux\images\iostat命令-磁盘IO性能.png)
+  ![1614094221174](images\iostat命令-磁盘IO性能.png)
 
 - 查看额外
 
   pidstat -d 采样间隔秒数 -p 进程号
 
-  ![1614094355029](E:\SoftwareNote\Linux\images\pidstat命令-查看磁盘IO信息.png)
+  ![1614094355029](images\pidstat命令-查看磁盘IO信息.png)
 
 ### 7.7 网络IO：ifstat 
 
-![1614094528047](E:\SoftwareNote\Linux\images\ifstat命令-查看网络IO信息.png)
+![1614094528047](images\ifstat命令-查看网络IO信息.png)
 
 ## 8.出现CPU占用过高，请谈谈你的分析思路和定位(Linux+Java命令)
 
@@ -340,11 +340,11 @@ MiB Swap:      0.0 total,      0.0 free,      0.0 used.    963.3 avail Mem
 
 ### 8.1 先用top命令找出CPU占比最高的
 
-![1614095125195](E:\SoftwareNote\Linux\images\top命令查找CPU占用最高的java进程号PID.png)
+![1614095125195](images\top命令查找CPU占用最高的java进程号PID.png)
 
 ### 8.2  ps -ef或者jps进一步定位，得知是一个怎么样的一个后台程序
 
-![1614095208808](E:\SoftwareNote\Linux\images\jps定位问题java.png)
+![1614095208808](images\jps定位问题java.png)
 
 ### 8.3 定位到具体线程或者代码 ps -mp 进程PID号 -o THREAD,tid,time
 
@@ -354,7 +354,7 @@ MiB Swap:      0.0 total,      0.0 free,      0.0 used.    963.3 avail Mem
 
 -o 该参数后是用户自定义格式
 
-![1614095292899](E:\SoftwareNote\Linux\images\ps命令查看进程底下线程.png)
+![1614095292899](images\ps命令查看进程底下线程.png)
 
 ### 8.4 将需要的线程ID转换为16进制格式(英文小写格式) 
 
@@ -366,7 +366,7 @@ printf "%x\n" 24587  =》 600b
 
 -A60 ： 前60行
 
-![1614095622600](E:\SoftwareNote\Linux\images\jstack命令-查看进程某线程运行状态.png)
+![1614095622600](images\jstack命令-查看进程某线程运行状态.png)
 
 
 
@@ -486,13 +486,13 @@ nG/ngg  跳转到第n行
 
 ## 11.  服务启动相关 
 
-![1621992961217](E:\SoftwareNote\Linux\images\服务启动相关1.png)
+![1621992961217](images\服务启动相关1.png)
 
-![1621992940497](E:\SoftwareNote\Linux\images\服务启动相关2.png)
+![1621992940497](images\服务启动相关2.png)
 
 
 
-![1621993001443](E:\SoftwareNote\Linux\images\服务启动相关3.png)
+![1621993001443](images\服务启动相关3.png)
 
 ## 12. 跨服务器文件拷贝
 
@@ -577,7 +577,7 @@ source /etc/profile
 
 ## 17. 集中文件查找命令 which whereis locate find
 
-![1623847559383](E:\SoftwareNote\Linux\images\文件查找命令对比.png)
+![1623847559383](images\文件查找命令对比.png)
 
 ## 28. ps命令
 

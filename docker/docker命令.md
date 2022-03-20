@@ -59,7 +59,7 @@ docker run -itd --name mysql02 -p 3307:3306 -e MYSQL_ROOT_PASSWORD=123456 docker
 --link mynginx:mynginx  # 这样可以设置关联，可在mysql容器中通过mynginx获取到mynginx容器的ip。本质是修改了etc/hosts文件
 ```
 
-![1605410214214](E:\SoftwareNote\\docker\images\docker运行镜像.png)
+![1605410214214](images\docker运行镜像.png)
 
 #### 1.3.1 启动镜像
 
@@ -95,7 +95,7 @@ docker ps 【-a】
 docker logs seata-server #查看启动日志
 ```
 
-![1605410468485](E:\SoftwareNote\\docker\images\docker-ps.png)
+![1605410468485](images\docker-ps.png)
 
 ### 1.5 删除本地镜像
 
@@ -250,17 +250,17 @@ docker build -t mytomcat8.5:0.0.1 .
 
 - 插件: docker integration
 
-![1605453449769](E:\SoftwareNote\\docker\images\idea_plugin.png)
+![1605453449769](images\idea_plugin.png)
 
 - dockerfile配置
 
-	[1605453626041](E:\SoftwareNote\\docker\images\idea_dockerfile.png) 	- dockerfile配置
+	[1605453626041](images\idea_dockerfile.png) 	- dockerfile配置
 
-![1605453661673](E:\SoftwareNote\\docker\images\idea_dockerfile_edit.png)
+![1605453661673](images\idea_dockerfile_edit.png)
 
 - 可视化docker参数
 
-![1605453774572](E:\SoftwareNote\\docker\images\idea_可视化docker数据.png)
+![1605453774572](images\idea_可视化docker数据.png)
 
 ## 7. Docker暴露端口
 

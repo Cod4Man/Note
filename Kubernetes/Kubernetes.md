@@ -1,5 +1,15 @@
 # Kubernetes
 
+## 0. 文档
+
+### 0.1 官方文档
+
+[Kubernetes官方文档](https://kubernetes.io/zh/ "[Kubernetes官方文档](https://kubernetes.io/zh/)")
+
+### 0.2 中文社区
+
+[中文社区](https://www.kubernetes.org.cn/ "中文社区")
+
 ## 1. 集群搭建
 
 ### 1.0 搭建步骤
@@ -64,6 +74,7 @@ kubeadm join 10.167.11.153:6443 --token o4avtg.65ji6b778nyacw68 --discovery-toke
 - 加入失败
 
   > 已经加过了，可以重置后再加入
+  >
 
 ```shell
 
@@ -128,8 +139,8 @@ kube-system   kube-scheduler-node1                       1/1     Running   7    
 ```shell
 kubectl get cs
 NAME                 STATUS    MESSAGE             ERROR
-controller-manager   Healthy   ok                  
-scheduler            Healthy   ok                  
+controller-manager   Healthy   ok              
+scheduler            Healthy   ok              
 etcd-0               Healthy   {"health":"true"}
 ```
 
@@ -152,8 +163,6 @@ status:
   qosClass: Burstable
 
 ```
-
-
 
 ### 1.5  recommended.yaml
 
@@ -464,8 +473,6 @@ spec:
           emptyDir: {}
 ```
 
-
-
 ### 1.5 kubernetes dashboard
 
 获取token
@@ -546,8 +553,6 @@ systemctl restart kubelet
 
 > 再次重启，服务跑起来了，docker images也自动启动了
 
-
-
 ## 2. Kubernate 介绍
 
 ### 2.1 用途
@@ -568,11 +573,11 @@ systemctl restart kubelet
 
 　8. 面向云原生可移植的新"云平台"。
 
- 　总的来说Kubernetes是来可以动态的利用策略解决集群中资源调度，管理及监控等问题。
+ 　总的来说Kubernetes是来可以动态的利用策略解决**集群中资源调度，管理及监控等问题**。
 
 ### 2.2  **Kubernetes核心概念及架构设计**
 
->  Kubernete总体架构图
+> Kubernete总体架构图
 
 ![image-20210725230933704](.\img\Kubernete总体架构图.png)
 
@@ -621,7 +626,6 @@ Work节点的资源管理者，相当于agent这样的角色，它一直监听�
 管理Kubernetes中service网络。Pod在Kubernetes中是不固定的（ephemeral），Pod的ip可能会变化，为了屏蔽Pod这种变化性，Kubernetes引入了service这样的概念，service可以屏蔽这样的变化，并且可以在调用的时候进行负载均衡，当需要将服务暴露给外部的时候，kube-proxy可以进行转发，kube-proxy就是实现背后这些服务网路的实现机制。
 
 3. **Pod网络**
-
 4. **Container Runtime：**
 
 节点上容器资源的管理者，kubelet并不会直接管理节点上的容器，而是委托Container  Runtime进行管理。Container Runtime在启动容器的时候如果没有本地镜像缓存就会去Docker Hub上去拉取然后缓存在本地。
@@ -653,15 +657,10 @@ Deployment控制器定义了Pod部署信息，并控制Pod的部署并维持其�
 ![image-20210725231828035](.\img\Kubernetes发布流程.png)
 
 1. kubectl向API Server提交一个创建副本的应用请求，ReplicaSet副本集是规范副本数量的。
-
 2. Controller Manager监听ReplicaSet创建及修改等事件，它接收到ReplicaSet的通知。
-
 3. Controller Manager比较当前集群的状态和预期集群的状态，这里它会创建新的Pods。
-
 4. Scheduler监听到需要创建Pod，就会根据调度算法来选择合适的Worker节点，然后在使用API  Server来更新Pod定义等状态，这时候应用还没有真正的发布，Controller Manager和Scheduler只是通过API  Server更新了集群所期望的状态。
-
 5. 当Pod被分配到某个具体到worker节点，API Server就会通知相应节点上的Kubelet。
-
 6. Kubelet接受到通知就会告知Container runtime在其节点上去下载，启动，并运行对应的容器，同时Kubelet会监控容器的运行。
 
 | 组件               | 节点                | 作用                                                 |
