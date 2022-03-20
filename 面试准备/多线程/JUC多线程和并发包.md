@@ -14,7 +14,7 @@
 
     **JVM运行程序得实体是线程，而每个线程创建时JVM都会为其开辟一个工作内存，工作内存是每个线程私有化的数据区域**。而Java内存模型中规定所有的变量都存在主内存，主内存是共享内存区域，所有线程都可以访问。**但是线程对变量的操作(读写)都必须在各自的工作内存中进行(变量副本)，所以各线程需要先把变量从主内存拷贝到工作内存，然后修改后再写回主内存**。不同线程线程变量副本是不可见的，线程之间的通信必须通过主内存来完成。这就是不可见性。
 
-  ![1622116860093](E:\SoftwareNote\面试准备\多线程\img\主内存和工作内存模型.png)
+  ![1622116860093](img\主内存和工作内存模型.png)
 
   ```java
   public class VolatileDdemo {
@@ -155,11 +155,11 @@
 
   执行过程
 
-  ![1610898057637](E:\SoftwareNote\面试准备\多线程\img\AtomicInteger操作Unsafe过程.png)
+  ![1610898057637](img\AtomicInteger操作Unsafe过程.png)
 
 Unsafe底层汇编
 
-![1610898543817](E:\SoftwareNote\面试准备\多线程\img\Unsafe底层汇编.png)
+![1610898543817](img\Unsafe底层汇编.png)
 
 - CAS缺点
   - 循环时间开销很大，如果CAS一直不成功，会给CPU带来很大的开销(一直在循环)
@@ -627,7 +627,7 @@ for (int i = 0; i < 6; i++) {
 
   当队列是空的时，线程task操作会被阻塞；当队列满的时候，线程put操作会被阻塞。
 
-![1611662793087](E:\SoftwareNote\面试准备\多线程\img\阻塞队列图解.png)
+![1611662793087](img\阻塞队列图解.png)
 
 - 好处：
 
@@ -637,7 +637,7 @@ for (int i = 0; i < 6; i++) {
 
 - BlockingQueue核心API
 
-  ![1611663298626](E:\SoftwareNote\面试准备\多线程\img\BlockingQueue核心API.png)
+  ![1611663298626](img\BlockingQueue核心API.png)
 
   抛出**异常**组：
 
@@ -671,7 +671,7 @@ for (int i = 0; i < 6; i++) {
 
 - 架构介绍
 
-  ![img](E:\SoftwareNote\面试准备\多线程\img\阻塞队列架构.png)
+  ![img](img\阻塞队列架构.png)
 
 - 阻塞队列种类
 
@@ -952,7 +952,7 @@ public static void main(String[] args) throws ExecutionException, InterruptedExc
 
 ### 10.2 线程池架构
 
-![1612538798920](E:\SoftwareNote\面试准备\多线程\img\线程池架构图.png)
+![1612538798920](img\线程池架构图.png)
 
 ### 10.3 线程池创建API 
 
@@ -1040,7 +1040,7 @@ corePool有位置则执行，否则进入阻塞队列等待，阻塞队列满之
 
 MaximumPoolSize和阻塞队列都满了，则执行拒绝策略
 
-![1612540179603](E:\SoftwareNote\面试准备\多线程\img\线程池工作原理.png)
+![1612540179603](img\线程池工作原理.png)
 
 ### 10.5 线程池拒绝策略RejectExecutionHandler
 
@@ -1062,7 +1062,7 @@ MaximumPoolSize和阻塞队列都满了，则执行拒绝策略
 
   因为API中的阻塞队列都是拥有最大长度，可能出现OOM的情况
 
-  ![1612540566239](E:\SoftwareNote\面试准备\多线程\img\不使用Executors创建线程池的原因.png)
+  ![1612540566239](img\不使用Executors创建线程池的原因.png)
 
 - demo
 
@@ -1094,18 +1094,18 @@ MaximumPoolSize和阻塞队列都满了，则执行拒绝策略
 
 - CPU密集型
 
-  ![1612541886150](E:\SoftwareNote\面试准备\多线程\img\线程池的选型-CPU密集型.png)
+  ![1612541886150](img\线程池的选型-CPU密集型.png)
 
 - IO密集型
 
   - 由于IO密集型任务线程不一定一直在执行任务，应尽量多的线程，如CPU核数*2
-  - ![1612542009117](E:\SoftwareNote\面试准备\多线程\img\线程池选型-IO密集型.png)
+  - ![1612542009117](img\线程池选型-IO密集型.png)
 
 ## 11. 死锁编码及定位分析
 
 - 是什么：两个或两个以上的线程在执行过程中，因抢夺资源而造成的一种互相等待的现象，若无外力干涉，永远无法停下。所有系统资源重组，进程的资源请求都能够等到满足，死锁出现的可能性就很低，否则就会因争夺有限的资源而陷入死锁。
 
-  ![1612709384126](E:\SoftwareNote\面试准备\多线程\img\线程死锁.png)
+  ![1612709384126](img\线程死锁.png)
 
 - 产生原因：
 
@@ -1184,7 +1184,7 @@ class DeadLock implements Runnable{
     window系统显示如下：
     ```
 
-    ![1612710372159](E:\SoftwareNote\面试准备\多线程\img\jps命令原理.png)
+    ![1612710372159](img\jps命令原理.png)
 
 
 
@@ -1271,21 +1271,21 @@ t2.start();
 
 - AQS是各JUC工具的底层基石：ReentrantLock/ReentrantReadWriteLock/CountDownLatch/Semaphore/CuclicBarrier
 
-![1615127961055](E:\SoftwareNote\面试准备\多线程\img\AQS是各JUC工具的底层基石.png)
+![1615127961055](img\AQS是各JUC工具的底层基石.png)
 
 - 多线程，如果共享资源被占用，就需要一定的阻塞等待唤醒机制来保证锁分配。这个机制主要是用CLH队列的变形实现的。将阻塞的线程加入到队列中等待分配，该队列将各线程封装成队列的节点Node，通过CAS/自旋/LockSupport.park()的方法，维护一个总的**state变量**的状态，从而控制并发达到同步的效果。
 
-![1615128099692](E:\SoftwareNote\面试准备\多线程\img\AQS内部组成以及原理说明.png)
+![1615128099692](img\AQS内部组成以及原理说明.png)
 
 - AQS同步队列的基本结构
 
-![1615128845766](E:\SoftwareNote\面试准备\多线程\img\AQS同步队列的基本结构.png)
+![1615128845766](img\AQS同步队列的基本结构.png)
 
 - AQS类属性
 
   AQS使用一个volatile的int类型成员变量state来便是同步状态，通过内置的FIFO队列(CLH的变形)来完成资源获取的排队工作，将每个需要抢占资源的线程封装成Node节点，Node<Thread>，通过CAS完成对state状态修改
 
-![1615128192508](E:\SoftwareNote\面试准备\多线程\img\AQS类属性.png)
+![1615128192508](img\AQS类属性.png)
 
 
 
@@ -1326,17 +1326,17 @@ abstract class AbstractOwnableSynchronizer {
 }
 ```
 
-![1615128520435](E:\SoftwareNote\面试准备\多线程\img\AQS内部体系架构.png)
+![1615128520435](img\AQS内部体系架构.png)
 
 - AQS各属性含义
 
-![1615128793404](E:\SoftwareNote\面试准备\多线程\img\AQS各属性含义.png)
+![1615128793404](img\AQS各属性含义.png)
 
 
 
 
 
-- AQS-lock主要API![1615217173791](E:\SoftwareNote\面试准备\多线程\img\AQS-lock主要API.png)
+- AQS-lock主要API![1615217173791](img\AQS-lock主要API.png)
 
 ### 13.1 ReentrantLock.lock底层分析
 
@@ -1723,7 +1723,7 @@ abstract static class Sync extends AbstractQueuedSynchronizer{
 
 - AQS多线程出入队列示意图
 
-![1615218875851](E:\SoftwareNote\面试准备\多线程\img\AQS多线程出入队列示意图.png)
+![1615218875851](img\AQS多线程出入队列示意图.png)
 
 ## 14. 线程一些概念
 
@@ -1798,7 +1798,7 @@ abstract static class Sync extends AbstractQueuedSynchronizer{
 
   线程生命周期
 
-  ![1619355080378](E:\SoftwareNote\面试准备\多线程\img\线程生命周期.png)
+  ![1619355080378](img\线程生命周期.png)
 
 - 静态同步方法的锁为类本身，非静态同步方法的锁为this
 
@@ -1919,7 +1919,7 @@ synchronized锁有四种状态，无锁，偏向锁，轻量级锁，重量级�
 
 - **几种锁的优缺点**
 
-![1622468450687](E:\SoftwareNote\面试准备\多线程\img\Synchronized锁升级后的三种锁对比.png)
+![1622468450687](img\Synchronized锁升级后的三种锁对比.png)
 
 - **用锁的最佳实践**
 

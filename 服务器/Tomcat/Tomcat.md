@@ -91,7 +91,7 @@ context.addServletContainerInitializer(new JasperInitializer(), null);
 
 加一层servelt和Http请求响应交互，可以解耦业务逻辑直接交互http
 
-![1622857848331](E:\SoftwareNote\Web\img\Servelt处理Http请求.png)
+![1622857848331](img\Servelt处理Http请求.png)
 
 ### 5.2 Servlet容器工作流程 
 
@@ -107,7 +107,7 @@ context.addServletContainerInitializer(new JasperInitializer(), null);
 
 因此Tomcat设计了两个核心组件**<u>连接器（Connector）和容器（Container</u>）**来分别做这两件事情。**连接器负责对外交流，容器负责内部处理。**
 
-![1622858459536](E:\SoftwareNote\Web\img\Tomcat两大核心连接器Connector和容器Container.png)
+![1622858459536](img\Tomcat两大核心连接器Connector和容器Container.png)
 
 ### 5.4 Coyote 连接器
 
@@ -119,7 +119,7 @@ Coyote 是Tomcat的连接器框架的名称 , 是**Tomcat服务器提供的供�
 
 **Coyote 作为独立的模块，只负责具体协议和IO的相关操作**， 与Servlet 规范实现没有直接关系，因此即便是 Request 和 Response 对象也并未实现Servlet规范对应的接口， 而是在Catalina 中将他们进一步封装为ServletRequest 和 ServletResponse 。
 
-![1622858992659](E:\SoftwareNote\Web\img\Coyote和Catalina交互过程.png)
+![1622858992659](img\Coyote和Catalina交互过程.png)
 
 #### 5.4.2 IO模型与协议  
 
@@ -147,13 +147,13 @@ Tomcat 支持的IO模型（自8.5/9.0 版本起，Tomcat 移除了 对 BIO 的�
 
 - 协议分层
 
-  ![1622859510490](E:\SoftwareNote\Web\img\Tomcat协议分层.png)
+  ![1622859510490](img\Tomcat协议分层.png)
 
 Tomcat为了实现支持多种I/O模型和应用层协议，一个容器可能对接多个连接器，就好比一个房间有多个门。但是单独的连接器或者容器都不能对外提供服务，需要把它们组装起来才能工作，组装后这个整体叫作Service组件。这里请你注意，Service本身没有做什么重要的事情，只是在连接器和容器外面多包了一层，把它们组装在一起。Tomcat内可能有多个Service，这样的设计也是出于灵活性的考虑。**通过在Tomcat中配置多个Service，可以实现通过不同的端口号来访问同一台机器上部署的不同应用。**
 
 #### 5.4.3  连接器组件
 
-![1622859676342](E:\SoftwareNote\Web\img\Tomcat连接器组件.png)
+![1622859676342](img\Tomcat连接器组件.png)
 
 ①EndPoint负责和客户端对接，接受客户端socket数据
 
@@ -189,11 +189,11 @@ Tomcat是一个由一系列可配置的组件构成的Web容器，而Catalina是
 
 Tomcat 本质上就是一款 Servlet 容器， 因此**Catalina才是 Tomcat 的核心** ， <u>其他模块都是为Catalina提供支</u>撑。 比如: 通过**Coyote 模块提供链接通信**，**Jasper 模块提供JSP引擎**，**Naming 提供JNDI 服务**，**Juli 提供日志服务**
 
-![1622860891709](E:\SoftwareNote\Web\img\Tomcat分层结构图.png)
+![1622860891709](img\Tomcat分层结构图.png)
 
 #### 5.5.2 Catalina的组成
 
-![1622861049351](E:\SoftwareNote\Web\img\Catalina的结构图.png)
+![1622861049351](img\Catalina的结构图.png)
 
 Catalina负责管理Server，而Server表示着整个服务器。Server下面有多个服务Service，每个服务都包含着多个连接器组件Connector（Coyote 实现）和一个容器组件Container。**在Tomcat 启动的时候， 会初始化一个Catalina的实例。** 
 
@@ -211,7 +211,7 @@ Catalina负责管理Server，而Server表示着整个服务器。Server下面有
 
 Tomcat设计了4种容器，分别是**Engine、Host、Context和Wrapper**。这4种容器不是平行关系，**而是父子关系**。 Tomcat通过一种分层的架构，使得Servlet容器具有很好的灵活性。
 
-![1622861679341](E:\SoftwareNote\Web\img\Engine-Host-Context-Wrapper的关系.png)
+![1622861679341](img\Engine-Host-Context-Wrapper的关系.png)
 
 > 各组件的职责
 
@@ -249,7 +249,7 @@ Tomcat设计了4种容器，分别是**Engine、Host、Context和Wrapper**。这
 
 你会发现这些容器具有父子关系，形成一个树形结构，你可能马上就想到了设计模式中的**组合模式**。没错，Tomcat就是用组合模式来管理这些容器的。具体实现方法是，**所有容器组件都实现了Container接口**，因此组合模式可以使得用户对单容器对象和组合容器对象的使用具有一致性。**这里单容器对象指的是最底层的Wrapper，组合容器对象指的是上面的Context、Host或者Engine。**
 
-![1622862441317](E:\SoftwareNote\Web\img\Tomcat的Container架构图.png)
+![1622862441317](img\Tomcat的Container架构图.png)
 
 <u>Container接口扩展了LifeCycle接口</u>，**LifeCycle接口用来统一管理各组件的生命周期**
 
@@ -263,7 +263,7 @@ Tomcat设计了4种容器，分别是**Engine、Host、Context和Wrapper**。这
 
 ## 6. Tomcat启动流程
 
-![1622862930253](E:\SoftwareNote\Web\img\Tomcat启动流程图.png)
+![1622862930253](img\Tomcat启动流程图.png)
 
 步骤 :  各组件的init()+start()
 
@@ -287,7 +287,7 @@ Tomcat设计了4种容器，分别是**Engine、Host、Context和Wrapper**。这
 
 当前对于 Endpoint组件来说，在Tomcat中没有对应的Endpoint接口， 但是有一个**抽象类 AbstractEndpoint ，其下有三个实现类： NioEndpoint、Nio2Endpoint、AprEndpoint** ， 这三个实现类，分别对应于前面讲解链接器 Coyote时， 提到的链接器支持的三种IO模型：NIO，NIO2，APR ， **Tomcat8.5版本中，默认采用的是 NioEndpoint。**
 
-![1622863558816](E:\SoftwareNote\Web\img\各组件的默认实现.png)
+![1622863558816](img\各组件的默认实现.png)
 
 ProtocolHandler ： Coyote协议接口，通过封装Endpoint和Processor ， 实现针对具体协议的处理功能。Tomcat按照协议和IO提供了6个实现类。 
 
@@ -307,7 +307,7 @@ HTTP协议：
 
 3） Http11AprProtocol ：采用APR的IO模型，需要依赖于APR库。
 
-![1622865557345](E:\SoftwareNote\Web\img\ProtocolHandler的实现类们.png)
+![1622865557345](img\ProtocolHandler的实现类们.png)
 
 ### 6.2 总结
 
@@ -327,7 +327,7 @@ Mapper组件里保存了**Web应用的配置信息(如web.xml)**，其实就是�
 
 下面的示意图中 ， 就描述了 当用户请求链接 http://www.itcast.cn/bbs/findAll 之后, 是如何找到最终处理业务逻辑的servlet 。 
 
-![1622866009834](E:\SoftwareNote\Web\img\url找wrapper(Servlet)流程.png)
+![1622866009834](img\url找wrapper(Servlet)流程.png)
 
 
 
@@ -362,7 +362,7 @@ http://localhost:8080/my-web-mave/index.jsp
 
 ### 7.1 Tomcat请求流程
 
-![1622866059457](E:\SoftwareNote\Web\img\Tomcat请求流程.png)
+![1622866059457](img\Tomcat请求流程.png)
 
 步骤如下: 
 
@@ -386,7 +386,7 @@ http://localhost:8080/my-web-mave/index.jsp
 
 9) Wrapper容器的管道开始处理，流程类似，最后执行 Wrapper容器对应的Servlet对象的处理方法service()
 
-![1622866665030](E:\SoftwareNote\Web\img\Tomcat请求流程图.png)
+![1622866665030](img\Tomcat请求流程图.png)
 
 在前面所讲解的Tomcat的整体架构中，我们发现Tomcat中的各个组件各司其职，组件之间松耦合，确保了整体架构的可伸缩性和可拓展性，那么在组件内部，如何增强组件的灵活性和拓展性呢？ 在Tomcat中，每个Container组件采用责任链模式来完成具体的请求处理。 
 
@@ -406,7 +406,7 @@ Tomcat 并不会在启动Web应用的时候自动编译JSP文件(当然也可以
 
 - JspServlet处理流程
 
-![1622869000506](E:\SoftwareNote\Web\img\JspServlet处理流程.png)
+![1622869000506](img\JspServlet处理流程.png)
 
 ### 8.2 编译jsp文件后的class文件存放位置
 
@@ -430,7 +430,7 @@ Tomcat 提供了一个Shell程序JspC，用于支持JSP预编译，而且在Tomc
 
 ### 8.4 jsp编译过程
 
-![1622869479366](E:\SoftwareNote\Web\img\Jsp编译过程.png)
+![1622869479366](img\Jsp编译过程.png)
 
 Compiler 编译工作主要包含代码生成 和 编译两部分 ： 
 
@@ -478,7 +478,7 @@ web.xml 是web应用的描述文件， 它支持的元素及属性来自于Servl
 
 ### 11.2 web-manager
 
-![1622807307310](E:\SoftwareNote\服务器\Tomcat\img\TomcatManager可以查看应用JVM内存使用情况.png)
+![1622807307310](img\TomcatManager可以查看应用JVM内存使用情况.png)
 
 ## 12. Tomcat的JVM配置
 
@@ -620,7 +620,7 @@ https://blog.csdn.net/ly823260355/article/details/104181278
   JAVA_OPTS="$JAVA_OPTS -Djava.protocol.handler.pkgs=org.apache.catalina.webresources"
   ```
 
-![1622807307310](E:\SoftwareNote\服务器\Tomcat\img\TomcatManager可以查看应用JVM内存使用情况.png)
+![1622807307310](img\TomcatManager可以查看应用JVM内存使用情况.png)
 
 
 

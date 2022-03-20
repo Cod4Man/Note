@@ -86,7 +86,7 @@ public class AOPComponent {
 - Spring4是先after后afterThrowing/afterReturning
 - Spring5和Spring4相反
 
-![1617634454281](E:\SoftwareNote\面试准备\Spring\img\Spring4和Spring5的AOP执行顺序.png)
+![1617634454281](img\Spring4和Spring5的AOP执行顺序.png)
 
 ### 1.4 SpringTest
 
@@ -1305,11 +1305,11 @@ abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFactory{
 
 - Spring循环依赖三级缓存和四大方法
 
-![1618498970531](E:\SoftwareNote\面试准备\Spring\img\Spring循环依赖三级缓存和四大方法.png)
+![1618498970531](img\Spring循环依赖三级缓存和四大方法.png)
 
 - Spring循环依赖三级缓存
 
-  ![1618919458103](E:\SoftwareNote\面试准备\Spring\img\Spring循环依赖三级缓存.png)
+  ![1618919458103](img\Spring循环依赖三级缓存.png)
 
 
 ## 3. Bean的作用域

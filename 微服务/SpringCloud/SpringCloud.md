@@ -2,15 +2,15 @@
 
 ## 1. 版本选择https://start.spring.io/actuator/info
 
-![1606651696686](E:\SoftwareNote\微服务\SpringCloud\img\SpringCloud版本细项选择.png)
+![1606651696686](img\SpringCloud版本细项选择.png)
 
-![1606651411340](E:\SoftwareNote\微服务\SpringCloud\img\SpringCloud版本选择.png)
+![1606651411340](img\SpringCloud版本选择.png)
 
-![1606651789339](E:\SoftwareNote\微服务\SpringCloud\img\杨哥学习版本选择.png)
+![1606651789339](img\杨哥学习版本选择.png)
 
 ## 2. SpringCloud组件升级
 
-![1606652566614](E:\SoftwareNote\微服务\SpringCloud\img\SpringCloud组件升级.png)
+![1606652566614](img\SpringCloud组件升级.png)
 
 ## 3. 注解
 
@@ -108,7 +108,7 @@ eureka:
 - eureka继承了Ribbon
 - @LoadBalanced // 注释了这个，服务间才可以发现彼此，用服务名调用，而不需要ip+port
 
-![1606749404796](E:\SoftwareNote\微服务\SpringCloud\img\Eureka系统架构.png)
+![1606749404796](img\Eureka系统架构.png)
 
 ##### 4.1.1.2 Eureka组成
 
@@ -118,7 +118,7 @@ eureka:
 
 ##### 4.1.1.3 Eureka集群原理 
 
-![1607007154428](E:\SoftwareNote\微服务\SpringCloud\img\Eureka集群原理.png)
+![1607007154428](img\Eureka集群原理.png)
 
 ##### 4.1.1.4 Eureka 自我保护机制
 
@@ -142,7 +142,7 @@ eureka:
 
   Zookeeper就将负责**通知已经在Zookeeper上注册的那些观察者**做出相应的反应.（就像消息推送和消息通知?）
 
-![1621258653554](E:\SoftwareNote\微服务\SpringCloud\img\Zookeeper工作机制.png)
+![1621258653554](img\Zookeeper工作机制.png)
 
 - Zookeeper特点
 
@@ -332,7 +332,7 @@ public class FeignService2 {
 
   2）监听子节点增减的变化  ls path [watch]
 
-![1621311035387](E:\SoftwareNote\微服务\SpringCloud\img\Zookeeper监听原理.png)
+![1621311035387](img\Zookeeper监听原理.png)
 
 - **Zookeeper选举机制（面试）**
 
@@ -374,7 +374,7 @@ public class FeignService2 {
 
   当**大于半数的server写入成功**，说明该写操作可以执行，leader**向每个server发送提交信息** ，然后每个server提交队列中的请求，此时写入成功。
 
-  ![1621311616938](E:\SoftwareNote\微服务\SpringCloud\img\Zookeeper写数据流程.png)
+  ![1621311616938](img\Zookeeper写数据流程.png)
 
 #### 4.1.5 Zookeeper模拟建行交易交易 
 
@@ -609,7 +609,7 @@ spring:
 
   **C是致性，集群就会有一致性问题，一致性难以保持**
 
-  ![1607245896866](E:\SoftwareNote\微服务\SpringCloud\img\CAP理论.png)
+  ![1607245896866](img\CAP理论.png)
 
 - Eureka(AP)  
 
@@ -678,7 +678,7 @@ public RestTemplate restTemplate {
 
 - Feign和OpenFeign的区别
 
-  ![1607432204805](E:\SoftwareNote\微服务\SpringCloud\img\Feign和OpenFeign的区别.png)
+  ![1607432204805](img\Feign和OpenFeign的区别.png)
 
 #####4.3.2.1 使用
 
@@ -733,7 +733,7 @@ ribbon:
 
 - Feign日志级别
 
-  ![1607436697440](E:\SoftwareNote\微服务\SpringCloud\img\Feign日志级别.png)
+  ![1607436697440](img\Feign日志级别.png)
 
 - 使用
 
@@ -818,7 +818,7 @@ logging:
           enabled: true
   ```
 
-![1621239536183](E:\SoftwareNote\微服务\SpringCloud\img\OpenFeign+Ribbon+Eureka的配合.png)
+![1621239536183](img\OpenFeign+Ribbon+Eureka的配合.png)
 
 ### 4.4 服务降级
 
@@ -938,7 +938,7 @@ feign:
 
 - 熔断器概念图
 
-  ![1608308356224](E:\SoftwareNote\微服务\SpringCloud\img\熔断器概念图.png)
+  ![1608308356224](img\熔断器概念图.png)
 
 - 熔断类型：
 
@@ -948,7 +948,7 @@ feign:
 
 - 官网断路器流程图
 
-  ![1608309142716](E:\SoftwareNote\微服务\SpringCloud\img\官网断路器流程图.png)
+  ![1608309142716](img\官网断路器流程图.png)
 
 - 断路器开启或者关闭的条件
 
@@ -995,7 +995,7 @@ feign:
 
 - Zuul1.x模型
 
-  ![1608455324110](E:\SoftwareNote\微服务\SpringCloud\img\Zuul1.x模型.png)
+  ![1608455324110](img\Zuul1.x模型.png)
 
   模型缺点：
 
@@ -1017,7 +1017,7 @@ feign:
 
 - Gateway源码架构（模型）
 
-  ![1608451987988](E:\SoftwareNote\微服务\SpringCloud\img\Gateway源码架构.png)
+  ![1608451987988](img\Gateway源码架构.png)
 
   - 传统的web框架，如struts2，springMVC等都是基于servletAPI和Servelt容器基础之上进行的。
   - **在Servelt3.1之后有了异步非阻塞的支持**。而WebFlux式一个典型的非阻塞异步的框架，它的核心是基于Reactor的相关API实现的。相对于传统的web框架来说，它可以运行在诸如Netty，Undertow以及支持Servlet3.1的容器上。**非阻塞+函数式编程(Spring5必须使用JAVA8)**
@@ -1034,7 +1034,7 @@ feign:
 
 - 微服务架构中的网关（在服务层外层）
 
-  ![1608452396670](E:\SoftwareNote\微服务\SpringCloud\img\微服务架构中的网关.png)
+  ![1608452396670](img\微服务架构中的网关.png)
 
 - 为什么选Gateway而不是Zuul
 
@@ -1069,11 +1069,11 @@ feign:
 
   - Filter(过滤)：指的是Spring框架中GatewayFilter的实例，使用过滤器，可以在请求被路由前或者之后对请求进行修改。（拦截了可以做很多事情）
 
-    ![1608462225245](E:\SoftwareNote\微服务\SpringCloud\img\Gateway总体图.png)
+    ![1608462225245](img\Gateway总体图.png)
 
     Gateway工作过程（核心逻辑：路由转发+执行过滤器链）
 
-    ![1608462363044](E:\SoftwareNote\微服务\SpringCloud\img\Gateway工作过程.png)
+    ![1608462363044](img\Gateway工作过程.png)
 
 ##### 4.5.3.2 Predicate 
 
@@ -1214,7 +1214,7 @@ feign:
 
 #### 4.6.1 SpringCloud Config
 
-![1608736024008](E:\SoftwareNote\微服务\SpringCloud\img\SpringCloudConfig模型图.png)
+![1608736024008](img\SpringCloudConfig模型图.png)
 
 - SpringCloud Config分为服务端和客户端。
 
@@ -1265,9 +1265,9 @@ feign:
 
 - 配置读取规则
 
-  ![1608957986658](E:\SoftwareNote\微服务\SpringCloud\img\SpringCloudConfig配置读取规则.png)
+  ![1608957986658](img\SpringCloudConfig配置读取规则.png)
 
-![1608959876710](E:\SoftwareNote\微服务\SpringCloud\img\SpringCloudConfig配置读取规则2.png)
+![1608959876710](img\SpringCloudConfig配置读取规则2.png)
 
 - bootstap.yml
 
@@ -1362,7 +1362,7 @@ feign:
 
 - 用途：SpringCloud Bus能管理和传播分布式系统间的消息，就像一个分布式执行器，可用于广播状态更改/事件推送等，也可以当作微服务间的通信通道。
 
-  ![1608989250106](E:\SoftwareNote\微服务\SpringCloud\img\SpringCloudBus工作过程.png)
+  ![1608989250106](img\SpringCloudBus工作过程.png)
 
 - 总线：在微服务架构的系统中，通常会使用轻量级的消息代理来构建一个共用的消息主题，并让系统中所有微服务实例都连接上来。由于该主题中产生的消息会被所有实例监听和消费，所以称它为消息总线。在总线上的各个实例，都可以方便的广播一些需要让其他连接在该主题上的实例都知道的消息。
 
@@ -1372,11 +1372,11 @@ feign:
 
   - 方案一：**利用消息总线触发一个客户端/bus/refresh,而刷新所有客户端的配置**
 
-    ![1608995149065](E:\SoftwareNote\微服务\SpringCloud\img\SpringCloudBus设计架构1.png)
+    ![1608995149065](img\SpringCloudBus设计架构1.png)
 
   - 方案二：**利用消息总线触发一个服务端ConfigServer的/bus/refresh端点,而刷新所有客户端的配置（更加推荐）**
 
-    ![1608995201829](E:\SoftwareNote\微服务\SpringCloud\img\SpringCloudBus设计架构2.png)
+    ![1608995201829](img\SpringCloudBus设计架构2.png)
 
     - 打破了微服务的职责单一性，因为微服务本身是业务模块，它本不应该承担配置刷新职责
     - 破坏了微服务各节点的对等性
@@ -1448,7 +1448,7 @@ feign:
 
 - bus通知过程图
 
-  ![1608995629898](E:\SoftwareNote\微服务\SpringCloud\img\bus通知过程图.png)
+  ![1608995629898](img\bus通知过程图.png)
 
 ### 4.8 消息驱动(SpringCloudStream) 
 
@@ -1473,11 +1473,11 @@ feign:
 
 通过定义绑定器作为中间层，完美的实现了**应用程序与消息中间件细节之间的隔离**。通过向应用程序暴露统一的Channel通道，使得应用程序不需要再考虑各种不同的消息中间件实现。
 
-![1609079227585](E:\SoftwareNote\微服务\SpringCloud\img\SpringCloudStream处理架构.png)
+![1609079227585](img\SpringCloudStream处理架构.png)
 
 #### 4.8.4 SpringCloudStream标准流程套路
 
-![1609079362362](E:\SoftwareNote\微服务\SpringCloud\img\SpringCloudStream标准流程套路.png)
+![1609079362362](img\SpringCloudStream标准流程套路.png)
 
 - Binder：很方便的连接中间件，屏蔽差异
 - Channel：通道，是队列Queue的一种抽象，在消息通讯系统中就是实现存储和转发的媒介，通过对Channel对队列进行配置
@@ -1485,7 +1485,7 @@ feign:
 
 #### 4.8.5 编码API和常用注解
 
-![1609079467370](E:\SoftwareNote\微服务\SpringCloud\img\SpringCloudStream编码API和常用注解.png)
+![1609079467370](img\SpringCloudStream编码API和常用注解.png)
 
 #### 4.8.6 试用（RabbitMQ） 
 
@@ -1618,7 +1618,7 @@ public class ReceiveMessageListenerController {
 
   - 分组消费：同组竞争，不同组可以重复消费
 
-    ![1609082910058](E:\SoftwareNote\微服务\SpringCloud\img\SpringCloudStream分组.png)
+    ![1609082910058](img\SpringCloudStream分组.png)
 
   - 持久化：
 
@@ -1635,9 +1635,9 @@ public class ReceiveMessageListenerController {
 
 - 调用链路(类似链表，preNode ≈ parentId)
 
-  ![1609168466292](E:\SoftwareNote\微服务\SpringCloud\img\SpringCloudSleuth调用链路.png)
+  ![1609168466292](img\SpringCloudSleuth调用链路.png)
 
-![1609168531376](E:\SoftwareNote\微服务\SpringCloud\img\SpringCloudSleuth调用链路2.png)
+![1609168531376](img\SpringCloudSleuth调用链路2.png)
 
 Trace:类似于树结构的Span集合，表示一条调用链路，存在唯一标识
 
@@ -1751,7 +1751,7 @@ span:表示调用链路来源，通俗的理解span就是一次请求信息
 
   配置项 描述 可选参数 默认值     MODE 模式 cluster/standalone cluster/standalone cluster   PREFER_HOST_MODE 是否支持 hostname hostname/ip ip   NACOS_SERVER_PORT 服务端口号  8848   SPRING_DATASOURCE_PLATFORM 单机模式支持 mysql  mysql / empty empty   MYSQL_MASTER_SERVICE_HOST mysql 主节点 host     MYSQL_MASTER_SERVICE_PORT mysql 主节点 port  3306   MYSQL_MASTER_SERVICE_DB_NAME    mysql 主节点数据库名     MYSQL_MASTER_SERVICE_USER mysql 主节点用户名     MYSQL_MASTER_SERVICE_PASSWORD mysql 主节点密码     MYSQL_SLAVE_SERVICE_HOST mysql 从节点 host     MYSQL_SLAVE_SERVICE_PORT mysql 从节点 port  3306
 
-   ![1609345213243](E:\SoftwareNote\微服务\SpringCloud\img\Nacos可选配置.png)
+   ![1609345213243](img\Nacos可选配置.png)
 
    
 
@@ -1785,19 +1785,19 @@ span:表示调用链路来源，通俗的理解span就是一次请求信息
 
   据说Nacos在阿里巴巴有超过10万实例运行，已经过了类似双十一等各种大型流量的考验
 
-  ![1609341568639](E:\SoftwareNote\微服务\SpringCloud\img\Nacos与各服务中心对比.png)
+  ![1609341568639](img\Nacos与各服务中心对比.png)
 
   - Nacos全景图
 
-![1609685702348](E:\SoftwareNote\微服务\SpringCloud\img\Nacos全景图.png)
+![1609685702348](img\Nacos全景图.png)
 
 ​	-   Nacos和CAP
 
-![1609685812639](E:\SoftwareNote\微服务\SpringCloud\img\Nacos和CAP.png)
+![1609685812639](img\Nacos和CAP.png)
 
  - nacos的CP/AP切换：`curl -X PUT '$NACOS_SERVER:8848/nacos/v1/ns/operator/switches?entry=serverMode&value=CP'`
 
-![1609685993812](E:\SoftwareNote\微服务\SpringCloud\img\Nacos的CP-AP切换.png)
+![1609685993812](img\Nacos的CP-AP切换.png)
 
 #### 5.1.2 使用-服务注册中心
 
@@ -1905,7 +1905,7 @@ public class BaseConfiguration {
  ```
 - yml
 
-  ![1609777717156](E:\SoftwareNote\微服务\SpringCloud\img\Nacos配置规则.png)
+  ![1609777717156](img\Nacos配置规则.png)
 
 ```yml
 ####  bootstrap.yml  start  ####
@@ -1962,14 +1962,14 @@ public class CommonComponent {
 
 - nacos配置：Data-ID需和yml配置中规则一致
 
-![1609777293564](E:\SoftwareNote\微服务\SpringCloud\img\Nacos发布配置.png)
+![1609777293564](img\Nacos发布配置.png)
 
      - Nacos中的dataid的组成格式与SpringBoot配置文件中的匹配规则
 
 
 ​      
 
- ![1609777524526](E:\SoftwareNote\微服务\SpringCloud\img\Nacos中的dataid的组成格式与SpringBoot配置文件中的匹配规则.png)
+ ![1609777524526](img\Nacos中的dataid的组成格式与SpringBoot配置文件中的匹配规则.png)
 
 - 设置DataId公式
 
@@ -1990,7 +1990,7 @@ public class CommonComponent {
 
     Service就是微服务，可以包含多个集群Cluster
 
-    ![1609855473548](E:\SoftwareNote\微服务\SpringCloud\img\Nacos结构.png)
+    ![1609855473548](img\Nacos结构.png)
 
 ```yml
 # nacos配置
@@ -2018,15 +2018,15 @@ spring:
 
 #### 5.1.4 Nacos集群和持久化配置
 
-- 集群官网架构图![1610374262649](E:\SoftwareNote\微服务\SpringCloud\img\Nacos集群官网架构图.png)
+- 集群官网架构图![1610374262649](img\Nacos集群官网架构图.png)
 
 Nginx+Nacos(3+)+Mysql实现集群
 
-![1610374502767](E:\SoftwareNote\微服务\SpringCloud\img\Nginx_Nacos_Mysql实现高可用Nacos集群.png)
+![1610374502767](img\Nginx_Nacos_Mysql实现高可用Nacos集群.png)
 
 最终架构
 
-![1610375881733](E:\SoftwareNote\微服务\SpringCloud\img\Nacos集群最终架构.png)
+![1610375881733](img\Nacos集群最终架构.png)
 
 - 数据库支持
 
@@ -2036,7 +2036,7 @@ Nginx+Nacos(3+)+Mysql实现集群
 
   - 单机版配置(/nacos/conf/application.properties)
 
-    ![1610375208279](E:\SoftwareNote\微服务\SpringCloud\img\Nacos单机版Mysql配置.png)
+    ![1610375208279](img\Nacos单机版Mysql配置.png)
 
 #### 5.1.5 Nacos共享配置
 
@@ -2093,7 +2093,7 @@ sharedConfigs[1]:
 
 - 用途：
 
-  ![1610376780126](E:\SoftwareNote\微服务\SpringCloud\img\Sentinel用途.png)
+  ![1610376780126](img\Sentinel用途.png)
 
 - 组成：
 
@@ -2170,9 +2170,9 @@ feign:
 
 - 简介
 
-![1610462415449](E:\SoftwareNote\微服务\SpringCloud\img\Sentinel流控规则介绍.png)
+![1610462415449](img\Sentinel流控规则介绍.png)
 
-![1610462761890](E:\SoftwareNote\微服务\SpringCloud\img\Sentinel流控规则界面.png)
+![1610462761890](img\Sentinel流控规则界面.png)
 
 
 
@@ -2180,7 +2180,7 @@ feign:
 
 - 介绍
 
-  ![1610546143274](E:\SoftwareNote\微服务\SpringCloud\img\Sentinel降级规则介绍.png)
+  ![1610546143274](img\Sentinel降级规则介绍.png)
 
 - 用途
 
@@ -2194,7 +2194,7 @@ feign:
 
 - 介绍
 
-  ![1610549651421](E:\SoftwareNote\微服务\SpringCloud\img\Sentinel热点Key规则介绍.png)
+  ![1610549651421](img\Sentinel热点Key规则介绍.png)
 
 - java:  **@SentinelResource, 类似Histrix的@HistrixCommand, 可指定兜底方案<u>blockHandler</u>**
 
@@ -2215,7 +2215,7 @@ feign:
 
 #### 5.2.6 系统规则
 
-![1610549846247](E:\SoftwareNote\微服务\SpringCloud\img\Sentinel系统规则介绍.png)
+![1610549846247](img\Sentinel系统规则介绍.png)
 
 #### 5.2.7 @SentinelResource 
 
@@ -2246,7 +2246,7 @@ public class CustomerBlockHandler {
 
 - 注解属性说明
 
-![1610551047067](E:\SoftwareNote\微服务\SpringCloud\img\SentinelResource注解属性详解.png)
+![1610551047067](img\SentinelResource注解属性详解.png)
 
 - 三大核心API
   - SphU定义资源
@@ -2274,7 +2274,7 @@ public class CustomerBlockHandler {
 
 - 熔断框架对比
 
-  ![1610633143086](E:\SoftwareNote\微服务\SpringCloud\img\熔断框架对比Sentinel_Hystrix_resillence4j.png)
+  ![1610633143086](img\熔断框架对比Sentinel_Hystrix_resillence4j.png)
 
 #### 5.2.9 持久化
 
@@ -2306,17 +2306,17 @@ spring:
 
 - 需要在nacos手动新增Sentinel配置，注意dataid和groupid需要和yml一致
 
-![1610635046539](E:\SoftwareNote\微服务\SpringCloud\img\Sentinel持久化_在Nacos新增配置.png)
+![1610635046539](img\Sentinel持久化_在Nacos新增配置.png)
 
 Nacos配置json详解
 
-![1610635025274](E:\SoftwareNote\微服务\SpringCloud\img\Sentinel持久化_Nacos配置json详解.png)
+![1610635025274](img\Sentinel持久化_Nacos配置json详解.png)
 
 ### 5.3 SpringCloud Alibaba Seata处理分布式事务 8091
 
 - 分布式事务问题：一次业务操作需要跨多个数据源或需要跨多个系统进行远程调用，就会产生分布式事务问题
 
-  ![1610635641899](E:\SoftwareNote\微服务\SpringCloud\img\分布式事务问题.png) 
+  ![1610635641899](img\分布式事务问题.png) 
 
 - seata介绍
 
@@ -2327,11 +2327,11 @@ Nacos配置json详解
     - Transaction  Manager(TM) :  控制全局事务的边界，负责开启一个全局事务，并**最终发起**全局提交或全局回滚的决议;
     - Resource Manager(RM) ： 控制**分支事务，负责分支注册，状态汇报**，并接收事务协调器的指令，驱动**分支（本地）事务的提交和回滚；** 
 
-![1610636230433](E:\SoftwareNote\微服务\SpringCloud\img\Seata核心处理过程.png)
+![1610636230433](img\Seata核心处理过程.png)
 
 - **全局@GlobalTransactional**
 
-  ![1610636348781](E:\SoftwareNote\微服务\SpringCloud\img\Seata的分布式事务解决方案.png)
+  ![1610636348781](img\Seata的分布式事务解决方案.png)
 
 - demo
 
@@ -2504,23 +2504,23 @@ Nacos配置json详解
 
   - 是什么
 
-    ![1610726979181](E:\SoftwareNote\微服务\SpringCloud\img\Seata的AT模式介绍.png)
+    ![1610726979181](img\Seata的AT模式介绍.png)
 
   - 一阶段加载
 
-    ![1610727042307](E:\SoftwareNote\微服务\SpringCloud\img\Seata的AT模式之一阶段加载.png)
+    ![1610727042307](img\Seata的AT模式之一阶段加载.png)
 
   - 二阶段提交
 
-    ![1610727084709](E:\SoftwareNote\微服务\SpringCloud\img\Seata的AT模式之二阶段提交.png)
+    ![1610727084709](img\Seata的AT模式之二阶段提交.png)
 
   - 三阶段回滚
 
-    ![1610727127492](E:\SoftwareNote\微服务\SpringCloud\img\Seata的AT模式之三阶段回滚.png)
+    ![1610727127492](img\Seata的AT模式之三阶段回滚.png)
 
   - Seata的AT模式执行过程
 
-![1610727172507](E:\SoftwareNote\微服务\SpringCloud\img\Seata的AT模式执行过程.png)
+![1610727172507](img\Seata的AT模式执行过程.png)
 
 
 
@@ -2734,7 +2734,7 @@ b) 参与者收到 canCommit 请求后，如果认为可以执行事务操作，
 
 ### 6.3 TCC（补偿事务）
 
-![1623631428137](E:\SoftwareNote\微服务\SpringCloud\img\分布式事务方案-TCC.png)
+![1623631428137](img\分布式事务方案-TCC.png)
 
 `Try - Confirm - Cancel` 
 

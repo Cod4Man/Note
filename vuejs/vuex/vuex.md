@@ -7,7 +7,7 @@
 - 状态管理的定义
   - 将多个组件共享的变量全部存储到一个对象中，然后封装在顶层Vue中，这样所有的组件都可以享用。就像父类一样
 
-![1603609871913](E:\SoftwareNote\vuejs\img\Vuex状态管理图例.png)
+![1603609871913](img\Vuex状态管理图例.png)
 
 
 
@@ -303,7 +303,7 @@ clickAddAsync() {
 
 ### 2.8 vuex目录结构
 
-![1603723834701](E:\SoftwareNote\vuejs\img\vuex目录结构.png)
+![1603723834701](img\vuex目录结构.png)
 
 ### 2.9 mapGetters: 
 

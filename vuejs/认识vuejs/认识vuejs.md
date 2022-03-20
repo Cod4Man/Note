@@ -19,11 +19,11 @@
 
 ## 4. MVVM模型
 
-- ![MVVM](E:\softwareNote\vuejs\img\MVVM模型.png)
+- ![MVVM](img\MVVM模型.png)
 
 ## 5. 响应式原理 
 
-![1606632843798](E:\SoftwareNote\vuejs\img\vue响应式原理.png)
+![1606632843798](img\vue响应式原理.png)
 
 - app.message修改数据，Vue内部是如何监听message数据的改变
 

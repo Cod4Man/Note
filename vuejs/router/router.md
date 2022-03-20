@@ -176,7 +176,7 @@ goProfile() {
 
 - 懒加载的三种方式
 
-  ![1602408161709](E:\SoftwareNote\vuejs\img\路由懒加载.png)
+  ![1602408161709](img\路由懒加载.png)
 
 ```js
 // import Home from '../components/Home'

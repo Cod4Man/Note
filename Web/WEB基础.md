@@ -110,7 +110,7 @@ UPDATE [http://api.qc.com/v1/profile](https://link.zhihu.com/?target=http%3A//ap
 
 HTTP协议是浏览器与服务器之间的**数据传送协议**。<u>作为应用层协议</u>，**HTTP是基于TCP/IP协议**来传递数据的（HTML文件、图片、查询结果等），HTTP协议不涉及数据包（Packet）传输，主要规定了客户端和服务器之间的通信格式。 
 
-![1622857580163](E:\SoftwareNote\Web\img\Http工作原理图.png)
+![1622857580163](img\Http工作原理图.png)
 
 1） 用户通过浏览器进行了一个操作，比如输入网址并回车，或者是点击链接，接着浏览器获取了这个事件。 
 
@@ -215,7 +215,7 @@ https://www.cnblogs.com/hyddd/archive/2009/04/09/1432744.html
 
 　　下图简单阐述了CSRF攻击的思想
 
-![1624201671238](E:\SoftwareNote\Web\img\CSRF跨域请求伪造原理图.png)
+![1624201671238](img\CSRF跨域请求伪造原理图.png)
 
 **五.CSRF的防御**
 
@@ -285,3 +285,13 @@ Servlet处理请求
 Listener监听事件，比如HttpSessionListener可以监听sessionCreate和sessionDestory
 
 拦截器Inteceptor [比如说SpringCloud的Resttemplate和Feign调用远程时，拦截请求set header token]
+
+## 15. 跨域
+
+https://developer.mozilla.org/zh-CN/docs/Web/HTTP/CORS
+
+- 跨域流程
+
+![image-20211007181218518](img\跨域流程1.png)
+
+![image-20211007180938627](img\跨域流程.png)

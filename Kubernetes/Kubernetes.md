@@ -608,7 +608,7 @@ Controller Manager是集群实现自愈的机制。
 
 > Node节点组成部分
 
-![image-20210725231445695](E:\SoftwareNote\Kubernetes\img\Node节点组成部分.png)
+![image-20210725231445695](img\Node节点组成部分.png)
 
 Work Node是Pod运行的实际节点，是Kubernetes资源的提供者。Node职责是运行容器应用。Kubernetes本身知道Docker和rkt等容器的运行。 在Node节点中，运行的Kubernetes组件包括：
 

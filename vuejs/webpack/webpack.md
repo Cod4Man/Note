@@ -109,7 +109,7 @@ npm run build
 
 ## 4.3 url-loader 处理url，比如图片
 
-![url-loader](E:\SoftwareNote\vuejs\img\url-loader.png)
+![url-loader](img\url-loader.png)
 
 ```js
 {

@@ -2,11 +2,11 @@
 
 ## 1. 介绍
 
-MyBatis 是一款优秀的持久层框架，它支持自定义 SQL、存储过程以及高级映射。MyBatis 免除了几乎所有的 JDBC 代码以及设置参数和获取结果集的工作。MyBatis 可以通过简单的 XML 或注解来配置和映射原始类型、接口和 Java POJO（Plain Old Java Objects，普通老式 Java 对象）为数据库中的记录。 
+MyBatis 是一款优秀的持久层框架，它支持自定义 SQL、存储过程以及高级映射。MyBatis 免除了几乎所有的 JDBC 代码以及设置参数和获取结果集的工作。MyBatis 可以通过简单的 XML 或注解来配置和映射原始类型、接口和 Java POJO（Plain Old Java Objects，普通老式 Java 对象）为数据库中的记录。
 
 ## 2. MyBatis处理流程图
 
-![1620737996950](E:\SoftwareNote\Mybatis\img\MyBatis处理流程图.png)
+![1620737996950](img\MyBatis处理流程图.png)
 
 ## 3. 源码分析
 
@@ -69,12 +69,10 @@ try (SqlSession session = sqlSessionFactory.openSession()) {
     <mapper resource="org/apache/ibatis/submitted/nested_query_cache/AuthorMapper.xml"/>
     <mapper resource="org/apache/ibatis/submitted/nested_query_cache/BlogMapper.xml"/>
   </mappers>
-    
+  
 
 </configuration>
 ```
-
-
 
 ### 3.1 创建SqlSessionFactory
 
@@ -118,7 +116,7 @@ private void parseConfiguration(XNode root) {
       objectWrapperFactoryElement(root.evalNode("objectWrapperFactory"));
       reflectorFactoryElement(root.evalNode("reflectorFactory"));
       settingsElement(settings);
-      // read it after objectFactory and objectWrapperFactory issue #631	
+      // read it after objectFactory and objectWrapperFactory issue #631
       // 设置环境信息，包含dataSource和transactionFactory等
       environmentsElement(root.evalNode("environments"));
       databaseIdProviderElement(root.evalNode("databaseIdProvider"));
@@ -181,7 +179,7 @@ private void mapperElement(XNode parent) throws Exception {
 
 ```
 
-###  3.2 创建SqlSession
+### 3.2 创建SqlSession
 
 ```java
 // SqlSession session = sqlSessionFactory.openSession();
@@ -402,4 +400,3 @@ public List<Object> handleResultSets(Statement stmt) throws SQLException {
     return collapseSingleResultList(multipleResults);
 }
 ```
-

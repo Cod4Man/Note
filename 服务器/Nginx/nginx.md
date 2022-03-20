@@ -138,25 +138,25 @@ Nginx 可以作**为静态页面的 web 服务器**，同时还支持 CGI 协议
 
 就是通过代理服务器访问网站，而不是直接访问网站。如VPN访问外网等。
 
-![1622088470391](E:\SoftwareNote\服务器\Nginx\img\Nginx正向代理图.png)
+![1622088470391](img\Nginx正向代理图.png)
 
 #### 3.3.2 反向代理
 
 访问的是官网，但是该地址并不做实际的业务，而是做一个转发到不同场景的实际服务器。这样**可以隐藏实际服务器地址。** 
 
-![1622088671349](E:\SoftwareNote\服务器\Nginx\img\Nginx反向代理.png)
+![1622088671349](img\Nginx反向代理.png)
 
 #### 3.3.3 负载均衡
 
 将原先集中在一个服务器上的请求，**均衡分配**到配置相同的其他服务器上。 比如服务注册发现的Eureka/Zookeeper就是有负载均衡的作用。
 
-![1622088886269](E:\SoftwareNote\服务器\Nginx\img\Nginx负载均衡.png)
+![1622088886269](img\Nginx负载均衡.png)
 
 #### 3.3.4 动静分离
 
 为了**加快网站的解析速度，可以把动态页面和静态页面由不同的服务器来解析**，加快解析速 度。降低原来单个服务器的压力。 
 
-  ![1622089055787](E:\SoftwareNote\服务器\Nginx\img\Nginx动静分离.png)
+  ![1622089055787](img\Nginx动静分离.png)
 
 Nginx 动静分离简单来说就是把动态跟静态请求分开，不能理解成只是单纯的把动态页面和静态页面物理分离。**严格意义上说应该是*动态请求跟静态请求*分开**，可以理解成使用 Nginx 处理静态页面，Tomcat 处理动态页面。动静分离从目前实现角度来讲大致分为两种，**一种是纯粹把静态文件独立成单独的域名，放在独立的服务器上，也是目前主流推崇的方案； 另外一种方法就是动态跟静态文件混合在一起发布，通过 nginx 来分开。** 
 
@@ -736,9 +736,9 @@ upstream server_pool{
 
 ### 7.1 master和worker原型
 
-![1622091975567](E:\SoftwareNote\服务器\Nginx\img\Nginx的master和worker原型.png)
+![1622091975567](img\Nginx的master和worker原型.png)
 
-![1622092011640](E:\SoftwareNote\服务器\Nginx\img\Nginx的master和worker原型2.png)
+![1622092011640](img\Nginx的master和worker原型2.png)
 
 **master-workers 的机制的好处**  
 

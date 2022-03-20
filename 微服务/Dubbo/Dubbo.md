@@ -2,7 +2,7 @@
 
 ## 1. Web系统发展演变 
 
-![1621502746942](E:\SoftwareNote\微服务\Dubbo\img\Web系统发展演变.png)
+![1621502746942](img\Web系统发展演变.png)
 
 - #### *单一应用架构*
 
@@ -42,9 +42,9 @@ RPC【Remote Procedure Call】是指远程过程调用，是一种进程间通�
 
 **RPC两个核心模块：通讯（与远程通信），序列化（RCP性能的关键）。**
 
-![1621503237651](E:\SoftwareNote\微服务\Dubbo\img\RCP基本原理图1.png)
+![1621503237651](img\RCP基本原理图1.png)
 
-![1621503270785](E:\SoftwareNote\微服务\Dubbo\img\RCP基本原理图2.png)
+![1621503270785](img\RCP基本原理图2.png)
 
 ## 3. Dubbo的核心概念
 
@@ -54,7 +54,7 @@ Apache Dubbo (incubating) |ˈdʌbəʊ| 是一款高性能、轻量级的开源Ja
 
 ### 3.2 Dubbo架构
 
-![1621503575198](E:\SoftwareNote\微服务\Dubbo\img\Dubbo架构图.png)
+![1621503575198](img\Dubbo架构图.png)
 
 **服务提供者（Provide）**：暴露服务的服务提供方，服务提供者在启动时，<u>向注册中心注册自己提供的服务</u>。
 
@@ -176,7 +176,7 @@ XML 次之，如果在 XML 中有配置，则 dubbo.properties 中的相应配�
 
 Properties 最后，相当于缺省值，只有 XML 没有配置时，dubbo.properties 的相应配置项才会生效，通常用于共享公共配置，比如应用名。
 
-![1621505086592](E:\SoftwareNote\微服务\Dubbo\img\Dubbo配置优先级原则.png)
+![1621505086592](img\Dubbo配置优先级原则.png)
 
 #### 4.2.2 重试次数
 
@@ -239,7 +239,7 @@ dubbo推荐在Provider上尽量多配置Consumer端属性：
 
    3) 最后是Dubbo Hard Code的配置值（见配置文档）
 
-   ![1621505712149](E:\SoftwareNote\微服务\Dubbo\img\Dubbo配置的覆盖规则.png)
+   ![1621505712149](img\Dubbo配置的覆盖规则.png)
 
 #### 4.2.4 版本号
 
@@ -431,13 +431,13 @@ registry.register(URL.valueOf("override://0.0.0.0/com.foo.BarService?category=co
 
 RPC框架的目标就是要2~8这些步骤都封装起来，这些细节对用户来说是透明的，不可见的。
 
-![1621513329699](E:\SoftwareNote\微服务\Dubbo\img\RPC原理.png)
+![1621513329699](img\RPC原理.png)
 
 ### 6.2 netty通信原理 (NIO)
 
 Netty是一个异步事件驱动的网络应用程序框架， 用于快速开发可维护的高性能协议服务器和客户端。它极大地简化并简化了TCP和UDP套接字服务器等网络编程。
 
-![1621513404950](E:\SoftwareNote\微服务\Dubbo\img\BIO和NIO.png)
+![1621513404950](img\BIO和NIO.png)
 
 Selector 一般称 为**选择器** ，也可以翻译为 **多路复用器，**
 
@@ -453,11 +453,11 @@ Netty基本原理：
 6. 轮询读写事件
 7. 处理读写事件
 
-![1621513527657](E:\SoftwareNote\微服务\Dubbo\img\Netty基本原理.png)
+![1621513527657](img\Netty基本原理.png)
 
 ### 6.3 dubbo框架
 
-![1621513683719](E:\SoftwareNote\微服务\Dubbo\img\Dubbo框架图.png)
+![1621513683719](img\Dubbo框架图.png)
 
 - config 配置层：对外配置接口，以 ServiceConfig, ReferenceConfig 为中心，可以直接初始化配置类，也可以通过 spring 解析配置生成配置类
 - proxy 服务代理层：服务接口透明代理，生成服务的客户端 Stub 和服务器端 Skeleton, 以 ServiceProxy 为中心，扩展接口为 ProxyFactory
@@ -471,15 +471,15 @@ Netty基本原理：
 
 ### 6.4 dubbo服务暴露（注册）
 
-![1621513855350](E:\SoftwareNote\微服务\Dubbo\img\dubbo服务暴露.png)
+![1621513855350](img\dubbo服务暴露.png)
 
 ### 6.5 dubbon服务引用
 
-![1621513920716](E:\SoftwareNote\微服务\Dubbo\img\dubbon服务引用.png)
+![1621513920716](img\dubbon服务引用.png)
 
 ### 6.6 dubbo服务调用
 
-![1621513963313](E:\SoftwareNote\微服务\Dubbo\img\dubbo服务调用.png)
+![1621513963313](img\dubbo服务调用.png)
 
 
 

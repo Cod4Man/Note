@@ -594,7 +594,7 @@ public class CustomBeanPostProcessor implements BeanPostProcessor {
 
 - BeanPostProcessor.postProcessBeforeInitialization(result, beanName)可以点出来自定义实现类
 
-![1620899883716](E:\SoftwareNote\面试准备\Spring\img\BeanPostProcessor_postProcessBeforeInitialization(result, beanName)可以点出来自定义实现类.png)
+![1620899883716](img\BeanPostProcessor_postProcessBeforeInitialization(result, beanName)可以点出来自定义实现类.png)
 
 ## 6. BeanPostProcessor.postProcessBeforeInitialization(result, beanName)所引申的注解/注入/AOP等
 
@@ -964,7 +964,7 @@ private static BeanDefinition registerOrEscalateApcAsRequired(Class<?> cls, Bean
 
 3. AnnotationAwareAspectJAutoProxyCreator的继承关系： 顶层实现了BeanPostProcessor和BeanFactoryAware
 
-   ![1620967407930](E:\SoftwareNote\面试准备\Spring\img\AnnotationAwareAspectJAutoProxyCreator继承关系图.png)
+   ![1620967407930](img\AnnotationAwareAspectJAutoProxyCreator继承关系图.png)
 
 4. 由# 6可知，实现了BeanPostProcessor，在bean初始化前后会做一些set操作。当有被切入的bean创建时，就会调用以下方法构建bean对应的代理类。
 
@@ -1090,7 +1090,7 @@ private static BeanDefinition registerOrEscalateApcAsRequired(Class<?> cls, Bean
 
 **增强后的代理类：可以看到一个方法带着多个增强方法**
 
-![1622967875065](E:\SoftwareNote\面试准备\Spring\img\SpringAOP被代理类一览.png)
+![1622967875065](img\SpringAOP被代理类一览.png)
 
 - 获取所有的AOP增强方法
 
@@ -1328,11 +1328,11 @@ public abstract class AbstractAspectJAdvice implements Advice, AspectJPrecedence
 
 - MethodInterceptor的实现，各种增强，@After @Before等等的底层
 
-![1620978423232](E:\SoftwareNote\面试准备\Spring\img\MethodInterceptor的实现.png)
+![1620978423232](img\MethodInterceptor的实现.png)
 
 - Spring4的AOP增强调用顺序
 
-![1620955408293](E:\SoftwareNote\面试准备\Spring\img\Spring4的AOP增强调用顺序.png)
+![1620955408293](img\Spring4的AOP增强调用顺序.png)
 
 ### 10.3 总结
 
@@ -1344,7 +1344,7 @@ public abstract class AbstractAspectJAdvice implements Advice, AspectJPrecedence
 
 **增强后的代理类：可以看到一个方法带着多个增强方法**
 
-![1622967875065](E:\SoftwareNote\面试准备\Spring\img\SpringAOP被代理类一览.png)
+![1622967875065](img\SpringAOP被代理类一览.png)
 
 6. 以上，完成了代理Bean的创建。接下来就是代理Bean来执行方法调用（增强原方法）
 7. 执行原方法时，就会被代理类接管，跳到CglibAopProxy.DynamicAdvisedInterceptor.intercept。方法内部是利用**拦截器的链式调用**，依次进入每个拦截器进行执行（类似CP的bizRuleCheck）。
@@ -2027,11 +2027,11 @@ com.codemna.springservlet.servlet.MyServeltContainerInitialier
 
 - Servlet3.0之前，一个线程处理请求
 
-![1621070790084](E:\SoftwareNote\面试准备\Spring\img\Servlet3.0之前，一个线程处理请求.png)
+![1621070790084](img\Servlet3.0之前，一个线程处理请求.png)
 
 - Servlet3.0开始，Http请求线程和工作异步线程分开。（可以快速回收请求线程，请求线程只是个带路的）
 
-![1621071150381](E:\SoftwareNote\面试准备\Spring\img\Servlet3.0开始，Http请求线程和工作异步线程分开.png)
+![1621071150381](img\Servlet3.0开始，Http请求线程和工作异步线程分开.png)
 
 - 代码HttpServletRequest.startAsync().start(runnable)
   - 方式一：@WebServlet(value = "/hello", asyncSupported = true)，asyncSupported 异步支持打开
@@ -2423,15 +2423,15 @@ deferredResult.setResult(data);
 
 - 请求异步处理的应用场景：不同应用之间的异步
 
-![1621077793188](E:\SoftwareNote\面试准备\Spring\img\请求异步处理的应用场景.png)
+![1621077793188](img\请求异步处理的应用场景.png)
 
 ## 15. Spring的容器的创建refresh()
 
-![1621091759169](E:\SoftwareNote\面试准备\Spring\img\refresh_01.png)
+![1621091759169](img\refresh_01.png)
 
-![1621086059338](E:\SoftwareNote\面试准备\Spring\img\refresh_02.png)
+![1621086059338](img\refresh_02.png)
 
-![1621092703195](E:\SoftwareNote\面试准备\Spring\img\refresh_03.png)
+![1621092703195](img\refresh_03.png)
 
 
 

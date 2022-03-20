@@ -31,7 +31,7 @@ Google，百度类的网站搜索，它们都是根据网页中的关键字生�
 
 在使用过程中，一般都会将 Elasticsearch 和 Solr 这两个软件对比，然后进行选型。这两个搜索引擎都是流行的，先进的的开源搜索引擎。它们都是围绕核心底层搜索库 - Lucene构建的 - 但它们又是不同的。像所有东西一样，每个都有其优点和缺点：
 
-![1623376137380](E:\SoftwareNote\面试准备\数据库\ElasticSearch\img\ElasticSearch和Solr对比.png)
+![1623376137380](img\ElasticSearch和Solr对比.png)
 
 ### 1.4 Elasticsearch Or Solr 
 
@@ -105,7 +105,7 @@ Elasticsearch 是**面向文档型数据库**，<u>一条数据在这里就是�
 
 ES 里的 Index 可以看做一个库，而 Types 相当于表，Documents 则相当于表的行。这里 Types 的概念已经被逐渐弱化，Elasticsearch 6.X 中，一个 index 下已经只能包含一个type，**Elasticsearch 7.X 中, Type 的概念已经被删除了。**
 
-![1623378490964](E:\SoftwareNote\面试准备\数据库\ElasticSearch\img\ElasticSearch数据结构(与MySQL对比).png)
+![1623378490964](img\ElasticSearch数据结构(与MySQL对比).png)
 
 ## 2. Http操作以及JavaAPI 
 
@@ -1883,7 +1883,7 @@ routing 是一个可变值，默认是文档的 _id ，也可以设置成一个�
 
 #### 5.4.2 读流程
 
-![1623494569629](E:\SoftwareNote\面试准备\数据库\ElasticSearch\img\分片读取文档流程.png)
+![1623494569629](img\分片读取文档流程.png)
 
 我们可以从主分片或者从其它任意副本分片检索文档 。
 
@@ -2423,3 +2423,6 @@ ES 默认安装后设置的内存是 1GB，对于任何一个现实业务来说�
 |     discovery.zen.ping.timeout     |      3s       | 设置在集群中自动**发现其他节点时 Ping 连接的超时时间**，默认为 3 秒。在较差的网络环境下需要设置得大一点，防止因误判该节点的存活状态而导致分片的转移 |
 
 ## 7. 面试题
+
+## 8. 可视化工具kibana
+

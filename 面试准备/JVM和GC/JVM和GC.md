@@ -18,7 +18,7 @@
 
     **3).加锁解锁是同一把锁**
 
-    ![1610798333848](E:\SoftwareNote\面试准备\JVM和GC\img\JMM可见性.png)
+    ![1610798333848](img\JMM可见性.png)
 
   - **原子性：**不可分割，完整性。一个线程在做某个业务时，不可被其他线程打断，需要整体完整。要么成功要么失败（像SQL事务）。**完美解决方案AtomicInteger**
 
@@ -89,47 +89,47 @@
 
   由于编译器和处理器都能执行指令重排优化。如果在指令间插入一条MemoryBarrier则会告诉编译器和CPU，不管什么指令都不能和这条MemoryBarrier指令重排序，也就是说通过插入内存屏障禁止在内存屏障前后的指令重排序优化。**内存屏障另一个作用是强制刷出各种CPU缓存数据**，因此任何CPU上的线程都能读取到这些数据的最新版本。
 
-  ![1610808463531](E:\SoftwareNote\面试准备\JVM和GC\img\Voatile的禁止指令重排.png)
+  ![1610808463531](img\Voatile的禁止指令重排.png)
 
 ## 3. JVM内存结构：(细节可以看石杉的架构笔记：我肝了万字的Java垃圾回收https://mp.weixin.qq.com/s/hiw5878tQz0_fbcffaEk1w)
 
 ## 3.1 JVM体系概述
 
-![1612713819316](E:\SoftwareNote\面试准备\JVM和GC\img\JVM体系概述.png)
+![1612713819316](img\JVM体系概述.png)
 
 
 
 ### 3.2 Java8以后的JVM
 
-![1612714108491](E:\SoftwareNote\面试准备\JVM和GC\img\Java8以后的JVM.png)
+![1612714108491](img\Java8以后的JVM.png)
 
 ### 3.3 GC作用域
 
-![1612714223381](E:\SoftwareNote\面试准备\JVM和GC\img\GC作用域.png)
+![1612714223381](img\GC作用域.png)
 
 ### 3.4 常见的垃圾回收算法
 
 - 引用计数
 
-  ![1612714320054](E:\SoftwareNote\面试准备\JVM和GC\img\GC之引用计数法.png)
+  ![1612714320054](img\GC之引用计数法.png)
 
 - 复制
 
-  ![1612714361180](E:\SoftwareNote\面试准备\JVM和GC\img\GC之复制算法.png)
+  ![1612714361180](img\GC之复制算法.png)
 
-  ![1614090684931](E:\SoftwareNote\面试准备\JVM和GC\img\GC之复制算法02.png)
+  ![1614090684931](img\GC之复制算法02.png)
 
 - 标记清除
 
-  ![1612714398714](E:\SoftwareNote\面试准备\JVM和GC\img\GC之标记清楚算法.png)
+  ![1612714398714](img\GC之标记清楚算法.png)
 
-  ![1614090731013](E:\SoftwareNote\面试准备\JVM和GC\img\GC之标记清楚算法02.png)
+  ![1614090731013](img\GC之标记清楚算法02.png)
 
 - 标记整理
 
-  ![1612714436838](E:\SoftwareNote\面试准备\JVM和GC\img\GC之标记压缩算法.png)
+  ![1612714436838](img\GC之标记压缩算法.png)
 
-![1614090762766](E:\SoftwareNote\面试准备\JVM和GC\img\GC之标记压缩算法02.png)
+![1614090762766](img\GC之标记压缩算法02.png)
 
 - 分代收集
 
@@ -160,13 +160,13 @@
 
 - 引用计数法: 无法解决循环引用的问题
 
-![1612787872782](E:\SoftwareNote\面试准备\JVM和GC\img\GC引用计数法识别垃圾对象.png)
+![1612787872782](img\GC引用计数法识别垃圾对象.png)
 
 - 枚举根节点做可达性分析（根搜索路径）
 
-  ![1612788367921](E:\SoftwareNote\面试准备\JVM和GC\img\可达性分析法识别垃圾对象.png)
+  ![1612788367921](img\可达性分析法识别垃圾对象.png)
 
-![ 1612787985539](E:\SoftwareNote\面试准备\JVM和GC\img\以GCRoots做可达性分析.png)
+![ 1612787985539](img\以GCRoots做可达性分析.png)
 
   - Java 可以做GCRoots的对象
     - 虚拟机栈(栈帧中的局部变量区,也叫做局部变量表
@@ -186,7 +186,7 @@
 
 #### 5.1.2 X参数（了解）
 
-![1612788850241](E:\SoftwareNote\面试准备\JVM和GC\img\JVM之X参数.png)
+![1612788850241](img\JVM之X参数.png)
 
 - -Xint: 解释执行
 - -Xcomp: 第一次使用就编译成本地代码
@@ -244,11 +244,11 @@
 
 - 查看初始默认值java -XX:+PrintFlagsInitial -version
 
-  ![1613222561529](E:\SoftwareNote\面试准备\JVM和GC\img\查看初始默认值PrintFlagsInitial.png)
+  ![1613222561529](img\查看初始默认值PrintFlagsInitial.png)
 
 - 主要查看修改更新java -XX:+PirntFlagsFinal -version
 
-  ![1613222638761](E:\SoftwareNote\面试准备\JVM和GC\img\主要查看修改更新PirntFlagsFinal.png)
+  ![1613222638761](img\主要查看修改更新PirntFlagsFinal.png)
 
 - 打印一些命令标记-XX:+PrintCommandLineFlags
 
@@ -297,11 +297,11 @@
 
   - GC
 
-    ![1613223653741](E:\SoftwareNote\面试准备\JVM和GC\img\GC收集日志信息_GC.png)
+    ![1613223653741](img\GC收集日志信息_GC.png)
 
   - FullGC
 
-    ![1613223696598](E:\SoftwareNote\面试准备\JVM和GC\img\GC收集日志信息_FullGC.png)
+    ![1613223696598](img\GC收集日志信息_FullGC.png)
 
 - -XX:SurvivoRatio
 
@@ -325,7 +325,7 @@
 
   设置垃圾最大年龄
 
-  ![1613224562496](E:\SoftwareNote\面试准备\JVM和GC\img\设置垃圾最大年龄MaxTenuringThreshold.png)
+  ![1613224562496](img\设置垃圾最大年龄MaxTenuringThreshold.png)
 
 - -XX:+HeapDumpOnOutOfMemoryError让JVM在发生内存溢出的时候自动生成内存快照, 
 
@@ -361,7 +361,7 @@
 
 ### 7.1 整体架构
 
-![1613226725475](E:\SoftwareNote\面试准备\JVM和GC\img\GC引用架构.png)
+![1613226725475](img\GC引用架构.png)
 
 ### 7.2 强引用（默认支持模式）
 
@@ -455,7 +455,7 @@ System.out.println(weakHashMap + "" + weakHashMap.size()); // {}1  {}0,加上延
 
   虚引用主要作用：跟踪对象被垃圾回收的状态。
 
-  ![1613233821556](E:\SoftwareNote\面试准备\JVM和GC\img\虚引用概念.png)
+  ![1613233821556](img\虚引用概念.png)
 
 - 同理，软引用和弱引用也可以配和ReferenceQueue使用，即能做到软引用和弱引用效果，又能在回收后做通知动作。
 
@@ -486,11 +486,11 @@ private static void fakeReference() throws InterruptedException {
 
 ### 7.7 四大引用总结
 
-![1613234813769](E:\SoftwareNote\面试准备\JVM和GC\img\四大引用总结.png)
+![1613234813769](img\四大引用总结.png)
 
 ## 8. OOM Error种类
 
-![1613396002569](E:\SoftwareNote\面试准备\多线程\img\OOMError依赖图.png)
+![1613396002569](img\OOMError依赖图.png)
 
 ### 8.1 StackOverflowError 栈(方法)溢出
 
@@ -523,7 +523,7 @@ private static void OOMJavaHeapSpace() {
 
 - 产生原因：程序在垃圾回收上花费了98%的时间，却收集不回2%的空间，通常这样的异常伴随着CPU的冲高。天天GC还干不干活了？
 
-  ![1613397633956](E:\SoftwareNote\面试准备\多线程\img\OOMGCOverheadLimitExceeded.png)
+  ![1613397633956](img\OOMGCOverheadLimitExceeded.png)
 
 - demo
 
@@ -579,7 +579,7 @@ private static void OOMGCOverheadLimitExceeded() {
 
 - linux线程数设置
 
-  ![1613402134789](E:\SoftwareNote\面试准备\多线程\img\Linux线程数设置.png)
+  ![1613402134789](img\Linux线程数设置.png)
 
 - demo
 
@@ -652,7 +652,7 @@ GC算法是内存回收的**方法论**，垃圾收集器就是算法**落地实
 
 ### 9.2 四种主要垃圾收集器
 
-![1613484292842](E:\SoftwareNote\面试准备\JVM和GC\img\垃圾收集器.png)
+![1613484292842](img\垃圾收集器.png)
 
 #### 9.2.1 分类
 
@@ -692,11 +692,11 @@ Java HotSpot(TM) 64-Bit Server VM (build 25.112-b15, mixed mode)
 
 - 垃圾收集器作用范围
 
-![1613485532865](E:\SoftwareNote\面试准备\JVM和GC\img\垃圾收集器作用范围.png)
+![1613485532865](img\垃圾收集器作用范围.png)
 
 - 垃圾收集器对于GC日志简写说明
 
-![1613486653217](E:\SoftwareNote\面试准备\JVM和GC\img\垃圾收集器对于GC日志简写说明.png)
+![1613486653217](img\垃圾收集器对于GC日志简写说明.png)
 
 - 垃圾收集器底层源码
 
@@ -718,9 +718,9 @@ Java HotSpot(TM) 64-Bit Server VM (build 25.112-b15, mixed mode)
 
     开启后，会使用新生代Serial+老年代Serial Old收集器组合，均为串行回收器，新生代用的复制算法，来年代用的标记-整理算法
 
-    ![1613491998655](E:\SoftwareNote\面试准备\JVM和GC\img\新生代Serial串行GC.png)
+    ![1613491998655](img\新生代Serial串行GC.png)
 
-    ![1613492461497](E:\SoftwareNote\面试准备\JVM和GC\img\新生代Serial串行GC日志.png)
+    ![1613492461497](img\新生代Serial串行GC日志.png)
 
   - 并行GC(ParNew)   >>>>> **-XX:+UseParNewGC ** <<<<<<<<
 
@@ -728,9 +728,9 @@ Java HotSpot(TM) 64-Bit Server VM (build 25.112-b15, mixed mode)
 
     --XX:ParallelGCThreads=xx 可以限制线程数量，默认开启和CPU数目相同的线程数
 
-    ![1613492564201](E:\SoftwareNote\面试准备\JVM和GC\img\新生代ParNew并行GC.png)
+    ![1613492564201](img\新生代ParNew并行GC.png)
 
-    ![1613492750808](E:\SoftwareNote\面试准备\JVM和GC\img\新生代ParNew并行GC日志.png)
+    ![1613492750808](img\新生代ParNew并行GC日志.png)
 
   - 并行回收GC(Parallel)/(Parallel Scavenge)   >>>>> **-XX:+UseParallelGC ** <<<<<<<<
 
@@ -790,7 +790,7 @@ CMS(并发)：响应时间短的
 
 7.0出现，9.0默认（替代CMS）
 
-![1613663521765](E:\SoftwareNote\面试准备\JVM和GC\img\各大垃圾回收器的示意图.png)
+![1613663521765](img\各大垃圾回收器的示意图.png)
 
 ### 10.1 G1出现前，其他收集器的特点 
 
@@ -838,15 +838,15 @@ CMS(并发)：响应时间短的
 
 最大好处是化整为零，避免全内存扫描，只需要按照区域来进行扫描即可 
 
-![1613663090957](E:\SoftwareNote\面试准备\JVM和GC\img\G1回收器的Region区域化.png)
+![1613663090957](img\G1回收器的Region区域化.png)
 
 #### 10.4.2 回收步骤
 
-![1613663222627](E:\SoftwareNote\面试准备\JVM和GC\img\G1回收器回收步骤.png)
+![1613663222627](img\G1回收器回收步骤.png)
 
 #### 10.4.3 G1回收器运行过程
 
-![1613663306282](E:\SoftwareNote\面试准备\JVM和GC\img\G1回收器运行过程.png)
+![1613663306282](img\G1回收器运行过程.png)
 
 ### 10.5 常用配置参数
 
