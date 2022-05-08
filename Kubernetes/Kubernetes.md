@@ -10,6 +10,10 @@
 
 [中文社区](https://www.kubernetes.org.cn/ "中文社区")
 
+### 0.3 Kubesphere 文档
+
+[kubesphere中文文档](https://kubesphere.com.cn/docs)
+
 ## 1. 集群搭建
 
 ### 1.0 搭建步骤
@@ -139,8 +143,8 @@ kube-system   kube-scheduler-node1                       1/1     Running   7    
 ```shell
 kubectl get cs
 NAME                 STATUS    MESSAGE             ERROR
-controller-manager   Healthy   ok              
-scheduler            Healthy   ok              
+controller-manager   Healthy   ok      
+scheduler            Healthy   ok      
 etcd-0               Healthy   {"health":"true"}
 ```
 
@@ -161,6 +165,101 @@ status:
     type: PodScheduled
   phase: Pending
   qosClass: Burstable
+
+```
+
+#### 1.4.6 监听 watch
+
+```shell
+watch kubectl get pod -n kube-system -o wide
+```
+
+#### 1.4.7 暴露端口 expose
+
+```shell
+
+kubectl expose deployment tomcat6 --port=80 --targer-port=8080 --type=NodePort
+Pod的80映射到容器的8080，service会代理Pod的80，即暴露80给外部，映射到内部8080
+```
+
+#### 1.4.8 扩容 replicas
+
+```shell
+kubectl scale --replicas=3 deployment tomcat6
+```
+
+#### 1.4.9 查看/导出yml
+
+```shell
+kubectl get pod <pod-name> -o yaml
+
+导出
+kubectl get pod `<pod-name>` -o yaml > root/temp/pod-name.yam
+```
+
+#### 1.4.10 通过yml新增/更新 create/apply -f yml
+
+```shell
+kubectl apply -f xxx.yml
+```
+
+#### 1.4.11 执行命令 exec
+
+```shell
+执行Pod的data命令，默认是用Pod中的第一个容器执行
+
+kubectl exec <pod-name> data
+指定Pod中某个容器执行data命令
+
+kubectl exec <pod-name> -c <container-name> data
+通过bash获得Pod中某个容器的TTY，相当于登录容器
+
+kubectl exec -it <pod-name> -c <container-name> bash
+```
+
+#### 1.4.12 删除
+
+```shell
+基于yaml定义的名称删除资源对象
+
+kubectl delete -f deployment.yaml
+删除所有包含某个label的Pod和service
+
+kubectl delete pods,services -l name=<label-name>
+删除所有Pod
+
+kubectl delete pods --all
+```
+
+#### 1.4.13 描述 describe
+
+```shell
+显示Node的详细信息
+
+kubectl describe nodes <node-name>
+显示Pod的详细信息
+
+kubectl describe pods/<pod-name>
+显示由deployment管理的Pod的信息
+
+kubectl describe pods nginx-deployment
+```
+
+#### 1.4.14 日志 logs
+
+```shell
+kubectl logs [-f] [-p] POD [-c CONTAINER]
+
+-c, --container="": 容器名
+ 
+-f, --follow[=false]: 指定是否持续输出日志
+    --interactive[=true]: 如果为true，当需要时提示用户进行输入。默认为true
+    --limit-bytes=0: 输出日志的最大字节数。默认无限制
+ 
+-p, --previous[=false]: 如果为true，输出pod中曾经运行过，但目前已终止的容器的日志
+    --since=0: 仅返回相对时间范围，如5s、2m或3h，之内的日志。默认返回所有日志。只能同时使用since和since-time中的一种
+    --since-time="": 仅返回指定时间（RFC3339格式）之后的日志。默认返回所有日志。只能同时使用since和since-time中的一种
+    --tail=-1: 要显示的最新的日志条数。默认为-1，显示所有的日志
 
 ```
 
@@ -473,7 +572,7 @@ spec:
           emptyDir: {}
 ```
 
-### 1.5 kubernetes dashboard
+#### 1.6 kubernetes dashboard
 
 获取token
 
@@ -573,7 +672,7 @@ systemctl restart kubelet
 
 　8. 面向云原生可移植的新"云平台"。
 
- 　总的来说Kubernetes是来可以动态的利用策略解决**集群中资源调度，管理及监控等问题**。
+ 　总的来说Kubernetes是来可以动态的利用策略解决**集群中资源调度，管理及监控等问题。
 
 ### 2.2  **Kubernetes核心概念及架构设计**
 
@@ -675,8 +774,16 @@ Deployment控制器定义了Pod部署信息，并控制Pod的部署并维持其�
 | Pod                | Worker              | Kubernetes云平台中提供虚拟机，Kubernetes基本调度单位 |
 | Container          | Worker              | 应用跑在容器中，资源隔离单位                         |
 
-## 3. 在 K8S 中安装 Kuboard
+## 3.  dashboard
+
+### 3.1 在 K8S 中安装 Kuboard
 
 ```sh
 kubectl apply -f https://addons.kuboard.cn/kuboard/kuboard-v3.yaml
 ```
+
+### 3.2 KubeSphere
+
+## 4. nfs
+
+[搭建nfs](https://www.cnblogs.com/miaoweiye/p/14754375.html)

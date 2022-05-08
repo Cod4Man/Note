@@ -23,3 +23,6 @@ VMware Virtual Ethernet Adapter for VMnet8
 ### 1.4 Linux设置
 
 ![1605423581069](images\Linux设置.png)
+
+
+## 2. vagrant 类似Vmware的技术

@@ -61,13 +61,11 @@ drwxr-xr-x. 144 root root 8192 8月   8 09:19 etc
 
 ```
 
-
-
 ## 3. 磁盘容量
 
-- “df  -h” 可以查看系统的分配，已使用和可用情况 
+- “df  -h” 可以查看系统的分配，已使用和可用情况
 - “du -sh  *” 可以查看当前路径
-- 每个文件夹的大小。此举可以快速定位大文件所存在的位置。 
+- 每个文件夹的大小。此举可以快速定位大文件所存在的位置。
 
 ## 4. 端口查看 netstat
 
@@ -121,7 +119,7 @@ java 可以直接用 jps -l 效果类似
 
 ### 4.3 查看运行中的服务  ps-ef   ps-aux pstree
 
--  ps -ef 是以全格式显示当前所有的进程
+- ps -ef 是以全格式显示当前所有的进程
 
 -e 显示所有进程
 
@@ -168,23 +166,16 @@ root        10  0.0  0.0      0     0 ?        I    Jun16   8:58 [rcu_sched]
 ### 5.1 -find
 
 - 全盘搜索，也可以指定目录搜bai索。find 搜索目录 -name 目标名字，find / -name file（区分大小写）
-
 - find / -iname file（不区分大小写）
-
 - 我们先使用*通配符来匹配下包含file的相关文件区分大小写的：find / -name *file*。
-
 - find 搜索目录 -size 文件大小。下面我们查找下大于100MB的文件,应该实际是102400KB*2,所有搜索命令为：find / -size +204800。-号是小于，直接写数字就是等于。
 
   单位有k/M/G
 
   find / -size  200M
-
 - find 搜索目录 -user 用户名。这里是查找属于用户名为user1的文件，linux如何添加删除用户名,可以参考Linux 用户管理命令：find / -user user1。
-
 - find 搜索目录 -type d。查找某个目录下的所有目录：find /tmp -type d。
-
 - find 搜索目录 -cmin -时间(单位分钟)。查找etc下面1小时内被修改的文件,根目录下面太多了,指定一个目录：find /etc -cmin -60。
-
 - 当然find命令是可以多个选项一起添加查询的：-a 是前后条件都要满足，-o 是满足一个条件就好，这样我们可以清除的看到被过滤掉的文件。
 
 ### 5.2 locate 快速查找(通过db而不是遍历)
@@ -246,7 +237,6 @@ service iptables restart
 ### 7.1 整机uptime + top
 
 - uptime是top的精简版
-
 - top(系统性能命令)
 
   https://www.cnblogs.com/weijiangbao/p/7653475.html
@@ -254,8 +244,8 @@ service iptables restart
   其中，load average平均负载展示的3个值分别为1min内平均，5min内平均，15min内平均。通过这3个值的大小，可以判断最近运行情况。
 
   ![1614092136585](images\top命令.png)
-
 - 常用命令 top
+
   - -d 秒数 ： 指定top命令每隔几秒更新，默认是3秒
   - **-i ：不显示任何闲置或者僵死线程(方便查看活跃线程)**
   - -p PID：仅监控某个进程
@@ -276,17 +266,17 @@ MiB Swap:      0.0 total,      0.0 free,      0.0 used.    963.3 avail Mem
 
 > 监控过程中的指令
 
-​	(1) **P 以CPU使用率排序，默认**
+    (1)**P 以CPU使用率排序，默认**
 
-​	(2) **M 以内存使用率排序**
+    (2)**M 以内存使用率排序**
 
-​	(3) N 使用PID排序
+    (3) N 使用PID排序
 
-​	(4) u 输入用户名，监控某个用户
+    (4) u 输入用户名，监控某个用户
 
-​	(5) k 输入进程号，然后输入标记数(如9，强制杀死)，结束某进程，类似killall
+    (5) k 输入进程号，然后输入标记数(如9，强制杀死)，结束某进程，类似killall
 
-​	(4) q 退出top
+    (4) q 退出top
 
 ### 7.2 CPU: vmstat
 
@@ -297,24 +287,22 @@ MiB Swap:      0.0 total,      0.0 free,      0.0 used.    963.3 avail Mem
   mpstat -P ALL 2
 
   ![1614093196718](images\mpstat命令-查看所有CPU核情况.png)
-
 - **每个进程**使用cpu的用量分解信息
 
   pidstat -u 1 -p 进程编号
 
   ![1614093247415](images\pidstat命令-按进程查询CPU占用.png)
 
-### 7.3 内存:free [-m(MB)/-g(GB)] 
+### 7.3 内存:free [-m(MB)/-g(GB)]
 
 - 应用程序可用内存
 
   ![1614093625078](images\free命令-应用程序可用内存.png)
-
 - 查看额外 pidstat -p 进程号 -r 采样间隔秒数
 
   ![1614093772086](images\pidstat命令-查看额外内存信息.png)
 
-### 7.5 硬盘 df [-m(MB)/-h] 
+### 7.5 硬盘 df [-m(MB)/-h]
 
 ![1614093886679](images\df命令-查看硬盘信息.png)
 
@@ -323,14 +311,13 @@ MiB Swap:      0.0 total,      0.0 free,      0.0 used.    963.3 avail Mem
 - 磁盘I/O性能评估
 
   ![1614094221174](images\iostat命令-磁盘IO性能.png)
-
 - 查看额外
 
   pidstat -d 采样间隔秒数 -p 进程号
 
   ![1614094355029](images\pidstat命令-查看磁盘IO信息.png)
 
-### 7.7 网络IO：ifstat 
+### 7.7 网络IO：ifstat
 
 ![1614094528047](images\ifstat命令-查看网络IO信息.png)
 
@@ -356,7 +343,7 @@ MiB Swap:      0.0 total,      0.0 free,      0.0 used.    963.3 avail Mem
 
 ![1614095292899](images\ps命令查看进程底下线程.png)
 
-### 8.4 将需要的线程ID转换为16进制格式(英文小写格式) 
+### 8.4 将需要的线程ID转换为16进制格式(英文小写格式)
 
 printf "%x\n"  有问题的线程TID
 
@@ -367,8 +354,6 @@ printf "%x\n" 24587  =》 600b
 -A60 ： 前60行
 
 ![1614095622600](images\jstack命令-查看进程某线程运行状态.png)
-
-
 
 ## 9. 文本操作 vim
 
@@ -382,15 +367,12 @@ printf "%x\n" 24587  =》 600b
 - 当前行出现的第一个
 
   `:s/源单词/新单词/`
-
 - 当前行所有匹配
 
   `:s/源单词/新单词/g`
-
 - 文本中所有匹配
 
   `:%s/源单词/新单词/g`
-
 - 每次替换前要求确认
 
   `:%s/源单词/新单词/gc`
@@ -400,7 +382,6 @@ printf "%x\n" 24587  =》 600b
 - 跳转文本顶部（第一行）
 
   `gg`
-
 - 跳转文本底部（最后一行）
 
   `G`
@@ -410,11 +391,9 @@ printf "%x\n" 24587  =》 600b
 - 退出
 
   `:q`
-
 - 强制退出
 
   `:q!`
-
 - 保存并退出
 
   `:wq`
@@ -424,11 +403,9 @@ printf "%x\n" 24587  =》 600b
 - 删除光标往后
 
   `D`
-
 - 删除本行
 
   `dd`
-
 - 删除多行
 
   `dnd n表示从光标开始的总行数 `
@@ -484,13 +461,11 @@ nG/ngg  跳转到第n行
 
 用“空格”选中，“tab”切换，“enter”确认
 
-## 11.  服务启动相关 
+## 11.  服务启动相关
 
 ![1621992961217](images\服务启动相关1.png)
 
 ![1621992940497](images\服务启动相关2.png)
-
-
 
 ![1621993001443](images\服务启动相关3.png)
 
@@ -508,23 +483,23 @@ tar命令
 
 -c ：建立一个压缩文件的参数指令(create 的意思)， 压缩文件
 
-** -x ：解开一个压缩文件的参数指令！ 
+** -x ：解开一个压缩文件的参数指令！
 
--t ：查看 tarfile 里面的文件！ 特别注意，在参数的下达中， c/x/t 仅能存在一个！不可同时存在！ 因为不可能同时压缩与解压缩。 
+-t ：查看 tarfile 里面的文件！ 特别注意，在参数的下达中， c/x/t 仅能存在一个！不可同时存在！ 因为不可能同时压缩与解压缩。
 
--z ：是否同时具有 gzip 的属性？亦即是否需要用 gzip 压缩？ 
+-z ：是否同时具有 gzip 的属性？亦即是否需要用 gzip 压缩？
 
--j ：是否同时具有 bzip2 的属性？亦即是否需要用 bzip2 压缩？ 
+-j ：是否同时具有 bzip2 的属性？亦即是否需要用 bzip2 压缩？
 
--v ：压缩的过程中显示文件！这个常用，但不建议用在背景执行过程！ 
+-v ：压缩的过程中显示文件！这个常用，但不建议用在背景执行过程！
 
 -f ：使用档名，请留意，在 f 之后要立即接档名喔！不要再加参数！ 　　　例如使用『 tar -zcvfP tfile sfile』就是错误的写法，要写成 　　　『 tar -zcvPf tfile sfile』才对喔！（指定解压后的文件名）
 
  -p ：使用原文件的原来属性（属性不会依据使用者而变）
 
- -P ：可以使用绝对路径来压缩！ 
+ -P ：可以使用绝对路径来压缩！
 
--N ：比后面接的日期(yyyy/mm/dd)还要新的才会被打包进新建的文件中！ 
+-N ：比后面接的日期(yyyy/mm/dd)还要新的才会被打包进新建的文件中！
 
 --exclude FILE：在压缩的过程中，不要将 FILE 打包！**
 
@@ -554,7 +529,7 @@ systemctl status tomcat
 
 systemctl list-unit-files
 
-## 16.  Linux下JRE环境变量配置              
+## 16.  Linux下JRE环境变量配置
 
 很多时候，我们需要在Linux上部署tomcat，从而搭建web服务器，然JDK/JRE环境是前提，这里就记录一下，在后面的时候直接使用。
 
@@ -581,7 +556,7 @@ source /etc/profile
 
 ## 28. ps命令
 
-### 28.1 通过ps指令查找最占cpu的子<u>线程(线程不是进程)</u>  
+### 28.1 通过ps指令查找最占cpu的子`<u>`线程(线程不是进程)`</u>`
 
 ps -mp pid -o THREAD,tid,time
 
@@ -670,8 +645,8 @@ ln -s /root/ myroot
 - -c<数目> 显示的字节数
 - -n<行数> 显示文件的尾部 n 行内容
 - --pid=PID 与-f合用,表示在进程ID,PID死掉之后结束
-- -q, --quiet, --silent 从不输出给出文件名的首部 
-- -s, --sleep-interval=S 与-f合用,表示在每次反复的间隔休眠S秒 
+- -q, --quiet, --silent 从不输出给出文件名的首部
+- -s, --sleep-interval=S 与-f合用,表示在每次反复的间隔休眠S秒
 
 ## 31. history 查看历史指令
 
@@ -713,17 +688,14 @@ drwxr-xr-x.   3 root root   16 Jun 16 10:53 home
 ### 32.3 修改权限
 
 - **chmod指令，配合+ / - / =来修改, u(用户) g(组) o(其他用户) a(全部)的权限**
+
   - chmod u=rwx,g=r,o=w text.txt
   - chmod o+w text.txt
   - chmod ax text.txt
-
 - 通过数字，chmod 751 文件
 
   相当于 chmod -rwxr-x--x
-
 - 递归修改，chmod -R 751 /home/ap/tep.txt
-
-
 
 ## 33. 任务调度
 
@@ -731,20 +703,18 @@ drwxr-xr-x.   3 root root   16 Jun 16 10:53 home
 
 > 相关指令
 
--  crontab -e 编写调度指令
+- crontab -e 编写调度指令
 
-  ```shell
+```shell
   */1 * * 5-8 * ls /root /home/rootpath.txt 
-  ```
+```
 
   分 时 天 月 星期
 
   ”*“是不作条件，“-”是范围，“，”是and
 
 - crontab -r 终止任务调度
-
 - crontab -l 列出当前任务调度
-
 - service crond restart 重启
 
 ### 33.2 at定时任务，一次性
@@ -752,39 +722,25 @@ drwxr-xr-x.   3 root root   16 Jun 16 10:53 home
 > at [命令] [时间参数]
 
 - -m 当指定任务完成后，将给用户发送邮件，即没有标准输出
-
 - -I atq的别名（稍微执行的任务列表）
-
 - -d atrm的别名（删除已指定的任务）
-
 - -v 显示任务将被执行的时间
-
 - -c 打印任务的内容到标准输出
-
 - -V 显示版本信息
-
 - -q <队列> 使用指定的队列
-
 - -f <文件> 从指定文件读入任务而不是从标准输入读入
-
 - -t <时间参数> 以时间参数的形式提交要运行的任务
-
 - 时间参数
 
   - hh:mm 当前某时刻执行，当前超过了就第二天执行
-
   - midnight/noon/teatime等模糊词语
-
   - 12小时制，am和pm
-
   - hh:mm mm/dd/yy  或  hh:mm dd.mm.yy
-
   - 相对时间 now + count + time-units
 
     now +1 minutes
 
     5:00 + 5 days
-
   - today / tomorrow
 
 > Ctrl+D两次结束at命令的输入
@@ -845,7 +801,6 @@ cat temp.log | grep 'NullPointerException'
 ### 35.2 wc 统计个数
 
 - 统计opt底下以-开头的结果(即文件)个数 ls -l /opt | grep "^-" | wc -l
-
 - 以上递归查找所有文件，ls -l**R** /opt | grep "^-" | wc -l
 
 ## 36. 网络
@@ -859,12 +814,11 @@ cat temp.log | grep 'NullPointerException'
 > **案例：浏览器输入www.baidu.com**
 
 1. 浏览器先检查浏览器缓存中有没有该域名解析IP地址，有则调用返回解析；没有则检查DNS解析器缓存。
+2. 一般来说，电脑第一次访问网站，在一定时间内会缓存此IP(即DNS解析记录)
 
-2.  一般来说，电脑第一次访问网站，在一定时间内会缓存此IP(即DNS解析记录)
+- ipconfig /displaydns DNS域名解析缓存
 
-   - ipconfig /displaydns DNS域名解析缓存
-
-   ```shell
+```shell
    	a.w.bilicdn1.com
        ----------------------------------------
        记录名称. . . . . . . : a.w.bilicdn1.com
@@ -889,13 +843,11 @@ cat temp.log | grep 'NullPointerException'
        数据长度. . . . . . . : 4
        部分. . . . . . . . . : 答案
        A (主机)记录  . . . . : 120.240.49.152
-   ```
+```
 
-   - ipconfig /flushdns 手动清除dns缓存
+- ipconfig /flushdns 手动清除dns缓存
 
-     
-
-3.  如果本地解析器缓存没有找到对应映射，检查系统中**hosts**文件中有没有对应的域名IP映射，有则解析返回
+3. 如果本地解析器缓存没有找到对应映射，检查系统中**hosts**文件中有没有对应的域名IP映射，有则解析返回
 4. 如果都没有找到，则到域名服务DNS进行解析域
 
 ## 37. who
@@ -923,7 +875,6 @@ root
   是**RedHat Package Manager**（RedHat 软件包管理工具）的缩写，类似windows 的setup.exe，这一文件格式名称虽然打上
   了RedHat 的标志，但理念是通用的。
   Linux 的分发版本都有采用（suse,redhat, centos 等等），可以算是公认的行业标准了
-
 - **rpm包的命名格式**
 
   一个rpm 包名：firefox-60.2.2-1.el7.centos.x86_64
@@ -932,13 +883,10 @@ root
   适用操作系统: el7.centos.x86_64
   表示centos7.x 的64 位系统
   如果是i686、i386 表示32 位系统，noarch 表示通用
-
 - 指令
 
   - 查看全部已安装：rpm -qa
-
   - 查询是否安装： rpm -qa xx
-
   - 查询软件包信息  rpm -qi
 
     ```shell
@@ -964,7 +912,6 @@ root
     Mozilla Firefox is an open-source web browser, designed for standards
     compliance, performance and portability.
     ```
-
   - 查询软件包中的文件  rpm -ql
 
     ```shell
@@ -976,23 +923,20 @@ root
     /usr/lib64/firefox/LICENSE
     /usr/lib64/firefox/application.ini
     ```
-
   - **查询文件所属软件包**   rpm -qf
 
     ```shell
     [root@node1 ~]# rpm -qf /etc/firefox
     firefox-68.10.0-1.el7.centos.x86_64
     ```
-
-  - **安装包 rpm -ivh** 
+  - **安装包 rpm -ivh**
 
     rpm -ivh RPM 包全路径名称
 
     i=install 安装
     v=verbose 提示
     h=hash 进度条
-
-  - 卸载 rpm -e 
+  - 卸载 rpm -e
 
     rpm -e firefox
 
@@ -1003,7 +947,6 @@ root
 - 介绍
 
   Yum 是一个Shell 前端软件包管理器。**基于RPM 包管理**，能够从指定的服务器自动下载RPM 包并且安装，可以**自动处理依赖性关系(像maven)**，并且**一次安装所有依赖的软件包**
-
 - 指令
 
   - 查询yum服务器上的软件
@@ -1011,21 +954,17 @@ root
     yum list
 
     yum list|grep firefox
-
   - 安装 yum install
 
     yum install firefox
 
     yum -y install firefox 应答所有yes
+  - 已安装
 
-  - 已安装 
-
-    yum list installed 
-
+    yum list installed
   - 卸载
 
-    yum remove tomcat 
-
+    yum remove tomcat
   - 查看软件依赖 yum deplist tomcat
 
     ```shell
@@ -1045,14 +984,14 @@ root
        依赖：apache-commons-daemon
        provider: apache-commons-daemon.x86_64 1.0.13-7.el7
     ```
-
-  - 查看软件信息 yum info tomcat 
-
-  - 升级软件 
+  - 查看软件信息 yum info tomcat
+  - 升级软件
 
     yum update tomcat  升级单个
 
     yum update 升级所有
-
   - 检查更新 yum check-update
 
+## 39. strace 跟踪进程产生的系统调用kernel[C语言]
+
+*strace*是跟踪进程执行时的系统调用和所接收的信号(即它跟踪到一个进程产生的系统调用,包括参数、返回值、执行消耗的时间)
