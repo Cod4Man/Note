@@ -1141,6 +1141,7 @@ package com.codeman.netty.netty.httpserver;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.socket.SocketChannel;
+<<<<<<< HEAD
 import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpServerCodec;
 import io.netty.handler.ssl.SslContext;
@@ -1151,6 +1152,9 @@ import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLEngine;
 import java.io.FileInputStream;
 import java.security.KeyStore;
+=======
+import io.netty.handler.codec.http.HttpServerCodec;
+>>>>>>> 5457daad7a4833b765005ec3df770ce3c852d97d
 
 
 /**
@@ -1161,6 +1165,7 @@ import java.security.KeyStore;
  */
 public class HttpServerInitializar extends ChannelInitializer<SocketChannel> {
 
+<<<<<<< HEAD
     private final SslContext sslContext;
 
     public HttpServerInitializar() {
@@ -1180,6 +1185,8 @@ public class HttpServerInitializar extends ChannelInitializer<SocketChannel> {
         }
     }
 
+=======
+>>>>>>> 5457daad7a4833b765005ec3df770ce3c852d97d
     @Override
     public void initChannel(SocketChannel ch) throws Exception {
         ChannelPipeline pipeline = ch.pipeline();
@@ -1189,6 +1196,7 @@ public class HttpServerInitializar extends ChannelInitializer<SocketChannel> {
         //1. HttpServerCodec 是netty 提供的处理http的 编-解码器
         pipeline.addLast("HttpServerCodec", new HttpServerCodec());
         pipeline.addLast("HttpServerHandler", new HttpServerHandler());
+<<<<<<< HEAD
         // aggregator，消息聚合器（重要）。为什么能有FullHttpRequest这个东西，就是因为有他，HttpObjectAggregator，如果没有他，就不会有那个消息是FullHttpRequest的那段Channel，同样也不会有FullHttpResponse。
         //如果我们将z'h
         //HttpObjectAggregator(512 * 1024)的参数含义是消息合并的数据大小，如此代表聚合的消息内容长度不超过512kb。
@@ -1196,6 +1204,8 @@ public class HttpServerInitializar extends ChannelInitializer<SocketChannel> {
         // 构建HTTPS服务
         SSLEngine sslEngine = sslContext.newEngine(ch.alloc());
         pipeline.addLast(new SslHandler(sslEngine));
+=======
+>>>>>>> 5457daad7a4833b765005ec3df770ce3c852d97d
     }
 }
 
@@ -1251,6 +1261,8 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<HttpObject> {
 ```
 
 ### 7.6 Netty 核心模块组件
+
+<<<<<<< HEAD
 
 #### 7.6.1 Bootstrap、ServerBootstrap
 
@@ -2052,3 +2064,13 @@ public class RPCServerChannleHandler extends ChannelInboundHandlerAdapter {
 }
 
 ```
+
+=======
+
+>>>>>>> 5457daad7a4833b765005ec3df770ce3c852d97d
+>>>>>>>
+>>>>>>
+>>>>>
+>>>>
+>>>
+>>
