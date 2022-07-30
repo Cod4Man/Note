@@ -2,7 +2,7 @@
 
 ## 1. 启动自动加载配置类原理@SpringBootApplication
 
-### 1.1@SpringBootApplication包含了@EnableAutoConfiguration 
+### 1.1@SpringBootApplication包含了@EnableAutoConfiguration
 
 ```java
 @Inherited
@@ -21,7 +21,7 @@ public @interface SpringBootApplication {}
 public @interface EnableAutoConfiguration {}
 ```
 
-### 1.3 @Import(AutoConfigurationImportSelector.class) 
+### 1.3 @Import(AutoConfigurationImportSelector.class)
 
 ```java
 class AutoConfigurationImportSelector  {
@@ -61,7 +61,7 @@ public class HelloWorldService {
 }
 ```
 
-### 2.2 编写configuration注入特质(默认)配置的工具类 
+### 2.2 编写configuration注入特质(默认)配置的工具类
 
  **ConfigurationProperties需要set方法**
 
@@ -114,7 +114,7 @@ mycustomer:
 
 ## 3. 自己看的SpringApplication.run()
 
- BeanDefinition 
+ BeanDefinition
 
  BeanDefinitionRegistry
 
@@ -132,9 +132,9 @@ Root bean: class [null]; scope=singleton; abstract=false; lazyInit=null; autowir
 
 三级缓存： new A(new B)
 
-1.  new A() OK，将A放在三级缓存③中，填充A属性时，发现A依赖B,因此需要实例化B（getBean(B)）
-2.  new B() OK，将B放在三级缓存③中，填充B属性时，发现B依赖A，因此又需要实例化A（getBean(A)）
-3.  new A()时，发现getSingletion()可拿到三级缓存③中的A(顺便把A从③调整为②)，直接return A给B填充属性
+1. new A() OK，将A放在三级缓存③中，填充A属性时，发现A依赖B,因此需要实例化B（getBean(B)）
+2. new B() OK，将B放在三级缓存③中，填充B属性时，发现B依赖A，因此又需要实例化A（getBean(A)）
+3. new A()时，发现getSingletion()可拿到三级缓存③中的A(顺便把A从③调整为②)，直接return A给B填充属性
 4. B填充的A属性后，B初始化结束，B直接addSingleton，即添加到一级缓存①，从②/③中抹去B
 5. B初始化完毕，return B给A填充属性
 6. A填充的B属性后，A初始化结束，A直接addSingleton，即添加到一级缓存①，从②/③中抹去B
@@ -157,9 +157,9 @@ private final Map<String, ObjectFactory<?>> singletonFactories = new HashMap<>(1
 
 ### 3.0 @SpringBootApplication
 
-**-> @EnableAutoConfiguration   -> @AutoConfigurationPackage** 
+**-> @EnableAutoConfiguration   -> @AutoConfigurationPackage**
 
-​							**-> @Import(AutoConfigurationImportSelector.class)**
+    **-> @Import(AutoConfigurationImportSelector.class)**
 
 ```java
 @EnableAutoConfiguration
@@ -225,7 +225,7 @@ class SpringApplication {
                  new Class[] { ConfigurableApplicationContext.class }, context);
             // 上下文准备
             // 加入了 environment listeners applicationArguments等等
-            prepareContext(context, environment, listeners, applicationArguments, 	
+            prepareContext(context, environment, listeners, applicationArguments, 
                            printedBanner);
             // 刷新上下文（刷新容器）  context.refresh()
             refreshContext(context);
@@ -391,14 +391,14 @@ class DefaultListableBeanFactory {
 }
 ```
 
--  getBean/doGetBean等操作
+- getBean/doGetBean等操作
 
 ```java
 abstract class AbstractBeanFactory {
    public Object getBean(String name) throws BeansException {
 		return doGetBean(name, null, null, false);
 	} 
-    
+  
     protected <T> T doGetBean(final String name, @Nullable final Class<T> requiredType,
 			@Nullable final Object[] args, boolean typeCheckOnly) throws BeansException {
 
@@ -466,7 +466,7 @@ abstract class AbstractBeanFactory {
 				else {
 					String scopeName = mbd.getScope();
 					final Scope scope = this.scopes.get(scopeName);
-					
+			
 					}
 					try {
                         // 先从Scope中获取，获取不到也走createBean逻辑
@@ -532,7 +532,7 @@ class DefaultSingletonBeanRegistry {
 			return singletonObject;
 		}
 	}
-    
+  
     // 直接加入一级缓存singletonObjects；移除二/三级缓存：earlySingletonObjects/singletonFactories
     protected void addSingleton(String beanName, Object singletonObject) {
 		synchronized (this.singletonObjects) {
@@ -598,7 +598,7 @@ abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFactory {
 			// 。。。
 		}
 	}
-    
+  
     // 真正的创建Bean逻辑
     protected Object doCreateBean(final String beanName, final RootBeanDefinition mbd, final @Nullable Object[] args) throws BeanCreationException {
 
@@ -731,7 +731,7 @@ abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFactory{
 }
 ```
 
--   populateBean：Bean的填充属性，循环依赖就在者解决
+- populateBean：Bean的填充属性，循环依赖就在者解决
 
 ```java
 abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFactory{
@@ -847,7 +847,7 @@ class CommonAnnotationBeanPostProcessor {
 		}
 		return pvs;
 	}
-    
+  
     //@Resource 在不设置 name 和 type 的情况下, 是优先使用 name 去 获取/创建 依赖的 bean , 如果name找不到, 才会使用 type. 这段代码, 就是支撑的依据.
     protected Object autowireResource(BeanFactory factory, LookupElement element, @Nullable String requestingBeanName)
 			throws NoSuchBeanDefinitionException {
@@ -895,15 +895,15 @@ class CommonAnnotationBeanPostProcessor {
 
 		return resource;
 	}
-    
-    
+  
+  
     class ResourceElement{
         protected Object getResourceToInject(Object target, @Nullable String requestingBeanName) {
 			return (this.lazyLookup ? buildLazyResourceProxy(this, requestingBeanName) :
 					getResource(this, requestingBeanName));
 		}
     }
-    
+  
     protected Object getResource(LookupElement element, @Nullable String requestingBeanName)
 			throws NoSuchBeanDefinitionException {
 
@@ -967,8 +967,8 @@ class AutowiredAnnotationBeanPostProcessor {
 		}
 		return pvs;
 	}
-    
-    
+  
+  
     class AutowiredFieldElement {
         protected void inject(Object bean, @Nullable String beanName, @Nullable PropertyValues pvs) throws Throwable {
 			Field field = (Field) this.member;
@@ -1021,9 +1021,9 @@ class AutowiredAnnotationBeanPostProcessor {
 
 - initializeBean：初始化Bean，包含前置增强和后置增强
 
-  applyBeanPostProcessorsBeforeInitialization 
+  applyBeanPostProcessorsBeforeInitialization
 
-  -> invokeInitMethods 
+  -> invokeInitMethods
 
   -> applyBeanPostProcessorsAfterInitialization
 
@@ -1059,7 +1059,7 @@ abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFactory{
 
 ### 4.1 **`jasypt-spring-boot`加密组件:配置文件密码s加密**
 
-使用JDK 1.8.0_161或更高版本时，不需要再安装Java Cryptography Extension（JCE）Policy File。JDK 1.8.0_161默认启用无限强度加密。 
+使用JDK 1.8.0_161或更高版本时，不需要再安装Java Cryptography Extension（JCE）Policy File。JDK 1.8.0_161默认启用无限强度加密。
 
 ## 5.  提前将部分数据加载到Spring容器中
 
@@ -1155,3 +1155,38 @@ public class GlobalExceptionHandler {
 
 ```
 
+## 8. 事务
+
+- Spring Transactional一直是RD的事务神器，但是如果用不好，反会伤了自己。下面总结@Transactional经常遇到的几个场景:
+  @Transactional 加于private方法, 无效
+  @Transactional 加于未加入接口的public方法, 再通过普通接口方法调用, 无效
+  @Transactional 加于接口方法, 无论下面调用的是private或public方法, 都有效（timeout放在下面调用的private或public方法上都不生效，只在外层方法中有效）
+  @Transactional 加于接口方法后, 被本类普通接口方法直接调用, 无效
+  @Transactional 加于接口方法后, 被本类普通接口方法通过接口调用, 有效
+  @Transactional 加于接口方法后, 被它类的接口方法调用, 有效
+  @Transactional 加于接口方法后, 被它类的私有方法调用后, 有效
+- 动态代理，同一个类内部调用，执行的不是动态代理拦截过的，因此内部调用有些功能会丢失，比如说事务问题：
+  嗯.这个是动态代理的基础.
+  有三个方式解决
+  1.拆开,成两个类.
+  2.里面的调用方法改为间接调用,用getBean取出再调用.
+  3.暴露代理,然后获取当前的代理对象
+  @EnableAspectJAutoProxy(exposeProxy = true)((ClassA)AopContext.currentProxy()).methodA();
+
+## 9. Serializable 
+
+对响应的数据(JSON)进行处理，比如null值不展示，可以减少数据传输
+
+1. entity
+
+```java
+@JsonInclude(JsonInclude.Include.NON_NULL)
+```
+
+2. global
+
+```yaml
+spring:
+  jackson:
+    default-property-inclusion: non_null
+```

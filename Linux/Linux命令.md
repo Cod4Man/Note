@@ -199,6 +199,22 @@ netstat -apn | grep 3306  ： 在netstat -apn的结果集中，过滤包含3306�
 
 cat test.txt | grep -n -i "keyword" : 在cat test.txt的结果集中，过滤包含keyword的,并显示行号,并忽略大小写
 
+### 5.5 日志搜索常用命令
+
+---------- 日志搜索常用命令
+cat error.log | grep -C 5 'nick' 显示file文件里匹配foo字串那行以及上下5行
+cat error.log | grep -B 5 'nick' 显示foo及前5行
+cat error.log | grep -A 5 'nick' 显示foo及后5行
+grep 参数 文件名 | head     //从头查找
+grep 参数 文件名 | wc- l    //查看符合条件的有多少行
+cat 文件名 |grep 参数$  //输出以该参数结尾的行内容
+cat /data/weblogs/em.evony.com.access.log |grep "25/Nov/2019:15:[00-59]" |wc -l  // 部分正则[00-59]分钟
+cat /data/weblogs/xxx.log |grep "25/Nov/2019:15:[00-59]" |grep "GET /pixel.jpg?"|wc -l // 多个条件之间可以使用管道连接,查询同时符合两个条件的行数
+grep -E "exp1|exp2|exp3" | wc -l // 查询符合任意条件的行数
+#结合find命令过滤目录及文件名后缀
+#通过xargs，find得到的文件名成为了参数传给后面的grep
+find ./* -name '*.php' | xargs grep -n 'Http/welcome.html'
+
 ## 6. 防火墙
 
 ```shell
@@ -556,7 +572,7 @@ source /etc/profile
 
 ## 28. ps命令
 
-### 28.1 通过ps指令查找最占cpu的子`<u>`线程(线程不是进程)`</u>`
+### 28.1 通过ps指令查找最占cpu的子 `<u>`线程(线程不是进程)`</u>`
 
 ps -mp pid -o THREAD,tid,time
 

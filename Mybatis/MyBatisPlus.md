@@ -5,12 +5,12 @@
 ### 1.1 异常java.sql.SQLFeatureNotSupportedException
 
 - 原因：版本冲突
-- 解决方案： 
+- 解决方案：
   - Druid 1.1.21修复了对MyBatisPlus3.2以上版本的支持
-  - 将mybatis-plus的版本降至3.2.0或以下 
+  - 将mybatis-plus的版本降至3.2.0或以下
   - 修改LocalDateTime为Date
 
-## 2. 注解们 
+## 2. 注解们
 
 ### 2.1 主键策略@TableId
 
@@ -56,6 +56,7 @@ ASSIGN_UUID 主键的数据类型必须是 String，自动生成 UUID 进行赋�
 ### 2.2 @TableField (公共字段填充MetaObjectHandler)
 
 - 映射非主键字段，
+
   - value 映射字段名，
   - select 表示是否查询该字段，
   - exist 表示是否为数据库字段 false，
@@ -70,7 +71,7 @@ ASSIGN_UUID 主键的数据类型必须是 String，自动生成 UUID 进行赋�
           this.setFieldValByName("createTime",new Date(),metaObject);
           this.setFieldValByName("updateTime",new Date(),metaObject);
       }
-  
+
       @Override
       public void updateFill(MetaObject metaObject) {
           this.setFieldValByName("updateTime",new Date(),metaObject);
@@ -78,7 +79,7 @@ ASSIGN_UUID 主键的数据类型必须是 String，自动生成 UUID 进行赋�
   }
   ```
 
-### 2.3 乐观锁 @Version 
+### 2.3 乐观锁 @Version
 
 标记乐观锁，通过 version 字段来保证数据的安全性，当修改数据的时候，会以 version 作为条件，当条件成立的时候才会修改成功。
 
@@ -90,19 +91,19 @@ version = 2
 
 1、数据库表添加 version 字段，默认值为 1
 
-2、实体类添加 version 成员变量，并且添加 @Version 
+2、实体类添加 version 成员变量，并且添加 @Version
 
 3    配置类
 
 ```java
 @Configuration
 public class MyBatisPlusConfig {
-    
+  
     @Bean
     public OptimisticLockerInterceptor optimisticLockerInterceptor(){
         return new OptimisticLockerInterceptor();
     }
-    
+  
 }
 ```
 
@@ -214,6 +215,18 @@ global-config:
 mybatis-plus:
   configuration:
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+JakartaCommonsLoggingImpl
+Jdk14LoggingImpl
+Log4j2AbastactLoggerImpl
+Log4j2Impl
+Log4j2LoggerImpl
+Log4jImpl
+NoLoggingImpl
+Slf4jImpl # 打印sql/参数/影响条数 不打印结果集
+Slf4jLocationAwareLoggerImpl
+Slf4jLoggerImpl
+StdOutImpl # 打印sql/参数/影响条数 会打印结果集
 ```
 
 ## 4. 代码生成
@@ -237,7 +250,7 @@ org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
 // 因此，springboot启动时，就会加载该配置类
 @Configuration
 public class MybatisPlusAutoConfiguration implements InitializingBean {
-    
+  
     // 该配置类创建了org.apache.ibatis.session.SqlSessionFactory对象
     @Bean
     @ConditionalOnMissingBean
@@ -258,13 +271,13 @@ public class MybatisSqlSessionFactoryBean implements FactoryBean<SqlSessionFacto
 
         return this.sqlSessionFactory;
     }
-    
+  
     @Override
     public void afterPropertiesSet() throws Exception {
         // ..
         this.sqlSessionFactory = buildSqlSessionFactory();
     }
-    
+  
     protected SqlSessionFactory buildSqlSessionFactory() {
         // ...
         XMLMapperBuilder xmlMapperBuilder = new XMLMapperBuilder(mapperLocation.getInputStream(),
@@ -287,7 +300,7 @@ class XMLMapperBuilder {
         parsePendingCacheRefs();
         parsePendingStatements();
   }
-    
+  
     private void bindMapperForNamespace() {
         String namespace = builderAssistant.getCurrentNamespace();
         if (namespace != null) {
@@ -320,7 +333,7 @@ class MybatisMapperAnnotationBuilder {
                         parserInjector();
         }
     }
-    
+  
     void parserInjector() {
         // 获取SQL注入器
         GlobalConfigUtils.getSqlInjector(configuration).inspectInject(assistant, type);
@@ -328,7 +341,7 @@ class MybatisMapperAnnotationBuilder {
 }
 
 class AbstractSqlInjector {
-    
+  
     void inspectInject() {
         if (!mapperRegistryCache.contains(className)) {
             	// 获取该Mapper接口 mapperClass的所有抽象方法（即接口定义的方法）
@@ -378,7 +391,7 @@ public class DefaultSqlInjector extends AbstractSqlInjector {
 
 ```java
 abstract class AbstractMethod {
-    
+  
     public void inject(MapperBuilderAssistant builderAssistant, Class<?> mapperClass, Class<?> modelClass, TableInfo tableInfo) {
         this.configuration = builderAssistant.getConfiguration();
         this.builderAssistant = builderAssistant;
@@ -387,7 +400,7 @@ abstract class AbstractMethod {
         // getMethodList里面的各自实现
         injectMappedStatement(mapperClass, modelClass, tableInfo);
     }
-    
+  
     protected MappedStatement addSelectMappedStatementForTable(Class<?> mapperClass, String id, SqlSource sqlSource,
                                                                TableInfo table) {
         String resultMap = table.getResultMap();
@@ -400,7 +413,7 @@ abstract class AbstractMethod {
             return addSelectMappedStatementForOther(mapperClass, id, sqlSource, table.getEntityType());
         }
     }
-    
+  
     protected MappedStatement addMappedStatement(Class<?> mapperClass, String id, SqlSource sqlSource,
                                                  SqlCommandType sqlCommandType, Class<?> parameterType,
                                                  String resultMap, Class<?> resultType, KeyGenerator keyGenerator,
@@ -476,14 +489,14 @@ public class PaginationInterceptor extends AbstractSqlParserHandler implements I
      * 单页限制 500 条，小于 0 如 -1 不受限制
      */
     protected long limit = 500L;
-    
+  
     public Object intercept(Invocation invocation) throws Throwable {
         if (this.limit > 0 && this.limit <= page.getSize()) {
             //处理单页条数限制
             handlerLimit(page);
         }
     }
-    
+  
     // 超过500条，就会执行这个方法，limit默认是500，所以可以修改limit的值-1/或者是改page.setSize(-1)
     protected void handlerLimit(IPage<?> page) {
         page.setSize(this.limit);
@@ -493,7 +506,19 @@ public class PaginationInterceptor extends AbstractSqlParserHandler implements I
 
 ### 8.2 分页
 
-Ipage参数应放在第一个，否则默认返回一条，查询结果有多条时就会报错
+Ipage参数应放在第一个，否则默认返回一条，查询结果有多条时就会报错，因为MP写死的代码arg[0]
+
+```java
+class MybatisMapperMethod {
+  execute（）{
+param = this.method.convertArgsToSqlCommandParam(args);
+                if (IPage.class.isAssignableFrom(this.method.getReturnType()) && args != null && IPage.class.isAssignableFrom(args[0].getClass())) {
+    // 为什么IPage要作为第一个参数的原因
+                    result = ((IPage)args[0]).setRecords(this.executeForIPage(sqlSession, args));
+                }
+  }
+}
+```
 
 ## 9. 逻辑删除
 
@@ -556,3 +581,40 @@ public ISqlInjector sqlInjector(){
 2021-07-18 10:22:58.534 DEBUG 3952 --- [    Test worker] c.c.b.mapper.UserMapper.selectById       : <==      Total: 1
 ```
 
+## 10. 更新
+
+### 10.1 部分更新(不会走自动填充策略 metaObjectHandler)
+
+```java
+this.update(null,
+                    new LambdaUpdateWrapper<VehicleMatching>()
+                            .eq(VehicleMatching::getId, id)
+                            .set(VehicleMatching::getOwerCarrierCode, null)
+                            .set(VehicleMatching::getOwerCarrierName, null)
+                            .set(VehicleMatching::getDriverCode, null)
+                            .set(VehicleMatching::getDriverName, null)
+                            .set(VehicleMatching::getVehicleCode, null)
+                            .set(VehicleMatching::getLicensePlate, null)
+            );
+```
+
+### 10.2 更新策略
+
+FieldStrategy 有三种策略：
+
+* IGNORED：忽略
+* NOT_NULL：非 NULL，默认策略
+* NOT_EMPTY：非空
+
+```yaml
+mybatis-plus:
+  mapper-locations: classpath:mapper/transport/*.xml
+  global-config:
+    db-config:
+      #字段更新策略 0:"忽略判断",1:"非 NULL 判断"),2:"非空判断"
+      updateStrategy: IGNORED
+      # MP 逻辑删除
+      # logic-delete-field: isDelete  # 全局逻辑删除的实体字段名(since 3.3.0,配置后可以忽略不配置步骤2)
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+```

@@ -143,8 +143,8 @@ kube-system   kube-scheduler-node1                       1/1     Running   7    
 ```shell
 kubectl get cs
 NAME                 STATUS    MESSAGE             ERROR
-controller-manager   Healthy   ok      
-scheduler            Healthy   ok      
+controller-manager   Healthy   ok  
+scheduler            Healthy   ok  
 etcd-0               Healthy   {"health":"true"}
 ```
 
@@ -787,3 +787,5 @@ kubectl apply -f https://addons.kuboard.cn/kuboard/kuboard-v3.yaml
 ## 4. nfs
 
 [搭建nfs](https://www.cnblogs.com/miaoweiye/p/14754375.html)
+
+[nfs原理及安装配置](https://www.cnblogs.com/whych/p/9196537.html)

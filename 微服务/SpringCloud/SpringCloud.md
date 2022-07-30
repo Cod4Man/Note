@@ -36,7 +36,7 @@
 spring:
   application:
     name: cloud-payment-service  # Eureka发现需要
-    
+  
 // 访问连接用服务名大写
 public static final String PAYMENT_URL = "http://CLOUD-PAYMENT-SERVICE";
 
@@ -84,7 +84,7 @@ eureka:
     service-url:
       #设置与eureka server交互的地址查询服务和注册服务都需要依赖这个地址
       defaultZone: http://eureka7001.com:7001/eureka/,http://eureka7003.com:7003/eureka/
-      
+  
 
 ## client   @EnableEurekaServer 
 eureka:
@@ -96,10 +96,8 @@ eureka:
       defaultZone: http://eureka7001.com:7001/eureka/,http://eureka7002.com:7002/eureka/,http://eureka7003.com:7003/eureka/
   instance:
     instance-id: payment8001
-    
+  
 ```
-
-
 
 ##### 4.1.1.1 Eureka系统架构
 
@@ -116,29 +114,26 @@ eureka:
 - Eureka Server提供服务注册服务
 - Eureka Client通过注册中心进行访问。是一个JAVA客户端，用于简化Eureka Server的交互，客户端同时也具备一个内置的/使用轮询负载算法的负载均衡器。再应用启动后，将会向Euerka Server发送心跳（默认**30s**）。如果Eureka Server在多个心跳周期内没有接收到某个节点的心跳，Eureka Server将会从服务注册表中把这个服务节点移除（默认90s）
 
-##### 4.1.1.3 Eureka集群原理 
+##### 4.1.1.3 Eureka集群原理
 
 ![1607007154428](img\Eureka集群原理.png)
 
 ##### 4.1.1.4 Eureka 自我保护机制
 
 - 注册在Eureka的服务，一定时间间隔向Eureka注册中心发送心跳包，当超过时间间隔注册中心没有收到心跳包(可能是网络阻塞等)，**并不会立即删除该服务，而是触发自我保护机制，仍然保留着失效的服**务。
-
 - Eureka服务端：eureka.server.enable-self-preservation = false
-
 - Eureka客户端：eureka.instance.lease-renewal-interval-in-seconds=30
 
-     			    eureka.instance.lease-expiration-duration-in-seconds=90
+  eureka.instance.lease-expiration-duration-in-seconds=90
 
 #### 4.1.2 Zookeeper :2181(需要客户端)
 
 - 进入容器docker exec -it zookeeper bin/zkCli.sh
-
 - Zookeeper工作机制
 
-  Zookeeper从设计模式角度来理解：是一个基于**观察者模式设计**的分布式服务管理框架，它负 
+  Zookeeper从设计模式角度来理解：是一个基于**观察者模式设计**的分布式服务管理框架，它负
 
-  责**存储和管理大家都关心的数据**，然后**接受观察者的注册**，一旦这些数据的状态发生变化 ， 
+  责**存储和管理大家都关心的数据**，然后**接受观察者的注册**，一旦这些数据的状态发生变化 ，
 
   Zookeeper就将负责**通知已经在Zookeeper上注册的那些观察者**做出相应的反应.（就像消息推送和消息通知?）
 
@@ -157,33 +152,27 @@ eureka:
   5）**数据更新原子性**，一次数据更新要么成功，要么失败
 
   6）**实时性**，在一定时间范围内，Client能读到最新数据
-
 - 数据结构
 
-  ZooKeeper数据模型的结构与**Unix文件系统很类似**，整体上可以看作是一棵树，每个节点称做一 
+  ZooKeeper数据模型的结构与**Unix文件系统很类似**，整体上可以看作是一棵树，每个节点称做一
 
-  个ZNode。每一个ZNode默认能够**存储1M B**的数据，每个ZNode都可以通过其路径唯一标识。 
-
+  个ZNode。每一个ZNode默认能够**存储1M B**的数据，每个ZNode都可以通过其路径唯一标识。
 - 应用场景: 统一命名服务/统一配置管理/统一集群管理/服务器节点动态上下线(临时-e)/软负载均衡。
 
   - 统一配置管理：
 
-    分布式环境下，配置文件同步非常常见。 一般要求一个集群中，所有节点的配置信息是 
+    分布式环境下，配置文件同步非常常见。 一般要求一个集群中，所有节点的配置信息是
 
-    一致的，比如 Kafka 集群。 对配置文件修改后，希望能够快速同步到各个节点上。 
-
+    一致的，比如 Kafka 集群。 对配置文件修改后，希望能够快速同步到各个节点上。
   - 统一集群管理：
 
     分布式环境中，实时掌握每个节点的状态是必要的 。可以将分布式服务每个节点的信息写入zookeeper
-
   - 服务器动态上下线
 
     服务端在Zookeeper上注册的信息都是临时节点，当服务端挂掉后，zookeeper上的临时节点也被删除，zookeeper就会实时通知客户端服务端下线的信息
-
   - 软负载均衡
 
     Zoopeeker**会记录每台服务器的访问数**，让访问最少的服务器去处理最新请求。
-
   - **分布式锁**
     **因为Zookeeper的临时节点+有序编号+监听上一编号节点的特性。**
 
@@ -194,43 +183,40 @@ eureka:
     临时节点可以保证抢到锁的程序崩掉后节点被删除，即释放锁；
 
     也可在客户端设置超时时间，超时删除节点即释放锁
-
 - zookeeper客户端配置文件zoo.cfg解读
 
-  - tickTime =2000：通信心跳数，Zookeeper 服务器与客户端心跳时间，单位毫秒 
+  - tickTime =2000：通信心跳数，Zookeeper 服务器与客户端心跳时间，单位毫秒
   - initLimit =10：Leader/Follower 初始通信时间限制 ，单位为tickTime ，10initLimit=10*ticktime=20s
   - syncLimit =5：LF 同步通信时限。，假如响应超过syncLimit *  tickTime，**Leader认为Follwer死掉，从服务器列表中删除Follwer**
-  - dataDir：数据文件目录+数据持久化路径 
-  - clientPort =2181：客户端连接端口 
-
+  - dataDir：数据文件目录+数据持久化路径
+  - clientPort =2181：客户端连接端口
 - 客户端命令
 
-  命令基本语法 
+  命令基本语法
 
-  功能描述 
+  功能描述
 
-  help 显示所有操作命令 
+  help 显示所有操作命令
 
-  ls path [watch] 使用 ls 命令来查看当前 znode 中所包含的内容 
+  ls path [watch] 使用 ls 命令来查看当前 znode 中所包含的内容
 
-  ls2 path [watch] 查看当前节点数据并能看到更新次数等数据 
+  ls2 path [watch] 查看当前节点数据并能看到更新次数等数据
 
-  create 普通创建 
+  create 普通创建
 
-  -s 含有序列 
+  -s 含有序列
 
-  -e 临时（重启或者超时消失） 
+  -e 临时（重启或者超时消失）
 
-  get path [watch] 获得节点的值 
+  get path [watch] 获得节点的值
 
-  set 设置节点的具体值 
+  set 设置节点的具体值
 
-  stat 查看节点状态 
+  stat 查看节点状态
 
-  delete 删除节点 
+  delete 删除节点
 
-  rmr 递归删除节点 
-
+  rmr 递归删除节点
 - yml配置
 
 ```yaml
@@ -254,7 +240,6 @@ spring:
   <artifactId>spring-cloud-starter-zookeeper-discovery</artifactId>
   </dependency>
   ```
-
 - 创建客户端
 
 ````java
@@ -298,37 +283,30 @@ public class FeignService2 {
 ````
 
 - 无自我保护机制，没有心跳直接干掉服务。因此服务节点是临时性的
-
 - client : zkCli.sh, 可查看注册信息ls /
-
 - Zookeeper内部原理：
 
-  - 节点类型：两个类型都**可选择带序列号的生成规则**。在分布式系统中，顺序号可以被用于 为所有的事件进行全局排序，这样客户端可以**通过顺序号推断事件的顺序 ** 
-    - 持久（Persistent）：客户端和服务器端断开连接后，创建的节点不删除 
+  - 节点类型：两个类型都**可选择带序列号的生成规则**。在分布式系统中，顺序号可以被用于 为所有的事件进行全局排序，这样客户端可以**通过顺序号推断事件的顺序 **
 
-    - 短暂（Ephemeral）：客户端和服务器端断开连接后，创建的节点自己删除 
+    - 持久（Persistent）：客户端和服务器端断开连接后，创建的节点不删除
+    - 短暂（Ephemeral）：客户端和服务器端断开连接后，创建的节点自己删除
+    - **CONTAINER**
 
-    -  **CONTAINER**
-
-      目前ZooKeeper不支持临时节点下挂子节点。虽然社区一直有呼声提议要增加这个功能，但其实临时节点并不适合这么做。因为它绑定了会话，而父节点更适合让persistent node来担任。不过最终社区在3.5.5做了改变，引入了一个CONTAINER类型的节点。这个类型与persitent node作用相同，只是增加了一个这样的功能：**当它包含的最后一个子节点被删除后，该container父节点会被删除**。
-
-    
-
+    目前ZooKeeper不支持临时节点下挂子节点。虽然社区一直有呼声提议要增加这个功能，但其实临时节点并不适合这么做。因为它绑定了会话，而父节点更适合让persistent node来担任。不过最终社区在3.5.5做了改变，引入了一个CONTAINER类型的节点。这个类型与persitent node作用相同，只是增加了一个这样的功能：**当它包含的最后一个子节点被删除后，该container父节点会被删除**。
 - **监听器原理**（面试）
 
-  1）Zookeeper客户端，会**创建两个线程，一个负责网络连接通信（connet），一个负责监听（listener）。 ** 
+  1）Zookeeper客户端，会**创建两个线程，一个负责网络连接通信（connet），一个负责监听（listener）。 **
 
-  2）通过connect线程将注册的监听事件发送给Zookeeper。 
+  2）通过connect线程将注册的监听事件发送给Zookeeper。
 
-  3）在Zookeeper的注册监听器列表中**将注册的监听事件添加到列表中**。 
+  3）在Zookeeper的注册监听器列表中**将注册的监听事件添加到列表中**。
 
-  4）Zookeeper监听到有数据或路径变化，就会将这个消息发送 给listener线程。 
+  4）Zookeeper监听到有数据或路径变化，就会将这个消息发送 给listener线程。
 
-  5）listener线程内部调用了**process()**方法。（**回调，也就是watch定义的方法** ） 
-
+  5）listener线程内部调用了**process()**方法。（**回调，也就是watch定义的方法** ）
 - 常见的监听
 
-  1）监听节点数据的变化  get path [watch] 
+  1）监听节点数据的变化  get path [watch]
 
   2）监听子节点增减的变化  ls path [watch]
 
@@ -337,46 +315,43 @@ public class FeignService2 {
 - **Zookeeper选举机制（面试）**
 
   1. **半数机制**：集群中**半数以上(因此最少需要3台服务器)**机器存活，集群可用。所以 Zookeeper 适合安装奇数台服务器。
-
   2. Zookeeper 虽然在配置文件中并没有指定 Master 和 Slave。但是，Zookeeper 工作时，是有一个节点为 Leader，其他则为 Follower，Leader 是通过**内部的选举机制临时产生**的。
-
   3. 选举例子：5台服务器,每台服务器启动都会投自己和别人一票，然后看总票数高的，把票实际给他，在选举结果没出来前，状态都为Looking。选举出来则为Following和Leading。在选举出来后，再启动服务器，状态不为looikng的(即Following和Leading不会再投票)，4投给自己，但票数小于3，因为改变不了结果
 
-     （1）服务器 1 启动，发起一次选举。服务器 1 投自己一票。此时服务器 1 票数一票， 
+     （1）服务器 1 启动，发起一次选举。服务器 1 投自己一票。此时服务器 1 票数一票，
 
-     不够半数以上（3 票），选举无法完成，服务器 1 状态保持为 LOOKING； 
+     不够半数以上（3 票），选举无法完成，服务器 1 状态保持为 LOOKING；
 
-     （2）服务器 2 启动，再发起一次选举。服务器 1 和 2 分别投自己一票并交换选票信息： 
+     （2）服务器 2 启动，再发起一次选举。服务器 1 和 2 分别投自己一票并交换选票信息：
 
-     此时服务器 1 发现服务器 2 的 ID 比自己目前投票推举的（服务器 1）大，更改选票为推举 
+     此时服务器 1 发现服务器 2 的 ID 比自己目前投票推举的（服务器 1）大，更改选票为推举
 
-     服务器 2。此时服务器 1 票数 0 票，服务器 2 票数 2 票，没有半数以上结果，选举无法完成， 
+     服务器 2。此时服务器 1 票数 0 票，服务器 2 票数 2 票，没有半数以上结果，选举无法完成，
 
-     服务器 1，2 状态保持 LOOKING 
+     服务器 1，2 状态保持 LOOKING
 
-     （3）服务器 3 启动，发起一次选举。此时服务器 1 和 2 都会更改选票为服务器 3。此 
+     （3）服务器 3 启动，发起一次选举。此时服务器 1 和 2 都会更改选票为服务器 3。此
 
-     次投票结果：服务器 1 为 0 票，服务器 2 为 0 票，服务器 3 为 3 票。此时服务器 3 的票数已 
+     次投票结果：服务器 1 为 0 票，服务器 2 为 0 票，服务器 3 为 3 票。此时服务器 3 的票数已
 
-     经超过半数，服务器 3 当选 Leader。服务器 1，2 更改状态为 FOLLOWING，服务器 3 更改 
+     经超过半数，服务器 3 当选 Leader。服务器 1，2 更改状态为 FOLLOWING，服务器 3 更改
 
-     状态为 LEADING； 
+     状态为 LEADING；
 
-     （4）服务器 4 启动，发起一次选举。此时服务器 1，2，3 已经不是 LOOKING 状态， 
+     （4）服务器 4 启动，发起一次选举。此时服务器 1，2，3 已经不是 LOOKING 状态，
 
-     不会更改选票信息。交换选票信息结果：服务器 3 为 3 票，服务器 4 为 1 票。此时服务器 4 
+     不会更改选票信息。交换选票信息结果：服务器 3 为 3 票，服务器 4 为 1 票。此时服务器 4
 
-     服从多数，更改选票信息为服务器 3，并更改状态为 FOLLOWING； 
+     服从多数，更改选票信息为服务器 3，并更改状态为 FOLLOWING；
 
      （5）服务器 5 启动，同 4 一样当小弟。
-
 - Zookeeper写数据流程:client想server1写数据，如果server1不是leader，那么**serve1会把请求转发给leader**，**leader收到后广播给每个server**，每个server会**将请求加入待写入队列**，并**向leader发送成功信息**。
 
   当**大于半数的server写入成功**，说明该写操作可以执行，leader**向每个server发送提交信息** ，然后每个server提交队列中的请求，此时写入成功。
 
   ![1621311616938](img\Zookeeper写数据流程.png)
 
-#### 4.1.5 Zookeeper模拟建行交易交易 
+#### 4.1.5 Zookeeper模拟建行交易交易
 
 0.项目启动时，OpenFrameWork去加载DB中申请的交易信息，然后把当前host注册到ZK交易节点底下
 
@@ -580,8 +555,6 @@ public class DistributeClient {
 
 ```
 
-
-
 #### 4.1.4 Consul: 8500(需要客户端)
 
 - 配置和Zookeeper很像
@@ -610,16 +583,14 @@ spring:
   **C是致性，集群就会有一致性问题，一致性难以保持**
 
   ![1607245896866](img\CAP理论.png)
-
-- Eureka(AP)  
-
+- Eureka(AP)
 - Zookeeper/Consul(CP)
 
 ### 4.3 服务调用
 
 #### 4.3.1 Ribbon负载均衡（RestTemplate）
 
->  **Nginx和Ribbon做负载均衡的区别：**
+> **Nginx和Ribbon做负载均衡的区别：**
 
 **Nginx是服务端的负载均衡**，所有请求都会请求到Nginx做转发
 
@@ -645,7 +616,6 @@ public RestTemplate restTemplate {
   - BestAvailableRule  会先过滤掉由于多次访问故障而处于断路器跳闸状态的服务，然后选择一个并发量最小的服务
   - AvailabilityFilteringRule  先过滤掉故障实例，再选择并发较小的实例
   - ZoneAvoidanceRule 默认规则，复合判断server所在区域的性能和server的可用性选择服务器
-
 - 使用及替换负载均衡规则（放在**客户端，服务名写服务端** ）
 
   ```java
@@ -653,13 +623,13 @@ public RestTemplate restTemplate {
   // ***需要特别注意的是，该配置类不可放在@ComponentScan可扫描到的地方，眼下之意，不可放在主文件路径下，@SpringBootApplication包含了@ComponentScan会扫描到
   @Configuration
   public class RibbonRuleConfig {
-  
+
       @Bean
       public IRule myRule() {
           return new RandomRule();
       }
   }
-  
+
   // 入口指定服务及规则类，这是写在customer的启动类
   @RibbonClient(name = "CLOUD-PAYMENT-SERVICE", configuration = RibbonRuleConfig.class)
   // 多服务规则
@@ -668,19 +638,15 @@ public RestTemplate restTemplate {
   })
   ```
 
-  
-
 #### 4.3.2 OpenFeign
 
 - Feign: 是一个声明式WebService客户端，使用方法是定义一个服务接口，然后在上面写注释。Feign可以与Ribbon和Eureka组合使用以支持负载均衡
-
 - Feign旨在使编写Java Http客户端变得更容易。不使用Feign，用Ribbon+RestTemplate通常都会针对每个微服务自动封装这些服务依赖的调用。所以Feign在此基础上进一步封装，由他帮助我们定义和实现依赖服务接口的定义，我们只需创建一个接口(映射服务接口)，并且使用注解的方式来配置他，即可完成对服务接口的绑定。
-
 - Feign和OpenFeign的区别
 
   ![1607432204805](img\Feign和OpenFeign的区别.png)
 
-#####4.3.2.1 使用
+##### 4.3.2.1 使用
 
 主启动@EnableFeignClients
 
@@ -711,7 +677,7 @@ public interface OrderFeignService {
 }
 ```
 
-#####4.3.2.2 OpenFeign超时控制
+##### 4.3.2.2 OpenFeign超时控制
 
 ```java
 java.lang.RuntimeException: com.netflix.client.ClientException: Load  balancer does not have available server for client:  CLOUD-PAYMENT-SERVICE 
@@ -727,14 +693,12 @@ ribbon:
   ConnectTimeout: 5000
 ```
 
-#####4.3.2.3 OpenFeign日志打印功能
+##### 4.3.2.3 OpenFeign日志打印功能
 
 - 对Feign接口的调用情况进行监控和输出
-
 - Feign日志级别
 
   ![1607436697440](img\Feign日志级别.png)
-
 - 使用
 
 ```java
@@ -758,6 +722,94 @@ logging:
 ##### 4.3.2.4 注意事项
 
 1. **@PathVariable形式的参数,则需要使用value=""标明对应的参数,否则会抛出IllegalStateException异常**
+2. FeignClient代理时的beanName - contextId
+
+```java
+   @Import(FeignClientsRegistrar.class) // 注册feignClient信息，取的名字为contextId + "FeignClient"或者qualifier，因此会重名
+   public @interface EnableFeignClients
+   }
+
+   class FeignClientsRegistrar
+   		implements ImportBeanDefinitionRegistrar, ResourceLoaderAware, EnvironmentAware {
+
+   	// 1. ImportBeanDefinitionRegistrar会加载一些对象到容器中
+   	@Override
+   	public void registerBeanDefinitions(AnnotationMetadata metadata,
+   			BeanDefinitionRegistry registry) {
+   		registerDefaultConfiguration(metadata, registry);
+   		// 2. 
+   		registerFeignClients(metadata, registry);
+   	}
+
+   	public void registerFeignClients(AnnotationMetadata metadata,
+   			BeanDefinitionRegistry registry) {
+   		// 3. 加工feign代理的beanName
+   		String name = getClientName(attributes);
+   		registerClientConfiguration(registry, name, attributes.get("configuration"));
+   		registerFeignClient(registry, annotationMetadata, attributes);
+   	}
+
+   	private String getClientName(Map<String, Object> client) {
+   		if (client == null) {
+   			return null;
+   		}
+   		// A. 优先contextId
+   		String value = (String) client.get("contextId");
+   		if (!StringUtils.hasText(value)) {
+   			value = (String) client.get("value");
+   		}
+   		if (!StringUtils.hasText(value)) {
+   			value = (String) client.get("name");
+   		}
+   		if (!StringUtils.hasText(value)) {
+   			value = (String) client.get("serviceId");
+   		}
+   		if (StringUtils.hasText(value)) {
+   			return value;
+   		}
+
+   		throw new IllegalStateException("Either 'name' or 'value' must be provided in @"
+   				+ FeignClient.class.getSimpleName());
+   	}
+   }
+```
+
+##### 4.3.2.5 feign服务间调用，header穿透 - RequestInterceptor
+
+ RequestInterceptor为feign请求拦截器
+
+```java
+/**
+ * 用于服务与服务之间调用时token透传
+ */
+@Slf4j
+public class FeignHeadersInterceptor implements RequestInterceptor {
+
+    @Override
+    public void apply(RequestTemplate template) {
+        HttpServletRequest request = getHttpServletRequest();
+        if (Objects.isNull(request)) {
+            return;
+        }
+        Map<String, String> headers = getHeaders(request);
+        log.info("headers[{}]", JSON.toJSONString(headers));
+        if (headers.size() > 0) {
+            Iterator<Entry<String, String>> iterator = headers.entrySet().iterator();
+            while (iterator.hasNext()) {
+                Entry<String, String> entry = iterator.next();
+                // 把请求过来的header请求头 原样设置到feign请求头中
+                // 包括token
+
+                template.header(entry.getKey(), entry.getValue());
+            }
+        }
+    }
+}
+```
+
+##### 4.3.2.6 Feign源码
+
+https://blog.csdn.net/forezp/article/details/83896098
 
 #### 4.3.2 OpenFeign+Ribbon+Eureka的配合
 
@@ -766,7 +818,6 @@ logging:
   服务调用是通过ip+port+param调用
 
   `restTemplate.getForObject("http://192.168.1.1:8001/mall4springcloud/mall_goods/get/1")`
-
 - 只有**Eureka+Ribbon**
 
   Ribbot带了服务查找的作用，配合Eureka的服务集群，可以根据**RibbonRule算法** 调某一台服务器
@@ -774,25 +825,24 @@ logging:
   SERVICE-A 集群: 192.168.1.1:8001 |  192.168.1.2:8002   |  192.168.1.3:8003
 
   ``restTemplate.getForObject("http://SERVICE-B/mall4springcloud/mall_goods/get/1")``
-
 - **OpenFeign+Ribbon+Eureka** ： 简单说就是简化上面，并且有负载均衡的能力
 
-  把@FeignClient(name = "SHOPCART-PRO"）注解上的name作为服务名，与接口上面的  @RequestMapping(）拼接成上面的url，然后**借助Ribbon(OpenFeign集成了Ribbon)实现调用** 
+  把@FeignClient(name = "SHOPCART-PRO"）注解上的name作为服务名，与接口上面的  @RequestMapping(）拼接成上面的url，然后**借助Ribbon(OpenFeign集成了Ribbon)实现调用**
 
-  **contextId: 设置分区，FeignClient默认会以name来创建bean，那么多个相同的name创建的bean就重复了，可以采取分区的形式，就可以创建多个feign。这样可以更加灵活，比如有一半的方法想fallback，那么就设置一个分区，另一半方法不想fallback则创建一个新的分区，然后不加fallback即可。** 
+  **contextId: 设置分区，FeignClient默认会以name来创建bean，那么多个相同的name创建的bean就重复了，可以采取分区的形式，就可以创建多个feign。这样可以更加灵活，比如有一半的方法想fallback，那么就设置一个分区，另一半方法不想fallback则创建一个新的分区，然后不加fallback即可。**
 
   ```java
   @FeignClient(name = "SHOPCART-PRO", path = "/mall4springcloud/mall-shopcart", fallback = ShopcartFeignFallBackService.class, contextId="one" /*分区一*/)
   public interface ShopcartFeignService {
-  
+
       @RequestMapping("/getAll")
       List<MallShopcart> getAll();
-  
+
       @RequestMapping("/update/{uid}/{gid}")
       String updateById(@PathVariable("uid") Integer uid,@PathVariable("gid") Integer gid);
   }
-  
-  
+
+
   @Component
   @Slf4j
   public class ShopcartFeignFallBackService implements ShopcartFeignService {
@@ -801,7 +851,7 @@ logging:
           log.warn("getAll查不到数据，进入fallback");
           return null;
       }
-  
+
       @Override
       public String updateById(Integer uid, Integer gid) {
           log.warn("updateById查不到数据，进入fallback");
@@ -809,7 +859,6 @@ logging:
       }
   }
   ```
-
 - **fallback需要开启**
 
   ```yml
@@ -829,7 +878,7 @@ logging:
 - Hystrix是一个用于处理分布式系统的延迟和容错的开源库，在分布式系统里，许多服务依赖不可避免会调用失败(超时/异常)等，Hystrix可以保证在一个依赖出问题的情况下，不会导致整体服务失败，避免级联故障（服务雪崩），以提高分布式系统的弹性
 - “断路器”本身是一个开关装饰，当某个服务单元发生故障后，通过断路器的故障监控（类似熔断保险丝），向调用方返回一个符合预期的/可处理的备选响应（FallBack），而不是长时间的等待或则抛出调用方无法处理的异常，这样就可以保证服务调用方的线程不会被长时间/不必要的占用，从而便面了故障在分布式系统中的蔓延，乃至雪崩
 
-#####  4.4.1.1 用途：服务降级/服务熔断/接近实时的监控
+##### 4.4.1.1 用途：服务降级/服务熔断/接近实时的监控
 
 ##### 4.4.1.2 服务降级：服务器忙，不然客户等待太久而是返回一个友好提示fallback。触发场景：
 
@@ -880,43 +929,43 @@ feign:
 ```
 
 - 默认降级方法
+
   - 类注释 @DefaultProperties(defaultFallback = "defaultFallBackMethod")
   - 默认@HystrixCommand，不用指定fallbackMethod
   - 特殊方法自己指定fallbackMethod
-
 - 通过实现FeignClient接口的形式，指定实现类为接口方法的fallback
 
   ```java
   @FeignClient(name = "CLOUD-PROVIDER-HYSTRIX-PAYMENT", fallback = PaymentFallBackServiceImpl.class)
   public interface PaymentFeignService {
-  
+
   //    @GetMapping("/payment/get/{id}")
   //    CommonResult<Payment> getPaymentById(@PathVariable("id") Long id);
-  
+
   //    @PostMapping("/payment/create")
   //    CommonResult<Payment> create(@RequestBody Payment payment);
-  
+
       @GetMapping("/payment/discover")
       Object discover();
-  
+
       @GetMapping("/payment/discoverAfter3Min")
       Object discoverAfter3Min();
   }
-  
+
   @Component
   public class PaymentFallBackServiceImpl implements PaymentFeignService {
       @Override
       public String discover() {
           return "PaymentFallBackServiceImpl - 服务降低调用 discover";
       }
-  
+
       @Override
       public String discoverAfter3Min() {
           return "PaymentFallBackServiceImpl - 服务降低调用 discoverAfter3Min";
       }
   }
-  
-  
+
+
   feign:
     hystrix:
       enabled: true #如果处理自身的容错就开启。开启方式与生产端不一样。
@@ -939,17 +988,14 @@ feign:
 - 熔断器概念图
 
   ![1608308356224](img\熔断器概念图.png)
-
 - 熔断类型：
 
   - 熔断打开：请求不再进行调用当前服务，内部设置时钟一般为MTTR(平均故障处理时间)，当打开时长达到所设时钟则进入熔断状态
   - 熔断关闭：熔断关闭不会对服务进行熔断
   - 熔断半开：熔断状态时，过了一段时间(睡眠期，默认5s)会尝试一个请求，尝试成功解除熔断，不成功还是熔断。
-
 - 官网断路器流程图
 
   ![1608309142716](img\官网断路器流程图.png)
-
 - 断路器开启或者关闭的条件
 
   - 当满足一定阈值的时候（默认10秒内超过20个请求次数）
@@ -957,7 +1003,6 @@ feign:
   - 达到以上阈值，断路器将会开启
   - 当开启的时候，所有请求都不会进行转发
   - 一段时间(睡眠期)之后(默认是5秒)，这个时候断路器是半开状态，会让其中一个请求进行转发。如果成功，断路器会关闭，若事变，继续开启
-
 - 准实时的调用监控 Hystrix Dashboard @EnableHystrixDashboard
 
   - 注意：新版本Hystrix需要在主启动类MainAppHystrix8001中指定监控路径
@@ -969,7 +1014,7 @@ feign:
       <groupId>org.springframework.cloud</groupId>
       <artifactId>spring-cloud-starter-hystrix-dashboard</artifactId>
   </dependency>
-  
+
   <dependency>
       <groupId>org.springframework.cloud</groupId>
       <artifactId>spring-cloud-starter-netflix-hystrix-dashboard</artifactId>
@@ -988,6 +1033,10 @@ feign:
   ```
 
   url：host:port/hystrix
+
+##### 4.4.1.8 超时
+
+因为超时时间的优先级：hystrix>ribbon>okhttp，那么在实际生产环境中肯定首先生效的是hystrix，但这个触发的时候我们代码就进入量fallback中，所以按理说后面的超时时间应该设置的比hystrix略微小一点，
 
 ### 4.5 服务网关
 
@@ -1010,11 +1059,8 @@ feign:
 ##### 4.5.3.1 概述
 
 - Gateway 是在Spring 生态系统之上构建的API网关服务，基于Spring5， SpringBoot2, Project Reactor等技术。旨在提供一种简单而有效的方式来对API进行路由，以及提供一些强大的过滤器功能，如：熔断/限流/重试等。
-
 - GateWay目标是替代Zuul。在SpringCloud2.0以上的版本中，没有对新版本的Zuul2.0以上最新最高性能版本进行集成，仍然使用的Zuul1.0非Reactor模式的老版本。而为了提高网关的性能，SpringCloud-**Gateway是基于WebFlux框架实现的，而WebFlux框架底层则使用了高性能的Reactor模式通信框架Netty。**
-
 - Gateway的目标：提供统一的路由方式且**基于Filter链的方式**提供了网关的基本功能，如：**安全/监控/指标/限流等。**
-
 - Gateway源码架构（模型）
 
   ![1608451987988](img\Gateway源码架构.png)
@@ -1022,7 +1068,6 @@ feign:
   - 传统的web框架，如struts2，springMVC等都是基于servletAPI和Servelt容器基础之上进行的。
   - **在Servelt3.1之后有了异步非阻塞的支持**。而WebFlux式一个典型的非阻塞异步的框架，它的核心是基于Reactor的相关API实现的。相对于传统的web框架来说，它可以运行在诸如Netty，Undertow以及支持Servlet3.1的容器上。**非阻塞+函数式编程(Spring5必须使用JAVA8)**
   - Spring WebFlux式Spring5.0引入的新的响应式框架，区别于SpringMVC，它不依赖ServeltAPI，他是完全异步非阻塞的，并且基于Reactor来实现响应式流规范
-
 - 用途
 
   - 反向代理：类似nginx，访问的入口是gateway，可以给gateway外再加一层nginx
@@ -1031,11 +1076,9 @@ feign:
   - 熔断
   - 日志监控
   - ...
-
 - 微服务架构中的网关（在服务层外层）
 
   ![1608452396670](img\微服务架构中的网关.png)
-
 - 为什么选Gateway而不是Zuul
 
   - neflix不太靠谱，zuul2.0一直跳票,迟迟不发布
@@ -1050,9 +1093,6 @@ feign:
     - 易于编写Predicate和Filter
     - 请求限流功能
     - **支持路径重写**
-
-  
-
 - Gateway和zuul的区别
 
   - Zuul1.x是以及基于阻塞I/O的API Gateway
@@ -1060,13 +1100,10 @@ feign:
   - Zuul2.x理念更先进，像基于Netty非阻塞和支持长连接，但SpringCloud目前还没有进行整合。Zuul2.x的性能相对1.x有较大的提升。官方Gateway的RPS(每秒请求数)是Zuul的1.6倍
   - Gateway基于SpringFramework5，Project Reactor，SpringBoot2.0进行构建**，非阻塞API**
   - Gateway还支持WebSocket，并与**Spring紧密集成拥有更好的开发体验(毕竟时Spring的东西)**
-
 - Gatway三大核心概念
 
   - Route(路由)：路由是构建网关的基本模块，它由ID，目标URI，一系列的断言和过滤器组成，如果断言为true则匹配该路由
-
   - Predicate(断言)：参考的是java8的java.util.function.Predicate开发人员可以匹配HTTP请求中的所有内容（例如请求头或请求参数），如果请求与断言相匹配则进行路由
-
   - Filter(过滤)：指的是Spring框架中GatewayFilter的实例，使用过滤器，可以在请求被路由前或者之后对请求进行修改。（拦截了可以做很多事情）
 
     ![1608462225245](img\Gateway总体图.png)
@@ -1075,7 +1112,7 @@ feign:
 
     ![1608462363044](img\Gateway工作过程.png)
 
-##### 4.5.3.2 Predicate 
+##### 4.5.3.2 Predicate
 
 - Gateway 将路由匹配作为Spring WebFlux HandlerMapping基础架构的一部分。Gateway包括许多内置的Route Predicate工厂，所有这些Predicate都与HTTP请求的不同属性匹配，多个Route Predicate工程可以进行组合
 
@@ -1084,20 +1121,15 @@ feign:
 ##### 4.5.3.3 Filter
 
 - 路由过滤器可用于修改进入的HTTP请求和返回的HTTP响应，路由过滤器只能指定路由进行使用。
-
 - 生命周期：pre（业务逻辑前）/post（业务逻辑后）
-
 - 种类：GatewayFilter 和 GlobalFilter
-
 - 主要接口：impiemerts   GlobalFilter ，Ordered
-
 - 用途：全局日志记录/统一网关鉴权
-
 - 自定义全局GlobalFilter
 
   ```java
   package com.codeman.springcloud.config;
-  
+
   import lombok.extern.slf4j.Slf4j;
   import org.apache.commons.lang.StringUtils;
   import org.springframework.cloud.gateway.filter.GatewayFilterChain;
@@ -1107,9 +1139,9 @@ feign:
   import org.springframework.stereotype.Component;
   import org.springframework.web.server.ServerWebExchange;
   import reactor.core.publisher.Mono;
-  
+
   import java.util.Date;
-  
+
   /**
    * @author: zhanghongjie
    * @description:
@@ -1119,7 +1151,7 @@ feign:
   @Component
   @Slf4j
   public class MyLogGatewayFilter implements GlobalFilter, Ordered {
-  
+
       @Override
       public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
           log.info("*********come in MyLogGateWayFilter: "+new Date());
@@ -1131,18 +1163,18 @@ feign:
           }
           return chain.filter(exchange);
       }
-  
+
       @Override
       public int getOrder() {
           return 0;
       }
   }
-  
+
   ```
 
 ##### 4.5.3.4 pom
 
-  ```xml
+```xml
   <dependency>
       <groupId>org.springframework.cloud</groupId>
       <artifactId>spring-cloud-starter-gateway</artifactId>
@@ -1165,13 +1197,13 @@ feign:
       <groupId>org.springframework</groupId>
       <artifactId>spring-webmvc</artifactId>
   </dependency>
-  ```
+```
 
-  ##### 4.5.3.5 yml
+##### 4.5.3.5 yml
 
   这些routes会每次去读取yml配置文件，因此可以动态修改路由
 
-  ```yaml
+```yaml
   server:
     port: 9527
   spring:
@@ -1206,7 +1238,7 @@ feign:
         fetch-registry: true
         defaultZone: http://eureka7001.com:7001/eureka
   
-  ```
+```
 
 ### 4.6 配置中心
 
@@ -1219,7 +1251,6 @@ feign:
 - SpringCloud Config分为服务端和客户端。
 
   服务端也称分布式配置中心，他是一个独立的微服务应用(SpringBoot),用来连接配置服务器(git)并为客户端听过获取配置信息，加密/解密信息等接口。
-
 - 用途：
 
   - 集中管理配置文件
@@ -1227,7 +1258,6 @@ feign:
   - 运行期间动态调整配置，不再需要在每个服务部署的机器上编写配置文件，服务会向配置中心统一拉取配置自己的信息
   - 当配置发生变动时，服务不需要重启即可感知到配置的变化并应用新的配置
   - 将配置信息以REST接口的形式暴露(post、curl访问刷新均可....)
-
 - yml
 
   ```yaml
@@ -1249,7 +1279,6 @@ feign:
       service-url:
         defaultZone:  http://eureka7001.com:7001/eureka
   ```
-
 - 服务端pom
 
   ```xml
@@ -1258,11 +1287,9 @@ feign:
       <artifactId>spring-cloud-config-server</artifactId>
   </dependency>
   ```
-
 - 主启动类
 
   **@EnableConfigServer**
-
 - 配置读取规则
 
   ![1608957986658](img\SpringCloudConfig配置读取规则.png)
@@ -1276,7 +1303,6 @@ feign:
   SpringCloud会创建一个“Bootstrap Context”, 作为Spring应用的‘Application Context’ 的父上下文。初始化的时候，‘Bootstrap Context’负责从外部源加载配置属性并解析配置。这两个上下文共享一个从外部获取的‘Environment’。
 
   ‘Bootstrap’属性有高优先级，默认情况下，它们不会被本地配置覆盖。‘Bootstrap Conttext’和‘Application Context’有着不同的约定，所以新增了一个'Bootstrap.yml'文件，保证“Bootstrap Context”和‘Application Context’配置分离。
-
 - Config客户端
 
   Config服务端与远程配置(git)交互，而Config客户端只与Config服务端交互。
@@ -1288,14 +1314,13 @@ feign:
         <groupId>org.springframework.cloud</groupId>
         <artifactId>spring-cloud-starter-config</artifactId>
     </dependency>
-    
+
     或者这个？
     <dependency>
         <groupId>org.springframework.cloud</groupId>
         <artifactId>spring-cloud-config-client</artifactId>
     </dependency>
     ```
-
 - Config客户端-动态刷新
 
   就算客户端重启，也不会刷新的，要么就重启服务端；要么动态刷新。
@@ -1308,7 +1333,6 @@ feign:
         <artifactId>spring-boot-starter-actuator</artifactId>
     </dependency>
     ```
-
   - 修改yml，暴露监控端口
 
     ```yaml
@@ -1323,14 +1347,13 @@ feign:
           fail-fast: true
           uri: http://localhost:8899,http://localhost:8898 # Config服务端地址
           label: master
-    
+
     management:
       endpoints:
         web:
           exposure:
             include: "*"
     ```
-
   - @RefreshScope修饰配置文件变量类，做到监控变量。（可能是版本的问题?@RefreshScope修饰controller的话，全部注入都会失效 ）
 
     ```java
@@ -1339,13 +1362,12 @@ feign:
     public class ValueComponent {
         @Value("${spring.application.name}")
         private String applicationName;
-    
+
         public String getApplicationName() {
             return applicationName;
         }
     }
     ```
-
   - 发送post请求刷新
 
   ```shell
@@ -1357,23 +1379,17 @@ feign:
 #### 4.7.1 bug消息总线（配合Config使用-动态刷新配置）
 
 - SpringCloud Bus 是用来将分布式系统的节点与轻量级消息系统链接起来的框架，它整合了JAVA的事件处理机制和消息中间件的功能。
-
 - SpringCloud Bus**目前支持的消息中间件：RabbitMQ和Kafka**
-
 - 用途：SpringCloud Bus能管理和传播分布式系统间的消息，就像一个分布式执行器，可用于广播状态更改/事件推送等，也可以当作微服务间的通信通道。
 
   ![1608989250106](img\SpringCloudBus工作过程.png)
-
 - 总线：在微服务架构的系统中，通常会使用轻量级的消息代理来构建一个共用的消息主题，并让系统中所有微服务实例都连接上来。由于该主题中产生的消息会被所有实例监听和消费，所以称它为消息总线。在总线上的各个实例，都可以方便的广播一些需要让其他连接在该主题上的实例都知道的消息。
-
 - 基本原理：ConfigClient实例都监听MQ中同一个topic(默认是SpringCloudBus)。当一个服务刷新数据的时候，它会把这个信息放入到Topic中，**这样其他监听同一Topic的服务就能得到通知，然后去更新自身的配置**。
-
 - 设计架构：
 
   - 方案一：**利用消息总线触发一个客户端/bus/refresh,而刷新所有客户端的配置**
 
     ![1608995149065](img\SpringCloudBus设计架构1.png)
-
   - 方案二：**利用消息总线触发一个服务端ConfigServer的/bus/refresh端点,而刷新所有客户端的配置（更加推荐）**
 
     ![1608995201829](img\SpringCloudBus设计架构2.png)
@@ -1381,7 +1397,6 @@ feign:
     - 打破了微服务的职责单一性，因为微服务本身是业务模块，它本不应该承担配置刷新职责
     - 破坏了微服务各节点的对等性
     - 有一定的局限性。例如，微服务在迁移时，它的网络地址常常会发生变化，此时如果想要做到自动刷新，那就会增加更多的修改
-
 - 添加消息总线支持：
 
   - pom
@@ -1392,7 +1407,7 @@ feign:
               <groupId>org.springframework.cloud</groupId>
               <artifactId>spring-cloud-starter-bus-amqp</artifactId>
   </dependency>
-  
+
   Kafka
   <dependency>
               <groupId>org.springframework.cloud</groupId>
@@ -1409,28 +1424,27 @@ feign:
       web:
         exposure:
           include: 'bus-refresh'
-       
+
   ##  服务端 end
-  
+
   ##  客户端 start 
   management:
     endpoints:
       web:
         exposure:
           include: '*'
-       
+
   ##  客户端 end
-  
-  
+
+
   spring:
     rabbitmq:
       host: 192.168.1.170
       port: 5672
       username: guest
       password: guest
-      
-  ```
 
+  ```
 - 发送POST请求刷新配置
 
   - 全局刷新
@@ -1445,23 +1459,20 @@ feign:
   curl -X POST "http://localhost:3344/actuator/bus-refresh/config-client:3355"
   ## 加上 “服务名：端口号”
   ```
-
 - bus通知过程图
 
   ![1608995629898](img\bus通知过程图.png)
 
-### 4.8 消息驱动(SpringCloudStream) 
+### 4.8 消息驱动(SpringCloudStream)
 
 #### 4.8.1 定义
 
 - 屏蔽底层消息中间件的差异，降低切换版本，统一消息的编程模型
-
 - 官方定义SCS是一个构建消息驱动微服务的框架。
 
   应用程序通过inputs或outputs来与SpringCloudStream中binder对象交互。通过我们配置来binding(绑定)，而SpringCloudStream的binder对象负责与消息中间件交互。因此，开发人员只需搞清楚如何与SpringCLoudStream交互就可以方便使用消息驱动的方式。
 
   通过使用Spring Integration来连接消息代理中间件以实现消息事件驱动。SpringCloudStream为一些供应商的消息中间件产品提供了个性化的自动化配置实现，引用了**发布-订阅/消费组/分区**的三大核心概念。
-
 - 目前仅支持**Rabbit MQ和Kafka**
 
 #### 4.8.2 为什么用SpringCloudStream
@@ -1487,7 +1498,7 @@ feign:
 
 ![1609079467370](img\SpringCloudStream编码API和常用注解.png)
 
-#### 4.8.6 试用（RabbitMQ） 
+#### 4.8.6 试用（RabbitMQ）
 
 - pom： 生产服务相同
 
@@ -1619,7 +1630,6 @@ public class ReceiveMessageListenerController {
   - 分组消费：同组竞争，不同组可以重复消费
 
     ![1609082910058](img\SpringCloudStream分组.png)
-
   - 持久化：
 
     当消费者系统异常(重启等)，生产者会将消息持久化(在这个分组中)。当服务分组改变时，服务正常后也无法接收到异常期间持久化的消息；而当服务分组没有改变，服务恢复正常后，可以重新接收到异常期间持久化的消息。
@@ -1627,12 +1637,10 @@ public class ReceiveMessageListenerController {
 ### 4.9 SpringCloud Sleuth + zipkin分布式请求链路追踪
 
 - 产生原因：在微服务框架中，一个由客户端发起的请求在后端系统中会经过多个不同的服务节点调用来协同产生最后的请求结果，每一个前段请求都会形成一条复杂的分布式服务调用链路，链路中的任何一环出现高延迟或错误都会引起整个请求最后的失败。
-
 - 监控平台 java -jar zipkin.jar
 
   - 下载地址：https://dl.bintray.com/openzipkin/maven/io/zipkin/java/zipkin-server/
   - 监控地址：http://localhost:9411/zipkin/
-
 - 调用链路(类似链表，preNode ≈ parentId)
 
   ![1609168466292](img\SpringCloudSleuth调用链路.png)
@@ -1652,9 +1660,6 @@ span:表示调用链路来源，通俗的理解span就是一次请求信息
               <artifactId>spring-cloud-starter-zipkin</artifactId>
           </dependency>
   ```
-
-  
-
 - yml
 
   ```yml
@@ -1667,8 +1672,6 @@ span:表示调用链路来源，通俗的理解span就是一次请求信息
       sampler:
         probability: 1  # 0-1 ， 1表示性能全开
   ```
-
-  
 
 ## 5 SpringCloud Alibaba
 
@@ -1691,24 +1694,23 @@ span:表示调用链路来源，通俗的理解span就是一次请求信息
     - Alibaba Cloud ACM：一款在分布式架构环境中对应用配置进行集中管理和推送的应用配置中心产品。
     - Alibaba Cloud OSS: 阿里云对象存储服务（Object Storage Service，简称 OSS），是阿里云提供的海量、安全、低成本、高可靠的云存储服务。您可以在任何应用、任何时间、任何地点存储和访问任意类型的数据。
     - Alibaba Cloud SchedulerX: 阿里中间件团队开发的一款分布式任务调度产品，提供秒级、精准、高可靠、高可用的定时（基于 Cron 表达式）任务调度服务。
-    - Alibaba Cloud SMS: 覆盖全球的短信服务，友好、高效、智能的互联化通讯能力，帮助企业迅速搭建客户触达通道。  
+    - Alibaba Cloud SMS: 覆盖全球的短信服务，友好、高效、智能的互联化通讯能力，帮助企业迅速搭建客户触达通道。
 
-### 5.1 Nacos 8848: 服务注册与配置中心 
+### 5.1 Nacos 8848: 服务注册与配置中心
 
 对标：(Eureka/Zookeeper    Config+Bus)
 
-单机的话，环境变量需要配置为单机。docker运行加上`--env MODE=standalone`
+单机的话，环境变量需要配置为单机。docker运行加上 `--env MODE=standalone`
 
 否则注册服务时启动报错 **failed to req API:/nacos/v1/ns/instance after all servers([nacos:8848]) tried**
 
-<http://localhost:8848/nacos/index.html>   默认账号密码是nacos/nacos 
+[http://localhost:8848/nacos/index.html](http://localhost:8848/nacos/index.html)   默认账号密码是nacos/nacos
 
 无需EnableDiscoveryClient
 
 #### 5.1.0 docker安装/配置
 
 - 拉取：`docker pull nacos/nacos-server`
-
 - 方式一：修改nacos配置文件
 
   db.url.0
@@ -1720,7 +1722,7 @@ span:表示调用链路来源，通俗的理解span就是一次请求信息
   db.password
 
   ```properties
-  
+
   nacos.cmdb.dumpTaskInterval=3600
   nacos.cmdb.eventTaskInterval=10
   nacos.cmdb.labelTaskInterval=300
@@ -1730,57 +1732,44 @@ span:表示调用链路来源，通俗的理解span就是一次请求信息
   # db.url.1=jdbc:mysql://${MYSQL_SERVICE_HOST}:${MYSQL_SERVICE_PORT:3306}/${MYSQL_SERVICE_DB_NAME}?${MYSQL_SERVICE_DB_PARAM:characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true}
   db.user=root
   db.password=123456
-  
-  
+
+
   ```
 
   ```shell
   docker run --env MODE=standalone -itd -p 8868:8848 --name nacosallenv nacos/nacos-server
-  
+
   # 非docker
   sh startup.sh -m standalone
   ```
-
 - 方式二：运行容器时带上参数
 
   ```shell
   docker run --env MODE=standalone --env SPRING_DATASOURCE_PLATFORM=mysql --env MYSQL_MASTER_SERVICE_DB_NAME=nacos_config --env MYSQL_MASTER_SERVICE_HOST=192.168.1.4 --env MYSQL_MASTER_SERVICE_USER=root --env MYSQL_MASTER_SERVICE_PASSWORD=123456 --env MYSQL_SLAVE_SERVICE_HOST=192.168.1.4 --env MYSQL_MASTER_SERVICE_DB_NAME=nacos_config --name nacosallenv -d -p 8868:8848 nacos/nacos-server
   ```
-
 - Nacos可选配置
 
   配置项 描述 可选参数 默认值     MODE 模式 cluster/standalone cluster/standalone cluster   PREFER_HOST_MODE 是否支持 hostname hostname/ip ip   NACOS_SERVER_PORT 服务端口号  8848   SPRING_DATASOURCE_PLATFORM 单机模式支持 mysql  mysql / empty empty   MYSQL_MASTER_SERVICE_HOST mysql 主节点 host     MYSQL_MASTER_SERVICE_PORT mysql 主节点 port  3306   MYSQL_MASTER_SERVICE_DB_NAME    mysql 主节点数据库名     MYSQL_MASTER_SERVICE_USER mysql 主节点用户名     MYSQL_MASTER_SERVICE_PASSWORD mysql 主节点密码     MYSQL_SLAVE_SERVICE_HOST mysql 从节点 host     MYSQL_SLAVE_SERVICE_PORT mysql 从节点 port  3306
 
-   ![1609345213243](img\Nacos可选配置.png)
-
-   
-
+  ![1609345213243](img\Nacos可选配置.png)
 - Nacos数据库搭配Mysql使用:(内置derby)
 
   https://github.com/alibaba/nacos/blob/master/config/src/main/resources/META-INF/nacos-db.sql
-
 - 进入Nacos： `docker exec -it nacos bash`
 
- 
-
- 
-
-#### 5.1.1 简介 
+#### 5.1.1 简介
 
 - 含义：前四个字母分别为Naming和Configuration的前两个字母，最后的s为Service
-
 - 是什么:
 
   - 一个更易于构建云原生应用的动态服务发现，配置管理和服务管理中心
   - Nacos：Dynamic Naming and Configuration Service
   - 注册中心+配置中心的组合。Nacos=Eureka+Config+Bus
-
 - 用途：
 
   - 替代Eureka做服务注册中心(并且支持负载均衡，因为**内置Ribbon**)
   - 替代Config做服务配置中心
   - 支持AP/CP，可以切换
-
 - 各服务中心对比：
 
   据说Nacos在阿里巴巴有超过10万实例运行，已经过了类似双十一等各种大型流量的考验
@@ -1791,11 +1780,11 @@ span:表示调用链路来源，通俗的理解span就是一次请求信息
 
 ![1609685702348](img\Nacos全景图.png)
 
-​	-   Nacos和CAP
+    -   Nacos和CAP
 
 ![1609685812639](img\Nacos和CAP.png)
 
- - nacos的CP/AP切换：`curl -X PUT '$NACOS_SERVER:8848/nacos/v1/ns/operator/switches?entry=serverMode&value=CP'`
+- nacos的CP/AP切换：`curl -X PUT '$NACOS_SERVER:8848/nacos/v1/ns/operator/switches?entry=serverMode&value=CP'`
 
 ![1609685993812](img\Nacos的CP-AP切换.png)
 
@@ -1849,9 +1838,9 @@ management:
     web:
       exposure:
         include: '*'
-        
-        
-        
+  
+  
+  
 # 客户端
 server:
   port: 83
@@ -1891,7 +1880,7 @@ public class BaseConfiguration {
 
 - pom
 
- ```xml
+```xml
   <!--nacos-config-->
   <dependency>
       <groupId>com.alibaba.cloud</groupId>
@@ -1902,7 +1891,8 @@ public class BaseConfiguration {
       <groupId>com.alibaba.cloud</groupId>
       <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
   </dependency>
- ```
+```
+
 - yml
 
   ![1609777717156](img\Nacos配置规则.png)
@@ -1939,7 +1929,7 @@ spring:
 spring:
   profiles:
     active: dev
-    
+  
 ####  application.yml  end  ####
 ```
 
@@ -1964,10 +1954,7 @@ public class CommonComponent {
 
 ![1609777293564](img\Nacos发布配置.png)
 
-     - Nacos中的dataid的组成格式与SpringBoot配置文件中的匹配规则
-
-
-​      
+    - Nacos中的dataid的组成格式与SpringBoot配置文件中的匹配规则
 
  ![1609777524526](img\Nacos中的dataid的组成格式与SpringBoot配置文件中的匹配规则.png)
 
@@ -1977,9 +1964,6 @@ public class CommonComponent {
   - prefix默认为spring.application.name的值
   - spring.profile.active既为当前环境对应的profile,可以通过配置项spring.profile.active 来配置
   - file-exetension为配置内容的数据格式，可以通过配置项spring.cloud.nacos.config.file-extension配置
-
-    
-
 - 分类配置
 
   - Nacos结构:NameSpace>Group>Data ID(Service)
@@ -2009,8 +1993,8 @@ spring:
         file-extension: yml #指定yaml格式的配置
         group: DEFAULT_GROUP  # group
         namespace: c33b9ed5-00c8-4294-b257-332126d40dd9 # namespace
-        
-        
+  
+  
 spring:
   profiles:
     active: test
@@ -2031,9 +2015,7 @@ Nginx+Nacos(3+)+Mysql实现集群
 - 数据库支持
 
   - Nacos默认内嵌derby数据库，如果启动多个默认配置下的nacos节点，数据存储会存在一致性的问题。
-
-  - Nacos采用集中式存储的形式来集群化部署，目前只支持Mysql。 
-
+  - Nacos采用集中式存储的形式来集群化部署，目前只支持Mysql。
   - 单机版配置(/nacos/conf/application.properties)
 
     ![1610375208279](img\Nacos单机版Mysql配置.png)
@@ -2056,8 +2038,8 @@ spring:
           - data-id: common-config2.yml
             group: BLOG0703_GROUP
             refresh: true
-            
-            
+    
+    
 # 其他版本写法： 2.2.5.RELEASE
 extensionConfigs[0]:
   data-id: common-config.yml
@@ -2079,8 +2061,6 @@ sharedConfigs[1]:
   refresh: true
 ```
 
-
-
 ### 5.2 SpringCloud Alibaba Sentinel实现熔断与限流：8080
 
 使用docker，启动默认端口为8858，需要暴露。也可以进入容器内部启动/bladex/sentinel/app.jar,默认端口为8080，也需要暴露出来
@@ -2088,13 +2068,10 @@ sharedConfigs[1]:
 #### 5.2.1 简介
 
 - 轻量级的**流量控制/熔断降级**的Java库
-
 - 替代Hystrix
-
 - 用途：
 
   ![1610376780126](img\Sentinel用途.png)
-
 - 组成：
 
   - 核心库（Java客户端）不依赖任何框架和库，能够运行在所有JRE, 同时对Dubbo和SpringCloud有比较好的支持
@@ -2174,29 +2151,23 @@ feign:
 
 ![1610462761890](img\Sentinel流控规则界面.png)
 
-
-
 #### 5.2.4 降级规则
 
 - 介绍
 
   ![1610546143274](img\Sentinel降级规则介绍.png)
-
 - 用途
 
   熔断降级避免级联错误。当资源被降级后，接下来的窗口期内，调用都会自动熔断（默认抛出	DegradeException）
 
   **Sentinel的断路器是没有半开状态的。(区别于Histrix)**
 
-
-
 #### 5.2.5 热点key限流
 
 - 介绍
 
   ![1610549651421](img\Sentinel热点Key规则介绍.png)
-
-- java:  **@SentinelResource, 类似Histrix的@HistrixCommand, 可指定兜底方案<u>blockHandler</u>**
+- java:  **@SentinelResource, 类似Histrix的@HistrixCommand, 可指定兜底方案 `<u>`blockHandler `</u>`**
 
 ```java
 @GetMapping("/sentinel05/{id}/{name}")
@@ -2217,7 +2188,7 @@ feign:
 
 ![1610549846247](img\Sentinel系统规则介绍.png)
 
-#### 5.2.7 @SentinelResource 
+#### 5.2.7 @SentinelResource
 
 - 指定兜底类 **@SentinelResource（blockHandlerClass） 类方法需要static**
 
@@ -2256,14 +2227,12 @@ public class CustomerBlockHandler {
 #### 5.2.8 服务熔断功能
 
 - **Sentinel整合了Ribbon+OpenFeign+Fallback**
-
 - @SentinelResource(value = "fallback",fallback = "handlerFallback",blockHandler = "blockHandler", exceptionsToIgnore = {IllegalArgumentException.class})
 
   - exceptionsToIgnore忽略兜底的异常
   - blockHandler 和fallback 同时配置，会走blockHandler 
   - fallback管运行异常
   - blockHandler管配置违规
-
 - 激活sentinel对Feign熔断的支持
 
   ```yml
@@ -2271,7 +2240,6 @@ public class CustomerBlockHandler {
     sentinel:
       enabled: true # 激活Sentinel对Feign的支持
   ```
-
 - 熔断框架对比
 
   ![1610633143086](img\熔断框架对比Sentinel_Hystrix_resillence4j.png)
@@ -2286,7 +2254,6 @@ public class CustomerBlockHandler {
       <artifactId>sentinel-datasource-nacos</artifactId>
   </dependency>
   ```
-
 - yml
 
 ```yaml
@@ -2316,8 +2283,7 @@ Nacos配置json详解
 
 - 分布式事务问题：一次业务操作需要跨多个数据源或需要跨多个系统进行远程调用，就会产生分布式事务问题
 
-  ![1610635641899](img\分布式事务问题.png) 
-
+  ![1610635641899](img\分布式事务问题.png)
 - seata介绍
 
   - Seata是一款开源的分布式事务解决方案，致力于在微服务架构下提供高性能和简单易用的分布式事务服务
@@ -2325,27 +2291,26 @@ Nacos配置json详解
     - Transaction ID （XID）:  全局唯一的事务ID
     - Transaction Coordinator(TC)： 事务协调器，维护全局事务的运行状态，负责**协调**并驱动全局事务的提交或回滚;
     - Transaction  Manager(TM) :  控制全局事务的边界，负责开启一个全局事务，并**最终发起**全局提交或全局回滚的决议;
-    - Resource Manager(RM) ： 控制**分支事务，负责分支注册，状态汇报**，并接收事务协调器的指令，驱动**分支（本地）事务的提交和回滚；** 
+    - Resource Manager(RM) ： 控制**分支事务，负责分支注册，状态汇报**，并接收事务协调器的指令，驱动**分支（本地）事务的提交和回滚；**
 
 ![1610636230433](img\Seata核心处理过程.png)
 
 - **全局@GlobalTransactional**
 
   ![1610636348781](img\Seata的分布式事务解决方案.png)
-
 - demo
 
   - 配置
 
   ```properties
   ## ============ registry.conf start ============ 
-  
+
   registry {
     # file 、nacos 、eureka、redis、zk、consul、etcd3、sofa
     type = "nacos"   #  类型修改为nacos
     loadBalance = "RandomLoadBalance"
     loadBalanceVirtualNodes = 10
-  
+
     nacos {
       application = "seata-server"
       serverAddr = "192.168.1.170:8848"  ## nacos配置响应调整
@@ -2355,11 +2320,11 @@ Nacos配置json详解
       username = ""
       password = ""
     }
-    
+
     ## ============ registry.conf end  ============ 
-    
+
     ## ============ file.conf start  ==============
-    
+
     # transaction log store, only used in seata-server
   # service 1.0后好像没有了，是自己补上的，好像是迁移到yml里面了？
   service {
@@ -2371,7 +2336,7 @@ Nacos配置json详解
     #disable seata
     disableGlobalTransaction = false
   }
-  
+
   store {
     ## store mode: file、db、redis
     mode = "db" # 修改为db，并响应的更改db内容
@@ -2392,7 +2357,7 @@ Nacos配置json详解
       # async, sync
       flushDiskMode = async
     }
-  
+
     ## database store property
     db {
       ## the implement of javax.sql.DataSource, such as DruidDataSource(druid)/BasicDataSource(dbcp)/HikariDataSource(hikari) etc.
@@ -2412,7 +2377,7 @@ Nacos配置json详解
       queryLimit = 100
       maxWait = 5000
     }
-    
+
     ## ============ file.conf end  ==============
   ```
 
@@ -2423,7 +2388,6 @@ Nacos配置json详解
       ```
       @SpringBootApplication(exclude = DataSourceAutoConfiguration.class)
       ```
-
     - Seata数据源代理
 
       ```java
@@ -2434,21 +2398,21 @@ Nacos配置json详解
        */
       @Configuration
       public class DataSourceProxyConfig {
-      
+
           @Value("${mybatis.mapperLocations}")
           private String mapperLocations;
-      
+
           @Bean
           @ConfigurationProperties(prefix = "spring.datasource")
           public DataSource druidDataSource(){
               return new DruidDataSource();
           }
-      
+
           @Bean
           public DataSourceProxy dataSourceProxy(DataSource dataSource) {
               return new DataSourceProxy(dataSource);
           }
-      
+
           @Bean
           public SqlSessionFactory sqlSessionFactoryBean(DataSourceProxy dataSourceProxy) throws Exception {
               SqlSessionFactoryBean sqlSessionFactoryBean = new SqlSessionFactoryBean();
@@ -2458,13 +2422,11 @@ Nacos配置json详解
               return sqlSessionFactoryBean.getObject();
           }
       ```
-
     - 主业务类 @GlobalTransactional，加上注解，配合配置文件，就可以实现
 
       ```java
       @GlobalTransactional(name = "fsp-create-order",rollbackFor = Exception.class)
       ```
-
   - pom
 
   ```xml
@@ -2491,7 +2453,6 @@ Nacos配置json详解
     ```shell
     docker run -itd --name seata03 -p 8091:8091 -h 192.168.1.170 docker.io/seataio/seata-server
     ```
-
 - 分布式事务的执行流程
 
   - TM开启分布式事务(TM向TC注册全局事务记录)
@@ -2499,30 +2460,23 @@ Nacos配置json详解
   - TM结束分布式事务，事务一阶段结束（TM通知TC提交/回滚分布式事务）
   - TC汇总事务信息，决定分布式事务是提交还是回滚(当所有微服务都反馈正常，就可提交)
   - TC通知所有RM提交/回滚资源，事务二阶段结束。
-
 - AT模式如何做到对业务的无侵入
 
   - 是什么
 
     ![1610726979181](img\Seata的AT模式介绍.png)
-
   - 一阶段加载
 
     ![1610727042307](img\Seata的AT模式之一阶段加载.png)
-
   - 二阶段提交
 
     ![1610727084709](img\Seata的AT模式之二阶段提交.png)
-
   - 三阶段回滚
 
     ![1610727127492](img\Seata的AT模式之三阶段回滚.png)
-
   - Seata的AT模式执行过程
 
 ![1610727172507](img\Seata的AT模式执行过程.png)
-
-
 
 #### 5.3.1 Seata源码
 
@@ -2550,7 +2504,7 @@ GlobalTransactionalInterceptor.invoke(final MethodInvocation methodInvocation) {
         }
         return methodInvocation.proceed();
 }
-    
+  
 // 2. 执行
 TransactionalTemplate.execute(TransactionalExecutor business) {
    	 beginTransaction(txInfo, tx);
@@ -2566,7 +2520,7 @@ TransactionalTemplate.execute(TransactionalExecutor business) {
         }
 
         // 4. everything is fine, commit.
-    	
+  
         commitTransaction(tx);
 
         return rs;
@@ -2602,7 +2556,7 @@ DefaultTransactionManager.commit(String xid) throws TransactionException {
     return response.getGlobalStatus();
 }
 
-// 5. 使用Netty（TmNettyRemotingClient）请求seata客户端，注册全局事务	
+// 5. 使用Netty（TmNettyRemotingClient）请求seata客户端，注册全局事务
 DefaultTransactionManager.syncCall(AbstractTransactionRequest request) throws TransactionException {
         try {
             return (AbstractTransactionResponse) TmNettyRemotingClient.getInstance().sendSyncRequest(request);
@@ -2612,9 +2566,15 @@ DefaultTransactionManager.syncCall(AbstractTransactionRequest request) throws Tr
     }
 ```
 
-
-
 2. 客户端
+
+### 5.4 Quick BI
+
+Quick BI——阿里云旗下产品，大数据的高效分析与展现平台。通过对数据源的连接，和数据集的创建，可对数据进行即时分析与查询。并通过电子表格或仪表板功能，以拖拽的方式进行数据的可视化呈现。
+
+### 5.5 阿里云产品
+
+![1659182506820](img/阿里云产品.png )
 
 ## 6. 分布式事务
 
@@ -2626,51 +2586,49 @@ https://zhuanlan.zhihu.com/p/183753774
 
 > **阶段一：协调者发送事务请求，等待预提交结果**
 
-a) 协调者向所有参与者发送事务内容，询问是否可以提交事务，并等待答复。 
+a) 协调者向所有参与者发送事务内容，询问是否可以提交事务，并等待答复。
 
-b) 各参与者执行事务操作，将 undo 和 redo 信息记入事务日志中（但不提交事务）。 
+b) 各参与者执行事务操作，将 undo 和 redo 信息记入事务日志中（但不提交事务）。
 
-c) 如参与者执行成功，给协调者反馈 yes，否则反馈 no。 
+c) 如参与者执行成功，给协调者反馈 yes，否则反馈 no。
 
->  **阶段二：协调者根据全部结果，决定发送commit/rollback通知** 
+> **阶段二：协调者根据全部结果，决定发送commit/rollback通知**
 
-如果协调者收到了参与者的失败消息或者超时，直接给每个参与者发送回滚(rollback)消息；否则， 
+如果协调者收到了参与者的失败消息或者超时，直接给每个参与者发送回滚(rollback)消息；否则，
 
-发送提交(commit)消息。两种情况处理如下： 
+发送提交(commit)消息。两种情况处理如下：
 
-- 情况1：当所有参与者均反馈 yes，提交事务 
+- 情况1：当所有参与者均反馈 yes，提交事务
 
-  a) 协调者向所有参与者发出正式提交事务的请求（即 commit 请求）。 
+  a) 协调者向所有参与者发出正式提交事务的请求（即 commit 请求）。
 
-  b) 参与者执行 commit 请求，并释放整个事务期间占用的资源。 
+  b) 参与者执行 commit 请求，并释放整个事务期间占用的资源。
 
-  c) 各参与者向协调者反馈 ack(应答)完成的消息。 
+  c) 各参与者向协调者反馈 ack(应答)完成的消息。
 
-  d) 协调者收到所有参与者反馈的 ack 消息后，即完成事务提交。 
+  d) 协调者收到所有参与者反馈的 ack 消息后，即完成事务提交。
+- 情况2：当有一个参与者反馈 no，回滚事务
 
-- 情况2：当有一个参与者反馈 no，回滚事务 
+  a) 协调者向所有参与者发出回滚请求（即 rollback 请求）。
 
-  a) 协调者向所有参与者发出回滚请求（即 rollback 请求）。 
+  b) 参与者使用阶段 1 中的 undo 信息执行回滚操作，并释放整个事务期间占用的资源。
 
-  b) 参与者使用阶段 1 中的 undo 信息执行回滚操作，并释放整个事务期间占用的资源。 
-
-  c) 各参与者向协调者反馈 ack 完成的消息。 
+  c) 各参与者向协调者反馈 ack 完成的消息。
 
   d) 协调者收到所有参与者反馈的 ack 消息后，即完成事务。
 
-> **2PC存在的问题** 
+> **2PC存在的问题**
 
-1**) 性能问题**：所有**参与者在事务提交阶段处于同步阻塞状态**，占用系统资源，容易导致性能瓶颈。 
+1**) 性能问题**：所有**参与者在事务提交阶段处于同步阻塞状态**，占用系统资源，容易导致性能瓶颈。
 
-2) **可靠性问题**：如果协调者存在单点故障问题，或出现故障，提供者将一直处于**锁定状态**。 
+2) **可靠性问题**：如果协调者存在单点故障问题，或出现故障，提供者将一直处于**锁定状态**。
+3) 数据**一致性**问题：在阶段 2 中，如果出现协调者和参与者都挂了的情况，有可能导致数据不一
 
-3) 数据**一致性**问题：在阶段 2 中，如果出现协调者和参与者都挂了的情况，有可能导致数据不一 
+致。
 
-致。 
+优点：**尽量**保证了数据的强一致，适合对数据强一致要求很高的关键领域。（其实也不能100%保证
 
-优点：**尽量**保证了数据的强一致，适合对数据强一致要求很高的关键领域。（其实也不能100%保证 
-
-强一致）。 
+强一致）。
 
 缺点：实现复杂，**牺牲了可用性，对性能影响较大**，不适合高并发高性能场景。
 
@@ -2680,63 +2638,61 @@ c) 如参与者执行成功，给协调者反馈 yes，否则反馈 no。
 
 三阶段提交是在二阶段提交上的改进版本，**3PC最关键要解决的就是协调者和参与者同时挂掉的问题**，所以3PC把2PC的准备阶段(阶段一)再次一分为二，这样三阶段提交。
 
->  **阶段一：参与者cancommit信号**
+> **阶段一：参与者cancommit信号**
 
-a) 协调者向所有参与者发出包含事务内容的 canCommit 请求，询问是否可以提交事务，并等待所有参与者答复。 
+a) 协调者向所有参与者发出包含事务内容的 canCommit 请求，询问是否可以提交事务，并等待所有参与者答复。
 
-b) 参与者收到 canCommit 请求后，如果认为可以执行事务操作，则反馈 yes 并进入预备状态，否则反馈 no。 
+b) 参与者收到 canCommit 请求后，如果认为可以执行事务操作，则反馈 yes 并进入预备状态，否则反馈 no。
 
->  **阶段二：参与者resubmit信号 **
+> **阶段二：参与者resubmit信号 **
 
-协调者根据参与者响应情况，有以下两种可能。 
+协调者根据参与者响应情况，有以下两种可能。
 
-- 情况1：所有参与者均反馈 yes，协调者预执行事务 
+- 情况1：所有参与者均反馈 yes，协调者预执行事务
 
-  a) 协调者向所有参与者发出 preCommit 请求，进入准备阶段。 
+  a) 协调者向所有参与者发出 preCommit 请求，进入准备阶段。
 
-  b) 参与者收到 preCommit 请求后，执行事务操作，将 undo 和 redo 信息记入事务日志中（但不提交事务）。 
+  b) 参与者收到 preCommit 请求后，执行事务操作，将 undo 和 redo 信息记入事务日志中（但不提交事务）。
 
-  c) 各参与者向协调者反馈 ack 响应或 no 响应，并等待最终指令。 
+  c) 各参与者向协调者反馈 ack 响应或 no 响应，并等待最终指令。
+- 情况2：只要有一个参与者反馈 no，或者等待超时后协调者尚无法收到所有提供者的反馈，即中断事务
 
-- 情况2：只要有一个参与者反馈 no，或者等待超时后协调者尚无法收到所有提供者的反馈，即中断事务 
+  a) 协调者向所有参与者发出 abort 请求。
 
-  a) 协调者向所有参与者发出 abort 请求。 
-
-  b) 无论收到协调者发出的 abort 请求，或者在等待协调者请求过程中出现超时，参与者均会中断事务。 
+  b) 无论收到协调者发出的 abort 请求，或者在等待协调者请求过程中出现超时，参与者均会中断事务。
 
 > **阶段三：通知参与者commit **
 
-**该阶段进行真正的事务提交**，也可以分为以下两种情况。 
+**该阶段进行真正的事务提交**，也可以分为以下两种情况。
 
-- 情况 1：所有参与者均反馈 ack 响应，执行真正的事务提交 
+- 情况 1：所有参与者均反馈 ack 响应，执行真正的事务提交
 
-  a) 如果协调者处于工作状态，则向所有参与者发出 do Commit 请求。 
+  a) 如果协调者处于工作状态，则向所有参与者发出 do Commit 请求。
 
-  b) 参与者收到 do Commit 请求后，会正式执行事务提交，并释放整个事务期间占用的资源。 
+  b) 参与者收到 do Commit 请求后，会正式执行事务提交，并释放整个事务期间占用的资源。
 
-  c) 各参与者向协调者反馈 ack 完成的消息。 
+  c) 各参与者向协调者反馈 ack 完成的消息。
 
-  d) 协调者收到所有参与者反馈的 ack 消息后，即完成事务提交。 
+  d) 协调者收到所有参与者反馈的 ack 消息后，即完成事务提交。
+- 情况2：只要有一个参与者反馈 no，或者等待超时后协调组尚无法收到所有提供者的反馈，即回滚事务。 -
 
-- 情况2：只要有一个参与者反馈 no，或者等待超时后协调组尚无法收到所有提供者的反馈，即回滚事务。 - 
+  a) 如果协调者处于工作状态，向所有参与者发出 rollback 请求。
 
-  a) 如果协调者处于工作状态，向所有参与者发出 rollback 请求。 
+  b) 参与者使用阶段 1 中的 undo 信息执行回滚操作，并释放整个事务期间占用的资源。
 
-  b) 参与者使用阶段 1 中的 undo 信息执行回滚操作，并释放整个事务期间占用的资源。 
+  c) 各参与者向协调组反馈 ack 完成的消息。
 
-  c) 各参与者向协调组反馈 ack 完成的消息。 
+  d) 协调组收到所有参与者反馈的 ack 消息后，即完成事务回滚。
 
-  d) 协调组收到所有参与者反馈的 ack 消息后，即完成事务回滚。 
+优点：相比二阶段提交，三阶段提交降低了阻塞范围，在等待超时后协调者或参与者会中断事务。避免了协调者单点问题。阶段 3 中协调者出现问题时，参与者会继续提交事务。
 
-优点：相比二阶段提交，三阶段提交降低了阻塞范围，在等待超时后协调者或参与者会中断事务。避免了协调者单点问题。阶段 3 中协调者出现问题时，参与者会继续提交事务。 
-
-缺点：**数据不一致问题**依然存在，当在参与者收到 preCommit 请求后等待 do commite 指令时，此时如果协调者请求中断事务，而协调者无法与参与者正常通信，会导致参与者继续提交事务，造成数据不一致。 
+缺点：**数据不一致问题**依然存在，当在参与者收到 preCommit 请求后等待 do commite 指令时，此时如果协调者请求中断事务，而协调者无法与参与者正常通信，会导致参与者继续提交事务，造成数据不一致。
 
 ### 6.3 TCC（补偿事务）
 
 ![1623631428137](img\分布式事务方案-TCC.png)
 
-`Try - Confirm - Cancel` 
+`Try - Confirm - Cancel`
 
 是一种补偿性事务思想，适用的范围更广，在业务层面实现，**因此对业务的侵入性较大，每一个操作都需要实现对应的三个方法。**
 
@@ -2748,19 +2704,19 @@ TCC分为三个阶段：
 4. TM事务管理器
    TM事务管理器可以实现为独立的服务，也可以让**全局事务发起方**充当TM的角色，TM独立出来是为了成为公用组件，是为了考虑系统结构和软件复用。
 
-　　TM在发起全局事务时生成全局事务记录，**全局事务ID贯穿整个分布式事务调用链条**，用来记录事务上下文，追踪和记录状态，由于Confirm 和cancel失败需进行重试，因此需要实现为幂等，幂等性是指同一个操作无论请求多少次，其结果都相同。 
+　　TM在发起全局事务时生成全局事务记录，**全局事务ID贯穿整个分布式事务调用链条**，用来记录事务上下文，追踪和记录状态，由于Confirm 和cancel失败需进行重试，因此需要实现为幂等，幂等性是指同一个操作无论请求多少次，其结果都相同。
 
->  **优点：** 
+> **优点：**
 
-**性能提升**：具体业务来实现控制资源**锁的粒度变小**，不会锁定整个资源。 
+**性能提升**：具体业务来实现控制资源**锁的粒度变小**，不会锁定整个资源。
 
-**数据最终一致性：**基于 Confifirm 和 Cancel 的**幂等性**，保证事务最终完成确认或者取消，保证**数据的一致性**。 
+**数据最终一致性：**基于 Confifirm 和 Cancel 的**幂等性**，保证事务最终完成确认或者取消，保证**数据的一致性**。
 
-**可靠性**：解决了 XA 协议的协调者单点故障问题，由**主业务方发起并控制整个业务活动**，业务活动管理器也变成多点，引入集群。 
+**可靠性**：解决了 XA 协议的协调者单点故障问题，由**主业务方发起并控制整个业务活动**，业务活动管理器也变成多点，引入集群。
 
->  **缺点：**
+> **缺点：**
 
-TCC 的 Try、Confifirm 和 Cancel 操作功能要按具体业务来实现，**业务耦合度较高，提高了开发成本**。 
+TCC 的 Try、Confifirm 和 Cancel 操作功能要按具体业务来实现，**业务耦合度较高，提高了开发成本**。
 
 ### 6.4 **本地消息表MQ**
 
@@ -2770,18 +2726,16 @@ TCC 的 Try、Confifirm 和 Cancel 操作功能要按具体业务来实现，**�
 
 本地消息表顾名思义就是会有一张存放本地消息的表，一般都是放在数据库中，然后在执行业务的时候 **将业务的执行和将消息放入消息表中的操作放在同一个事务中**，这样就能保证消息放入本地表中业务肯定是执行成功的。
 
-可以看到本地消息表其实实现的是**最终一致性**，容忍了数据暂时不一致的情况。 
+可以看到本地消息表其实实现的是**最终一致性**，容忍了数据暂时不一致的情况。
 
-### 6.5 **Seata** 
+### 6.5 **Seata**
 
-### 6.6 Sagas事务模型 
+### 6.6 Sagas事务模型
 
 ### 6.6 LCN介绍
 
 官方宣称：**LCN并不生产事务，LCN只是本地事务的协调工**。
  TX-LCN定位于一款事务协调性框架，框架其本身并不操作事务，而是基于对事务的协调从而达到事务一致性的效果。
-
-
 
 ## 7. Spring Security + JWT/OAuth2.0
 
@@ -2789,7 +2743,7 @@ Spring Security可以用来做一些用户角色权限(可访问的路径)控制
 
 JWT/OAuth用来做身份(登录)验证（Token）
 
-### 7.1 Spring Security 权限管理 
+### 7.1 Spring Security 权限管理
 
 Spring Security本质是一个过滤器链，两大核心(也是Web安全的2核心)：认证和授权
 
@@ -3058,33 +3012,29 @@ public class UserDetailServiceImpl implements UserDetailsService {
 
 - 注解权限控制
 
-1. **@Secured**  ：判断是否具有角色，另外需要注意的是这里匹配的字符串需要添加前缀“ROLE_“。 
+1. **@Secured**  ：判断是否具有角色，另外需要注意的是这里匹配的字符串需要添加前缀“ROLE_“。
 
-   使用注解先要开启注解功能！ @EnableGlobalMethodSecurity(securedEnabled=true) 
-
+   使用注解先要开启注解功能！ @EnableGlobalMethodSecurity(securedEnabled=true)
 2. **@PreAuthorize ：**
 
-   先开启注解功能： 
+   先开启注解功能：
 
-   @EnableGlobalMethodSecurity(prePostEnabled = true) 
+   @EnableGlobalMethodSecurity(prePostEnabled = true)
 
-   @PreAuthorize：注解适合进入方法前的权限验证， @PreAuthorize 可以将登录用 
+   @PreAuthorize：注解适合进入方法前的权限验证， @PreAuthorize 可以将登录用
 
    户的 roles/permissions 参数传到方法中。
+3. **@PostAuthorize**
 
-3. **@PostAuthorize** 
+   先开启注解功能：
 
-   先开启注解功能：  
-
-   @EnableGlobalMethodSecurity(prePostEnabled = true) 
+   @EnableGlobalMethodSecurity(prePostEnabled = true)
 
    @PostAuthorize 注解使用并不多，在方法执行后再进行权限验证，适合验证带有返回值的权限
-
-4. **@PostFilter** 
+4. **@PostFilter**
 
    @PostFilter ：权限验证之后对数据进行过滤 留下用户名是 admin1 的数据表达式中的 filterObject 引用的是方法返回值 List 中的某一个元素
-
-5. **@PreFilter** 
+5. **@PreFilter**
 
    @PreFilter: 进入控制器之前对数据进行过滤
 
@@ -3109,7 +3059,7 @@ JWT 全称 **JSON Web Token**。本质上 JWT 是一串 token 字符串。客户
   - alg：代表的是**加密所使用的算法**
   - typ：表示该 token 是什么类型的。这里 typ 自然是 JWT
 
-  一个完整的 header 信息。最后使用 Base64 对 header 进行编码，得到 JWT 的第一部分 
+  一个完整的 header 信息。最后使用 Base64 对 header 进行编码，得到 JWT 的第一部分
 
   ```txt
   {
@@ -3117,21 +3067,20 @@ JWT 全称 **JSON Web Token**。本质上 JWT 是一串 token 字符串。客户
       'typ':'JWT'
   }
   ```
-
 - **payload**：
 
-   payload 是 JWT 存储信息的部分。payload 也是一个 json 数据，每一个 json 的 key-value 称为一个声明。
+  payload 是 JWT 存储信息的部分。payload 也是一个 json 数据，每一个 json 的 key-value 称为一个声明。
 
   payload 有两种类型的声明：标准声明和自定义声明。
 
   标准声明一共有 6 个，其名称和对应含义如下：
 
-  -  `iss` : JWT 的签发者。
-  -  `iat` : JWT 的签发时间，是一个 unix 时间戳。
-  -  `exp` : JWT 的过期时间，是一个 unxi 时间戳。
-  -  `aud` : 接受 JWT 的一方。
-  -  `sub` : JWT 所面向的用户。
-  -  `jti` : 唯一标识一个 JWT。
+  - `iss` : JWT 的签发者。
+  - `iat` : JWT 的签发时间，是一个 unix 时间戳。
+  - `exp` : JWT 的过期时间，是一个 unxi 时间戳。
+  - `aud` : 接受 JWT 的一方。
+  - `sub` : JWT 所面向的用户。
+  - `jti` : 唯一标识一个 JWT。
 
   自定义声明为用户自己定义的 key-value，可以用来存储一些简单的基本信息。考虑到性能，不应该在 payload 中定义太多自定义声明。
 
@@ -3145,7 +3094,7 @@ JWT 全称 **JSON Web Token**。本质上 JWT 是一串 token 字符串。客户
       "aud": "jaychen.cc",
       "sub": "chenjiayaooo@gmail.com",
       "jti:" "xxxxxxxx",
-  
+
       "user_id": "1",
       "username": "jaychen"
   }
@@ -3154,7 +3103,6 @@ JWT 全称 **JSON Web Token**。本质上 JWT 是一串 token 字符串。客户
   上面这个 payload 中，`id` 和 `username` 为自定义声明。
 
   有了 payload 只有，将该 payload 进行 Base64 加密，得到一串字符串之后，用 `.` 把 header 和 payload 连接起来。
-
 - **signature: 签名**
 
  将 header 和 payload 两个部分连接起来之后，得到的字符串类似下面 `xxxx.yyyy`
@@ -3163,7 +3111,7 @@ JWT 全称 **JSON Web Token**。本质上 JWT 是一串 token 字符串。客户
 
 **这里签名的目的是为了保证 payload 数据的完整性**。如果 JWT 在传输过程中被第三方劫持，中间人对  `header.payload` 进行修改，并且使用自己的密钥重新签名。服务端收到中间人修改过的 JWT，使用自己的密钥对 `header.payload` 进行再次加密，由于中间人和服务端使用的是不同的密钥签名，所以服务端再次加密的结果肯定和中间人加密的结果不一致，由此可以断定该 JWT 被恶意篡改。
 
->  基于 JWT 的身份验证的流程
+> 基于 JWT 的身份验证的流程
 
 现在已经明白了 JWT 的生成过程，现在来梳理下 JWT 的使用流程。
 
@@ -3209,7 +3157,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     @Override
     protected void configure(HttpSecurity httpSecurity) throws Exception {
         // 这里添加jwt过滤器，用来拦截所有请求，然后进行token校验
-    	httpSecurity.addFilterBefore(jwtAuthTokenFilter, 	
+    	httpSecurity.addFilterBefore(jwtAuthTokenFilter, 
                                      UsernamePasswordAuthenticationFilter.class);
     }
 }
@@ -3409,8 +3357,6 @@ public class JwtTokenUtils {
 - 2、扩展Jwt的验证功能，验证redis中是否存在数据，如果存在则token有效，否则无效
 - 3、实现removeAccessToken功能，在该方法内删除redis对应的key。
 
- 
-
 ### 7.3 OAuth2.0 身份认证
 
 > API
@@ -3442,8 +3388,6 @@ public class JwtTokenUtils {
 <!-- 来自：
 org.springframework.cloud:spring-cloud-dependencies-->
 ```
-
-
 
 #### 7.3.2 yml
 
@@ -3619,7 +3563,7 @@ public class ClientDetailsServiceImpl implements ClientDetailsService {
 }
 ```
 
-> 2.  UserDetailsService
+> 2. UserDetailsService
 
 ```java
 import com.codeman.blog0703.api.UserFeignClient;
@@ -3837,7 +3781,7 @@ public class AuthorizationServerConfig extends AuthorizationServerConfigurerAdap
 
 ```
 
-> 4.  Spring Security 访问路由限制，如果只有oauth应该不用吧
+> 4. Spring Security 访问路由限制，如果只有oauth应该不用吧
 
 ```java
 import lombok.extern.slf4j.Slf4j;
@@ -4080,7 +4024,7 @@ public class OAuthController {
 
 #### 7.3.5 步骤
 
->  -1.  测试
+> -1.  测试
 
 ```http
 http://localhost:9999/oauth/token?username=admin&password=123456&grant_type=password
@@ -4096,8 +4040,6 @@ new String(new BASE64Decoder().decodeBuffer("eW91bGFpLWFkbWluOjEyMzQ1Ng=="), "UT
  http://localhost:9999/api/user/1
  Header: Authorization = bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX25hbWUiOiJhZG1pbiIsInNjb3BlIjpbImFsbCJdLCJleHAiOjE2MjY1NzMwNTMsInVzZXJJZCI6MSwiYXV0aG9yaXRpZXMiOlsiUk9PVCIsIkFETUlOIl0sImp0aSI6IjBmMWI2OTY1LTc1YTItNDIxNC04M2U5LTQxMzdjZTQzZTc2YyIsImNsaWVudF9pZCI6InlvdWxhaS1hZG1pbiIsInVzZXJuYW1lIjoiYWRtaW4ifQ.C2jtBn09ATGPxv_6yFOb6iydmjIcI4FCjK_A-HNkgxANyQATwy2A7sxS_bAYMJYi5CYtQFFeVuTuQ2XDMq2aIaRUXxYLW655ys05YoxBY4xAwaCluDsharGTvtvgcwziKREYMnUI2rgVs2UuLpoPrdmt9FPj7UGLSLyvU1J5iQKGGzf4R_zCkYvQBwYcFjCN3pixlmZvSQbKLMWlE6tnXiIGMcg-5ky70GPkGm729QdqMybGFyS3jSuaG0pwq2yV98GsyQg9ZuFU-LVQJRqGkB9YkJ8NAFgcZb87XYI9YpkZj8WKqgY0h7smljfaMGIjk9L5FKKn7M2u-d17YF_bNw
 ```
-
-
 
 > 0. Security放行
 
@@ -4353,8 +4295,3 @@ public class ShiroRealm extends AuthorizingRealm {
 }
 
 ```
-
-
-
-
-
