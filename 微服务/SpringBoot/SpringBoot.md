@@ -466,7 +466,7 @@ abstract class AbstractBeanFactory {
 				else {
 					String scopeName = mbd.getScope();
 					final Scope scope = this.scopes.get(scopeName);
-			
+		
 					}
 					try {
                         // 先从Scope中获取，获取不到也走createBean逻辑
@@ -1173,7 +1173,7 @@ public class GlobalExceptionHandler {
   3.暴露代理,然后获取当前的代理对象
   @EnableAspectJAutoProxy(exposeProxy = true)((ClassA)AopContext.currentProxy()).methodA();
 
-## 9. Serializable 
+## 9. Serializable
 
 对响应的数据(JSON)进行处理，比如null值不展示，可以减少数据传输
 
@@ -1190,3 +1190,9 @@ spring:
   jackson:
     default-property-inclusion: non_null
 ```
+
+## 10. 分布式事务 
+
+https://mp.weixin.qq.com/s/o9zmnYP579MbBlsIlewX_A
+
+（JTA+Atomic+多数据源）

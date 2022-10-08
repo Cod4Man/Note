@@ -22,6 +22,48 @@
 ### 1.4 system
 
 * maven scope非compile范围的依赖是不能传递的。所以system 引用的jar不会被传递
+* 引入自定义jar
+
+```xml
+<!--dependencies部分-->
+<dependencies>
+    <!--按如下方式引入每一个第三方的jar包，其中${project.basedir}指当前项目的根目录-->
+    <dependency>
+        <groupId>com.test</groupId>
+        <artifactId>test</artifactId>
+        <scope>system</scope>
+        <version>1.0</version>
+        <systemPath>${project.basedir}/src/main/resources/lib/test.jar</systemPath>
+    </dependency>
+</dependencies>
+ 
+<!--如果是打jar包，则需在build的plugins中添加如下配置-->
+<plugin>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-maven-plugin</artifactId>
+    <configuration>
+        <!--值为true是指打包时包含scope为system的第三方Jar包-->
+        <includeSystemScope>true</includeSystemScope>
+    </configuration>
+</plugin>
+ 
+<!--如果是打war包，则需在build的plugins中设置maven-war-plugin插件，否则外部依赖无法打进war包 -->
+<plugin>
+    <groupId>org.apache.maven.plugins</groupId>
+    <artifactId>maven-war-plugin</artifactId>
+    <configuration>
+        <webResources>
+            <resource>
+                <directory>src/main/resources/lib</directory>
+                <targetPath>WEB-INF/lib/</targetPath>
+                <includes>
+                    <include>**/*.jar</include>
+                </includes>
+            </resource>
+        </webResources>
+    </configuration>
+</plugin>
+```
 
 ## 2. 依赖的原则（jar冲突）
 

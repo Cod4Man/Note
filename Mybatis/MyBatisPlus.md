@@ -520,6 +520,59 @@ param = this.method.convertArgsToSqlCommandParam(args);
 }
 ```
 
+### 8.3 分页实际是内存分页
+
+MP的分页用的是Mybatis的分页，而**Mybatis 使用** **RowBounds** **对象进行分页，它是针对 ResultSet 结果集执行的内存分页，而非物理分页。可以在 sql 内直接书写带有物理分页的参数来完成物理分页功能，也可以使用分页插件来完成物理分页。下面看看Mybatis的如何进行分页**分页是内存分页，即将全部结果查询出来后再进行分
+
+```java
+public class DefaultResultSetHandler implements ResultSetHandler {
+	private void handleRowValuesForNestedResultMap(ResultSetWrapper rsw, ResultMap resultMap, ResultHandler<?> resultHandler, RowBounds rowBounds, ResultMapping parentMapping) throws SQLException {
+		final DefaultResultContext<Object> resultContext = new DefaultResultContext<>();
+    		ResultSet resultSet = rsw.getResultSet();
+    		skipRows(resultSet, rowBounds);
+	}
+
+	private void skipRows(ResultSet rs, RowBounds rowBounds) throws SQLException {
+    		if (rs.getType() != ResultSet.TYPE_FORWARD_ONLY) {
+      			if (rowBounds.getOffset() != RowBounds.NO_ROW_OFFSET) {
+        			rs.absolute(rowBounds.getOffset());
+      			}
+    		} else {
+     			 for (int i = 0; i < rowBounds.getOffset(); i++) {
+     			   if (!rs.next()) {
+         			 break;
+       				 }
+      			}
+    		}
+  	}
+}
+```
+
+- 借助分页插件实现物理分页
+
+```java
+@Configuration
+public class MybatisPlusConfig {
+
+	@Bean
+	public PaginationInterceptor paginationInterceptor() {
+		// 设置sql的limit为无限制，默认是500
+		return new PaginationInterceptor().setLimit(-1);
+	}
+}
+
+//==>  Preparing: SELECT COUNT(1) FROM blog 
+//==> Parameters: 
+//<==    Columns: COUNT(1)
+//<==        Row: 11
+//==>  Preparing: SELECT id,title,content FROM blog LIMIT ?,? 
+//==> Parameters: 2(Long), 2(Long)
+//<==    Columns: id, title, content
+//<==        Row: 4, 4, 4
+//<==        Row: 5, 4, 4
+//<==      Total: 2
+```
+
 ## 9. 逻辑删除
 
 ### 9.1 模型字段
